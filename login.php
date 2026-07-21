@@ -1,0 +1,283 @@
+<?php
+/**
+ * SkillBridge - Multi-Role Login Handler
+ * Premium SaaS UI (Linear / Clerk / Vercel style) with ambient glow & interactive role selection.
+ * Preserves 100% of existing PDO database authentication logic & session management.
+ */
+require_once __DIR__ . '/config/config.php';
+require_once __DIR__ . '/config/database.php';
+require_once __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/includes/functions.php';
+require_once __DIR__ . '/includes/validators.php';
+
+if (is_logged_in()) {
+    $role = $_SESSION['user_role'] ?? 'student';
+    match ($role) {
+        'student' => redirect(BASE_URL . 'student/dashboard.php'),
+        'faculty' => redirect(BASE_URL . 'faculty/dashboard.php'),
+        'admin'   => redirect(BASE_URL . 'admin/dashboard.php'),
+        default   => null
+    };
+}
+
+$error = '';
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
+    if (!verify_csrf_token()) {
+        $error = 'Invalid CSRF security token. Please try again.';
+    } else {
+        $loginInput = trim($_POST['login_input'] ?? '');
+        $password = $_POST['password'] ?? '';
+        $remember = isset($_POST['remember_me']);
+
+        if (empty($loginInput) || empty($password)) {
+            $error = 'Please enter both your email/username and password.';
+        } else {
+            $db = Database::getInstance();
+            $user = $db->fetch("SELECT * FROM users WHERE email = ? OR username = ?", [$loginInput, $loginInput]);
+
+            if ($user && password_verify($password, $user['password'])) {
+                login_user($user, $remember);
+                set_flash_message('success', "Welcome back, " . htmlspecialchars($_SESSION['full_name'] ?? $user['username']) . "!");
+                
+                match ($user['role']) {
+                    'student' => redirect(BASE_URL . 'student/dashboard.php'),
+                    'faculty' => redirect(BASE_URL . 'faculty/dashboard.php'),
+                    'admin'   => redirect(BASE_URL . 'admin/dashboard.php'),
+                    default   => redirect(BASE_URL . 'index.php')
+                };
+            } else {
+                $error = 'Invalid email/username or password. Please try again.';
+            }
+        }
+    }
+}
+
+$pageTitle = "Sign In – SkillBridge";
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?= htmlspecialchars($pageTitle) ?></title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="<?= BASE_URL ?>assets/css/style.css" rel="stylesheet">
+</head>
+<body class="login-page-body">
+
+  <!-- Ambient Background Orbs -->
+  <div class="auth-ambient-glow-1"></div>
+  <div class="auth-ambient-glow-2"></div>
+
+  <!-- Floating Technology Background Icons (Parallax Animation) -->
+  <div class="tech-bg-container" aria-hidden="true">
+    <div class="tech-icon-wrap" style="top: 6%; left: 4%; animation-duration: 18s;">
+      <i class="tech-icon fa-brands fa-html5" style="--brand-color: #E34F26; font-size: 3.2rem;"></i>
+    </div>
+    <div class="tech-icon-wrap" style="top: 22%; left: 12%; animation-duration: 24s; animation-delay: -3s;">
+      <i class="tech-icon fa-brands fa-python" style="--brand-color: #3776AB; font-size: 3.5rem;"></i>
+    </div>
+    <div class="tech-icon-wrap" style="top: 8%; left: 22%; animation-duration: 20s; animation-delay: -7s;">
+      <i class="tech-icon fa-brands fa-react" style="--brand-color: #61DAFB; font-size: 3.4rem;"></i>
+    </div>
+    <div class="tech-icon-wrap" style="top: 35%; left: 5%; animation-duration: 22s; animation-delay: -2s;">
+      <i class="tech-icon fa-brands fa-node-js" style="--brand-color: #339933; font-size: 2.9rem;"></i>
+    </div>
+    <div class="tech-icon-wrap" style="top: 48%; left: 14%; animation-duration: 19s; animation-delay: -11s;">
+      <i class="tech-icon fa-brands fa-docker" style="--brand-color: #2496ED; font-size: 3.1rem;"></i>
+    </div>
+    <div class="tech-icon-wrap" style="top: 15%; left: 32%; animation-duration: 26s; animation-delay: -5s;">
+      <i class="tech-icon fa-brands fa-angular" style="--brand-color: #DD0031; font-size: 3.0rem;"></i>
+    </div>
+    <div class="tech-icon-wrap" style="top: 64%; left: 6%; animation-duration: 23s; animation-delay: -4s;">
+      <i class="tech-icon fa-brands fa-square-js" style="--brand-color: #F7DF1E; font-size: 3.2rem;"></i>
+    </div>
+    <div class="tech-icon-wrap" style="top: 60%; left: 24%; animation-duration: 20s; animation-delay: -6s;">
+      <i class="tech-icon fa-solid fa-brain" style="--brand-color: #8E75FF; font-size: 3.4rem;"></i>
+    </div>
+    <div class="tech-icon-wrap" style="top: 5%; left: 68%; animation-duration: 21s; animation-delay: -2s;">
+      <i class="tech-icon fa-brands fa-css3-alt" style="--brand-color: #1572B6; font-size: 3.3rem;"></i>
+    </div>
+    <div class="tech-icon-wrap" style="top: 18%; left: 82%; animation-duration: 25s; animation-delay: -9s;">
+      <i class="tech-icon fa-brands fa-java" style="--brand-color: #ED8B00; font-size: 3.1rem;"></i>
+    </div>
+    <div class="tech-icon-wrap" style="top: 28%; left: 88%; animation-duration: 20s; animation-delay: -6s;">
+      <i class="tech-icon fa-brands fa-php" style="--brand-color: #777BB4; font-size: 3.0rem;"></i>
+    </div>
+    <div class="tech-icon-wrap" style="top: 62%; left: 75%; animation-duration: 22s; animation-delay: -8s;">
+      <i class="tech-icon fa-brands fa-laravel" style="--brand-color: #FF2D20; font-size: 3.1rem;"></i>
+    </div>
+    <div class="tech-icon-wrap" style="top: 76%; left: 86%; animation-duration: 18s; animation-delay: -3s;">
+      <i class="tech-icon fa-brands fa-aws" style="--brand-color: #FF9900; font-size: 3.3rem;"></i>
+    </div>
+    <div class="tech-icon-wrap" style="top: 92%; left: 48%; animation-duration: 21s; animation-delay: -2s;">
+      <i class="tech-icon fa-solid fa-database" style="--brand-color: #4479A1; font-size: 2.8rem;"></i>
+    </div>
+  </div>
+
+  <!-- Main Centered SaaS Card Wrapper -->
+  <div class="auth-center-wrapper">
+    <div class="auth-card-modern">
+      
+      <!-- Welcome Header -->
+      <div class="text-center mb-4">
+        <a href="<?= BASE_URL ?>" class="d-inline-flex align-items-center gap-2.5 text-decoration-none mb-3">
+          <div class="rounded-3 p-2 d-flex align-items-center justify-content-center text-white shadow-sm" style="width:46px; height:46px; background: linear-gradient(135deg, #26658C, #021024);">
+            <i class="fa-solid fa-brain fs-4"></i>
+          </div>
+          <span class="fw-bold fs-3 text-dark" style="font-family: 'Outfit', sans-serif; letter-spacing: -0.5px;">SkillBridge</span>
+        </a>
+        <h3 class="fw-bold text-dark mb-1" style="font-family: 'Outfit', sans-serif;">Welcome Back</h3>
+        <p class="text-muted small mb-0">Select your role and sign in to continue your learning journey.</p>
+      </div>
+
+      <!-- Segmented Control Role Selector -->
+      <div class="role-selector" id="roleSelector">
+        <button type="button" class="role-tab active" data-role="student" onclick="selectRole('student', this)">
+          <span>👨‍🎓</span>
+          <span>Student</span>
+        </button>
+        <button type="button" class="role-tab" data-role="faculty" onclick="selectRole('faculty', this)">
+          <span>👨‍🏫</span>
+          <span>Faculty</span>
+        </button>
+        <button type="button" class="role-tab" data-role="admin" onclick="selectRole('admin', this)">
+          <span>👨‍💼</span>
+          <span>Admin</span>
+        </button>
+      </div>
+
+      <!-- System Flash Alerts & Server Errors -->
+      <div id="alertContainer">
+        <?php if (!empty($error)): ?>
+          <div class="alert alert-danger py-2.5 px-3 small rounded-3 border-0 mb-4 d-flex align-items-center gap-2 shadow-xs">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <div><?= htmlspecialchars($error) ?></div>
+          </div>
+        <?php endif; ?>
+
+        <?php $flash = get_flash_message(); if ($flash): ?>
+          <div class="alert alert-<?= $flash['type'] ?> py-2.5 px-3 small rounded-3 border-0 mb-4 shadow-xs">
+            <?= htmlspecialchars($flash['message']) ?>
+          </div>
+        <?php endif; ?>
+      </div>
+
+      <!-- Authenticated Login Form -->
+      <form action="<?= BASE_URL ?>login.php" method="POST" autocomplete="off" id="loginForm" onsubmit="handleLoginSubmit(this)">
+        <?= csrf_field() ?>
+        
+        <!-- Email or Username Field -->
+        <div class="mb-3.5">
+          <label class="form-label small fw-semibold text-dark mb-1.5">Email Address or Username</label>
+          <div class="saas-input-group">
+            <i class="fa-solid fa-envelope saas-input-icon"></i>
+            <input type="text" name="login_input" class="form-control" placeholder="you@example.com or username" required autofocus value="<?= htmlspecialchars($_POST['login_input'] ?? '') ?>">
+          </div>
+        </div>
+
+        <!-- Password Field with Visibility Eye Toggle -->
+        <div class="mb-3.5">
+          <div class="d-flex justify-content-between align-items-center mb-1.5">
+            <label class="form-label small fw-semibold text-dark mb-0">Password</label>
+            <a href="<?= BASE_URL ?>forgot-password.php" class="small text-primary text-decoration-none fw-semibold">Forgot Password?</a>
+          </div>
+          <div class="saas-input-group">
+            <i class="fa-solid fa-lock saas-input-icon"></i>
+            <input type="password" name="password" id="passwordInput" class="form-control" placeholder="Enter your password" required style="padding-right: 44px;">
+            <button type="button" class="btn p-0 text-muted border-0 position-absolute end-0 me-3" id="togglePw" onclick="togglePasswordVisibility()" style="z-index: 5;" title="Toggle password visibility">
+              <i class="fa-solid fa-eye"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Remember Me Checkbox -->
+        <div class="d-flex align-items-center justify-content-between mb-4">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="remember_me" id="rememberMe">
+            <label class="form-check-input-label small text-muted" for="rememberMe">Remember me for 30 days</label>
+          </div>
+        </div>
+
+        <!-- Submit Button with Loading State -->
+        <button type="submit" id="submitBtn" class="btn btn-saas-primary w-100 py-2.5">
+          <i class="fa-solid fa-right-to-bracket me-1.5"></i> Sign In to SkillBridge
+        </button>
+      </form>
+
+      <!-- Footer Link -->
+      <div class="text-center mt-4 pt-3 border-top">
+        <p class="small text-muted mb-0">Don't have an account? <a href="<?= BASE_URL ?>register.php" class="text-primary fw-semibold text-decoration-none">Create Account</a></p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Toggle Password Visibility
+    function togglePasswordVisibility() {
+      const pwInput = document.getElementById('passwordInput');
+      const toggleBtn = document.getElementById('togglePw');
+      const icon = toggleBtn.querySelector('i');
+
+      if (pwInput.type === 'password') {
+        pwInput.type = 'text';
+        icon.className = 'fa-solid fa-eye-slash';
+      } else {
+        pwInput.type = 'password';
+        icon.className = 'fa-solid fa-eye';
+      }
+    }
+
+    // Role Tab Selector UI - Clears Validation Errors on Role Change
+    function selectRole(role, btnElement) {
+      document.querySelectorAll('.role-tab').forEach(tab => tab.classList.remove('active'));
+      btnElement.classList.add('active');
+
+      // 1. Immediately hide and clear error/success alerts
+      const alertContainer = document.getElementById('alertContainer');
+      if (alertContainer) {
+        alertContainer.innerHTML = '';
+      }
+      document.querySelectorAll('.alert').forEach(alert => {
+        alert.style.display = 'none';
+      });
+
+      // 2. Remove validation state highlights from form fields
+      document.querySelectorAll('.form-control').forEach(input => {
+        input.classList.remove('is-invalid', 'is-valid', 'border-danger');
+      });
+    }
+
+    // Form Submit Loading State & Anti-Double-Submit
+    function handleLoginSubmit(form) {
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i> Authenticating...';
+      return true;
+    }
+
+    // Parallax Effect for Background Tech Icons
+    let mouseX = 0, mouseY = 0;
+    let currentX = 0, currentY = 0;
+
+    document.addEventListener('mousemove', (e) => {
+      mouseX = (e.clientX - window.innerWidth / 2) * 0.025;
+      mouseY = (e.clientY - window.innerHeight / 2) * 0.025;
+    });
+
+    function animateParallax() {
+      currentX += (mouseX - currentX) * 0.05;
+      currentY += (mouseY - currentY) * 0.05;
+      const bg = document.querySelector('.tech-bg-container');
+      if (bg) {
+        bg.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
+      }
+      requestAnimationFrame(animateParallax);
+    }
+    requestAnimationFrame(animateParallax);
+  </script>
+</body>
+</html>
