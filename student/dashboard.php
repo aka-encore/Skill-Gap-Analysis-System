@@ -551,7 +551,7 @@ include __DIR__ . '/../includes/header.php';
   </div>
 
   <!-- Card 2: Completed Assessments -->
-  <div class="saas-stat-card success-card" style="cursor:pointer;" onclick="window.location.href='<?= BASE_URL ?>student/history.php'">
+  <div class="saas-stat-card success-card" style="cursor:pointer;" onclick="window.location.href='<?= BASE_URL ?>student/assessments.php#completed-assessments'">
     <div class="stat-card-header">
       <span class="stat-card-title">Completed Assessments</span>
       <div class="stat-icon-saas success-gradient">
@@ -569,7 +569,7 @@ include __DIR__ . '/../includes/header.php';
   </div>
 
   <!-- Card 3: Courses Completed -->
-  <div class="saas-stat-card warning-card" style="cursor:pointer;" onclick="window.location.href='<?= BASE_URL ?>student/recommendations.php'">
+  <div class="saas-stat-card warning-card" style="cursor:pointer;" onclick="window.location.href='<?= BASE_URL ?>student/recommendations.php#recommended-courses'">
     <div class="stat-card-header">
       <span class="stat-card-title">Courses Completed</span>
       <div class="stat-icon-saas warning-gradient">
@@ -587,7 +587,7 @@ include __DIR__ . '/../includes/header.php';
   </div>
 
   <!-- Card 4: Current Level -->
-  <div class="saas-stat-card accent-card">
+  <div class="saas-stat-card accent-card" style="cursor:pointer;" onclick="window.location.href='<?= BASE_URL ?>student/progress.php#skill-progress'">
     <div class="stat-card-header">
       <span class="stat-card-title">Current Level</span>
       <div class="stat-icon-saas accent-gradient">
@@ -616,7 +616,7 @@ include __DIR__ . '/../includes/header.php';
 </div>
 
 <!-- Main Section: Current Skills -->
-<div class="dashboard-grid">
+<div class="dashboard-grid" id="skills-section">
   <div class="saas-card animate-slideUp p-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
       <h3 class="fw-bold fs-5 mb-0" style="color: var(--text-heading);"><i class="fa-solid fa-chart-bar text-primary me-2"></i>Current Skills</h3>
@@ -654,7 +654,7 @@ include __DIR__ . '/../includes/header.php';
 </div>
 
 <!-- Recommended Courses Section -->
-<div class="saas-card animate-slideUp p-4 mb-4">
+<div class="saas-card animate-slideUp p-4 mb-4" id="recommended-courses">
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h3 class="fw-bold fs-5 mb-0" style="color: var(--text-heading);"><i class="fa-solid fa-graduation-cap text-warning me-2"></i>Recommended Courses</h3>
     <a href="<?= BASE_URL ?>student/recommendations.php" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-semibold">View All →</a>
@@ -681,7 +681,7 @@ include __DIR__ . '/../includes/header.php';
 <!-- Bottom Grid: Achievements + Activity Feed -->
 <div class="dashboard-grid-3">
   <!-- Achievements Card (Dynamic) -->
-  <div class="saas-card animate-slideUp p-4">
+  <div class="saas-card animate-slideUp p-4" id="achievements-section">
     <div class="d-flex justify-content-between align-items-center mb-3">
       <h3 class="fw-bold fs-5 mb-0" style="color: var(--text-heading);"><i class="fa-solid fa-trophy text-warning me-2"></i>Achievements</h3>
       <a href="<?= BASE_URL ?>student/profile.php" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-semibold">All →</a>
@@ -700,7 +700,7 @@ include __DIR__ . '/../includes/header.php';
   </div>
 
   <!-- Recent Activity Card (Dynamic Database Activity) -->
-  <div class="saas-card animate-slideUp p-4">
+  <div class="saas-card animate-slideUp p-4" id="recent-activity">
     <div class="d-flex justify-content-between align-items-center mb-3">
       <h3 class="fw-bold fs-5 mb-0" style="color: var(--text-heading);"><i class="fa-solid fa-clock-history text-info me-2"></i>Recent Activity</h3>
     </div>

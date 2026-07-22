@@ -73,13 +73,33 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+
+    // 4. Auto-Scroll & Highlight Target Section on Hash Navigation
+    function handleHashScroll() {
+        const hash = window.location.hash;
+        if (hash && hash.length > 1) {
+            try {
+                const targetEl = document.querySelector(hash);
+                if (targetEl) {
+                    setTimeout(() => {
+                        targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        targetEl.classList.add('section-target-highlight');
+                        setTimeout(() => targetEl.classList.remove('section-target-highlight'), 2500);
+                    }, 200);
+                }
+            } catch(e) {}
+        }
+    }
+    handleHashScroll();
+    window.addEventListener('hashchange', handleHashScroll);
 });
 
 /**
  * Mark all notifications as read via AJAX
  */
 function markAllNotificationsRead() {
-    fetch(window.location.origin + window.location.pathname.split('/')[1] ? '/' + window.location.pathname.split('/')[1] + '/api/notifications.php' : '/api/notifications.php', {
+    const endpoint = (typeof window.BASE_URL !== 'undefined') ? window.BASE_URL + 'api/notifications.php' : '/api/notifications.php';
+    fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: 'action=mark_all_read'

@@ -73,7 +73,7 @@ include __DIR__ . '/../includes/header.php';
 </div>
 
 <!-- Notifications Container -->
-<div id="notifPageListContainer">
+<div id="notifications-section">
     <?php if (empty($notifications)): ?>
         <div class="notif-empty-state visible card border-0 shadow-sm rounded-4 p-5 text-center my-4 bg-white">
             <div class="empty-icon-ring mx-auto mb-3" style="width: 80px; height: 80px; font-size: 2.2rem;">🔔</div>

@@ -250,54 +250,6 @@ $pageTitle = "SkillBridge – Skill Gap Analysis & Learning Management System";
       max-width: 660px;
     }
 
-    /* Floating Official Colored Tech Logos Background Composition */
-    .hero-tech-icons {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      top: 0;
-      left: 0;
-      pointer-events: none;
-      z-index: 1;
-      overflow: hidden;
-    }
-    .tech-icon-item {
-      position: absolute;
-      opacity: 0.24; /* 20-30% opacity as requested */
-      filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.08)) blur(0.2px);
-      animation: heroFloatRotate 8s ease-in-out infinite alternate;
-      transition: opacity var(--transition-base), transform var(--transition-base);
-    }
-    body.dark-mode .tech-icon-item {
-      opacity: 0.28;
-      filter: drop-shadow(0 4px 14px rgba(0, 0, 0, 0.4)) blur(0.2px);
-    }
-
-    /* Well spaced outer layout so icons never overlap hero title or buttons */
-    .tech-icon-1  { top: 8%;   left: 6%;   animation-delay: 0s;   font-size: 2.8rem; }
-    .tech-icon-2  { top: 12%;  left: 88%;  animation-delay: 1.2s; font-size: 2.6rem; }
-    .tech-icon-3  { top: 46%;  left: 3%;   animation-delay: 2.5s; font-size: 2.7rem; }
-    .tech-icon-4  { top: 52%;  left: 92%;  animation-delay: 0.8s; font-size: 2.8rem; }
-    .tech-icon-5  { top: 80%;  left: 8%;   animation-delay: 3.1s; font-size: 2.6rem; }
-    .tech-icon-6  { top: 78%;  left: 87%;  animation-delay: 1.8s; font-size: 2.9rem; }
-    .tech-icon-7  { top: 6%;   left: 24%;  animation-delay: 2.0s; font-size: 2.2rem; }
-    .tech-icon-8  { top: 6%;   left: 74%;  animation-delay: 3.5s; font-size: 2.4rem; }
-    .tech-icon-9  { top: 88%;  left: 28%;  animation-delay: 0.5s; font-size: 2.7rem; }
-    .tech-icon-10 { top: 86%;  left: 72%;  animation-delay: 2.8s; font-size: 2.5rem; }
-    .tech-icon-11 { top: 28%;  left: 10%;  animation-delay: 1.5s; font-size: 2.4rem; }
-    .tech-icon-12 { top: 32%;  left: 84%;  animation-delay: 3.2s; font-size: 2.6rem; }
-
-    @keyframes heroFloatRotate {
-      0%   { transform: translateY(0px) rotate(0deg); }
-      50%  { transform: translateY(-14px) rotate(5deg); }
-      100% { transform: translateY(0px) rotate(0deg); }
-    }
-
-    @media (max-width: 992px) {
-      .tech-icon-item { opacity: 0.18; font-size: 2rem !important; }
-      .tech-icon-7, .tech-icon-8, .tech-icon-9, .tech-icon-10 { display: none; }
-    }
-
     /* 2026 SaaS Buttons System */
     .btn-saas-primary {
       background: linear-gradient(135deg, #26658C 0%, #14B8A6 100%) !important;
@@ -687,23 +639,17 @@ $pageTitle = "SkillBridge – Skill Gap Analysis & Learning Management System";
     <div class="bg-blob-2"></div>
   </div>
 
-  <!-- Floating Official Colored Tech Logos Background Composition -->
-  <div class="hero-tech-icons">
-    <div class="tech-icon-item tech-icon-1" title="HTML5"><i class="devicon-html5-plain colored"></i></div>
-    <div class="tech-icon-item tech-icon-2" title="CSS3"><i class="devicon-css3-plain colored"></i></div>
-    <div class="tech-icon-item tech-icon-3" title="JavaScript"><i class="devicon-javascript-plain colored"></i></div>
-    <div class="tech-icon-item tech-icon-4" title="PHP"><i class="devicon-php-plain colored"></i></div>
-    <div class="tech-icon-item tech-icon-5" title="MySQL"><i class="devicon-mysql-plain colored"></i></div>
-    <div class="tech-icon-item tech-icon-6" title="Python"><i class="devicon-python-plain colored"></i></div>
-    <div class="tech-icon-item tech-icon-7" title="Java"><i class="devicon-java-plain colored"></i></div>
-    <div class="tech-icon-item tech-icon-8" title="C++"><i class="devicon-cplusplus-plain colored"></i></div>
-    <div class="tech-icon-item tech-icon-9" title="React"><i class="devicon-react-original colored"></i></div>
-    <div class="tech-icon-item tech-icon-10" title="Node.js"><i class="devicon-nodejs-plain colored"></i></div>
-    <div class="tech-icon-item tech-icon-11" title="Git"><i class="devicon-git-plain colored"></i></div>
-    <div class="tech-icon-item tech-icon-12" title="Docker"><i class="devicon-docker-plain colored"></i></div>
-  </div>
-
   <div class="container position-relative" style="z-index: 2;">
+    <?php if (isset($_GET['logout']) && $_GET['logout'] === 'success'): ?>
+      <div class="alert alert-success alert-dismissible fade show rounded-4 border-0 shadow-sm d-flex align-items-center gap-2 max-w-2xl mx-auto mb-4 p-3" role="alert" style="background: rgba(16, 185, 129, 0.12); color: #065F46; border: 1px solid rgba(16, 185, 129, 0.2) !important;">
+        <i class="fa-solid fa-circle-check fs-5 text-success me-1"></i>
+        <div class="fw-semibold small">
+          You have been logged out successfully.
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    <?php endif; ?>
+
     <div class="text-center max-w-3xl mx-auto">
       <h1 class="hero-title">
         Bridge Your <span class="gradient-text">Skill Gap</span><br />and Build Your Career
@@ -751,7 +697,7 @@ $pageTitle = "SkillBridge – Skill Gap Analysis & Learning Management System";
           <div class="feature-icon-wrap" style="background:rgba(38, 101, 140, 0.12); color:#26658C;">
             <i class="fa-solid fa-brain"></i>
           </div>
-          <h4 class="fw-bold mb-2">AI Skill Analysis</h4>
+          <h4 class="fw-bold mb-2">Skill Gap Analysis</h4>
           <p class="text-muted small mb-0">Advanced algorithms evaluate your current scores against target industry benchmark standards with precision.</p>
         </div>
       </div>
@@ -889,9 +835,9 @@ $pageTitle = "SkillBridge – Skill Gap Analysis & Learning Management System";
         </a>
         <p class="footer-desc mb-3">The most advanced skill gap analysis and LMS platform for students, faculty, and educational institutions.</p>
         <div>
-          <a href="#" class="social-btn"><i class="fa-brands fa-twitter"></i></a>
-          <a href="#" class="social-btn"><i class="fa-brands fa-linkedin-in"></i></a>
-          <a href="#" class="social-btn"><i class="fa-brands fa-github"></i></a>
+          <a href="javascript:void(0)" class="social-btn"><i class="fa-brands fa-twitter"></i></a>
+          <a href="javascript:void(0)" class="social-btn"><i class="fa-brands fa-linkedin-in"></i></a>
+          <a href="javascript:void(0)" class="social-btn"><i class="fa-brands fa-github"></i></a>
         </div>
       </div>
 
@@ -921,10 +867,11 @@ $pageTitle = "SkillBridge – Skill Gap Analysis & Learning Management System";
     </div>
 
     <div class="pt-3 border-top border-secondary border-opacity-25 d-flex flex-column flex-md-row justify-content-between align-items-center footer-bottom-text">
-      <span>&copy; <?= date('Y') ?> <strong>SkillBridge</strong>. All rights reserved. Pure PHP 8.x + MySQL.</span>
+      <span>&copy; 2026 <strong>SkillBridge</strong> – Skill Gap Analysis & LMS. All rights reserved.</span>
       <div class="d-flex gap-3 mt-2 mt-md-0">
         <a href="<?= BASE_URL ?>privacy-policy.php" class="footer-bottom-link">Privacy Policy</a>
-        <a href="<?= BASE_URL ?>terms-of-service.php" class="footer-bottom-link">Terms of Service</a>
+        <a href="<?= BASE_URL ?>terms-of-service.php" class="footer-bottom-link">Terms & Conditions</a>
+        <a href="mailto:skill.profile.project1@gmail.com" class="footer-bottom-link">Support</a>
       </div>
     </div>
   </div>

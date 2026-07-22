@@ -2,43 +2,65 @@
 /**
  * SkillBridge - Forgot Password Handler
  * Premium SaaS UI matching the Login page.
- * Preserves 100% of existing backend PHP token generation & validation logic.
+ * Uses Composer PHPMailer & PDO Prepared Statements.
  */
 require_once __DIR__ . '/config/config.php';
 require_once __DIR__ . '/config/database.php';
+require_once __DIR__ . '/config/mail.php';
 require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/functions.php';
 require_once __DIR__ . '/includes/validators.php';
 
-$message = '';
-$resetLink = '';
+$errorMessage = '';
+$successMessage = '';
+$devResetLink = '';
+
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     if (!verify_csrf_token()) {
-        $message = 'Invalid security token.';
+        $errorMessage = 'Invalid security token. Please try again.';
     } else {
         $email = trim($_POST['email'] ?? '');
-        if (empty($email) || !validate_email($email)) {
-            $message = 'Please enter a valid email address.';
+        
+        if (empty($email)) {
+            $errorMessage = 'Please enter your email address.';
+        } elseif (!validate_email($email)) {
+            $errorMessage = 'Please enter a valid email address.';
         } else {
             $db = Database::getInstance();
+            // Check if email exists in users table (covers students, faculty, and admin)
             $user = $db->fetch("SELECT * FROM users WHERE email = ?", [$email]);
-            if ($user) {
-                $token = bin2hex(random_bytes(32));
-                $expires = date('Y-m-d H:i:s', time() + 3600); // 1 hour expiration
-                
-                $db->delete('password_resets', 'email = ?', [$email]);
-                $db->insert('password_resets', [
-                    'email' => $email,
-                    'token' => $token,
-                    'expires_at' => $expires,
-                    'created_at' => date('Y-m-d H:i:s')
-                ]);
-
-                $resetLink = BASE_URL . "reset-password.php?token=" . $token;
-                $message = "Password reset token generated! In production, an email is sent. For local testing, click the reset link below.";
+            
+            if (!$user) {
+                // Part 3 Requirement: Display "No account found with this email."
+                $errorMessage = 'No account found with this email.';
             } else {
-                // Generic security response
-                $message = "If an account with that email exists, password reset instructions have been generated.";
+                // Part 3 Requirement: Generate 32-byte secure token
+                $token = bin2hex(random_bytes(32));
+                // 30 minutes expiry
+                $expires = date('Y-m-d H:i:s', time() + 1800);
+                
+                // Save reset_token and reset_token_expiry using prepared statement
+                $db->update('users', [
+                    'reset_token' => $token,
+                    'reset_token_expiry' => $expires
+                ], 'id = ?', [$user['id']]);
+
+                // Construct dynamic reset URL using BASE_URL configuration
+                $resetLink = BASE_URL . "reset-password.php?token=" . $token;
+
+                // Send reset email via PHPMailer SMTP
+                $mailResult = send_password_reset_email($email, $resetLink);
+
+                if ($mailResult['success']) {
+                    $successMessage = 'A password reset link has been sent to your email address.';
+                } else {
+                    // Email delivery failed (e.g., SMTP unconfigured or network issue)
+                    $successMessage = 'Password reset link generated successfully! If SMTP is configured, check your inbox.';
+                    // Provide fallback link for local development/testing convenience
+                    $devResetLink = $resetLink;
+                }
+                
+                log_activity($user['id'], 'FORGOT_PASSWORD_REQUEST', "Password reset requested for {$email}.");
             }
         }
     }
@@ -64,49 +86,6 @@ $pageTitle = "Forgot Password – SkillBridge";
   <div class="auth-ambient-glow-1"></div>
   <div class="auth-ambient-glow-2"></div>
 
-  <!-- Floating Technology Background Icons (Parallax Animation) -->
-  <div class="tech-bg-container" aria-hidden="true">
-    <div class="tech-icon-wrap" style="top: 6%; left: 4%; animation-duration: 18s;">
-      <i class="tech-icon fa-brands fa-html5" style="--brand-color: #E34F26; font-size: 3.2rem;"></i>
-    </div>
-    <div class="tech-icon-wrap" style="top: 22%; left: 12%; animation-duration: 24s; animation-delay: -3s;">
-      <i class="tech-icon fa-brands fa-python" style="--brand-color: #3776AB; font-size: 3.5rem;"></i>
-    </div>
-    <div class="tech-icon-wrap" style="top: 8%; left: 22%; animation-duration: 20s; animation-delay: -7s;">
-      <i class="tech-icon fa-brands fa-react" style="--brand-color: #61DAFB; font-size: 3.4rem;"></i>
-    </div>
-    <div class="tech-icon-wrap" style="top: 35%; left: 5%; animation-duration: 22s; animation-delay: -2s;">
-      <i class="tech-icon fa-brands fa-node-js" style="--brand-color: #339933; font-size: 2.9rem;"></i>
-    </div>
-    <div class="tech-icon-wrap" style="top: 48%; left: 14%; animation-duration: 19s; animation-delay: -11s;">
-      <i class="tech-icon fa-brands fa-docker" style="--brand-color: #2496ED; font-size: 3.1rem;"></i>
-    </div>
-    <div class="tech-icon-wrap" style="top: 64%; left: 6%; animation-duration: 23s; animation-delay: -4s;">
-      <i class="tech-icon fa-brands fa-square-js" style="--brand-color: #F7DF1E; font-size: 3.2rem;"></i>
-    </div>
-    <div class="tech-icon-wrap" style="top: 60%; left: 24%; animation-duration: 20s; animation-delay: -6s;">
-      <i class="tech-icon fa-solid fa-brain" style="--brand-color: #8E75FF; font-size: 3.4rem;"></i>
-    </div>
-    <div class="tech-icon-wrap" style="top: 5%; left: 68%; animation-duration: 21s; animation-delay: -2s;">
-      <i class="tech-icon fa-brands fa-css3-alt" style="--brand-color: #1572B6; font-size: 3.3rem;"></i>
-    </div>
-    <div class="tech-icon-wrap" style="top: 18%; left: 82%; animation-duration: 25s; animation-delay: -9s;">
-      <i class="tech-icon fa-brands fa-java" style="--brand-color: #ED8B00; font-size: 3.1rem;"></i>
-    </div>
-    <div class="tech-icon-wrap" style="top: 28%; left: 88%; animation-duration: 20s; animation-delay: -6s;">
-      <i class="tech-icon fa-brands fa-php" style="--brand-color: #777BB4; font-size: 3.0rem;"></i>
-    </div>
-    <div class="tech-icon-wrap" style="top: 62%; left: 75%; animation-duration: 22s; animation-delay: -8s;">
-      <i class="tech-icon fa-brands fa-laravel" style="--brand-color: #FF2D20; font-size: 3.1rem;"></i>
-    </div>
-    <div class="tech-icon-wrap" style="top: 76%; left: 86%; animation-duration: 18s; animation-delay: -3s;">
-      <i class="tech-icon fa-brands fa-aws" style="--brand-color: #FF9900; font-size: 3.3rem;"></i>
-    </div>
-    <div class="tech-icon-wrap" style="top: 92%; left: 48%; animation-duration: 21s; animation-delay: -2s;">
-      <i class="tech-icon fa-solid fa-database" style="--brand-color: #4479A1; font-size: 2.8rem;"></i>
-    </div>
-  </div>
-
   <!-- Main Centered SaaS Card Wrapper -->
   <div class="auth-center-wrapper">
     <div class="auth-card-modern">
@@ -119,21 +98,29 @@ $pageTitle = "Forgot Password – SkillBridge";
           </div>
           <span class="fw-bold fs-3 text-dark" style="font-family: 'Outfit', sans-serif; letter-spacing: -0.5px;">SkillBridge</span>
         </a>
-        <h3 class="fw-bold text-dark mb-1" style="font-family: 'Outfit', sans-serif;">Reset Password</h3>
-        <p class="text-muted small mb-0">Enter your email address to receive password recovery instructions.</p>
+        <h3 class="fw-bold text-dark mb-1" style="font-family: 'Outfit', sans-serif;">Forgot Password</h3>
+        <p class="text-muted small mb-0">Enter your registered email address and we'll send you a password reset link.</p>
       </div>
 
       <!-- Messages & Flash Alerts -->
-      <?php if (!empty($message)): ?>
-        <div class="alert alert-info py-2.5 px-3 small rounded-3 border-0 mb-4 shadow-xs">
+      <?php if (!empty($errorMessage)): ?>
+        <div class="alert alert-danger py-2.5 px-3 small rounded-3 border-0 mb-4 d-flex align-items-center gap-2 shadow-xs">
+          <i class="fa-solid fa-triangle-exclamation fs-6"></i>
+          <div><?= htmlspecialchars($errorMessage) ?></div>
+        </div>
+      <?php endif; ?>
+
+      <?php if (!empty($successMessage)): ?>
+        <div class="alert alert-success py-2.5 px-3 small rounded-3 border-0 mb-4 shadow-xs">
           <div class="d-flex align-items-center gap-2 mb-1">
-            <i class="fa-solid fa-circle-info"></i>
-            <div class="fw-semibold">Recovery Notice</div>
+            <i class="fa-solid fa-circle-check fs-6 text-success"></i>
+            <div class="fw-semibold">Reset Link Sent</div>
           </div>
-          <div><?= htmlspecialchars($message) ?></div>
-          <?php if (!empty($resetLink)): ?>
+          <div><?= htmlspecialchars($successMessage) ?></div>
+          <?php if (!empty($devResetLink)): ?>
             <div class="mt-3 pt-2 border-top">
-              <a href="<?= $resetLink ?>" class="btn btn-dark btn-sm rounded-pill w-100 py-1.5 fw-semibold">
+              <span class="badge bg-light text-dark border mb-1">Local Testing Mode:</span>
+              <a href="<?= htmlspecialchars($devResetLink) ?>" class="btn btn-dark btn-sm rounded-pill w-100 py-1.5 fw-semibold text-truncate d-block">
                 <i class="fa-solid fa-key me-1"></i> Click Here to Reset Password
               </a>
             </div>
@@ -141,28 +128,28 @@ $pageTitle = "Forgot Password – SkillBridge";
         </div>
       <?php endif; ?>
 
-      <!-- Recovery Form -->
+      <!-- Forgot Password Form -->
       <form action="<?= BASE_URL ?>forgot-password.php" method="POST" autocomplete="off" onsubmit="handleFormSubmit(this)">
         <?= csrf_field() ?>
         
         <div class="mb-4">
-          <label class="form-label small fw-semibold text-dark mb-1.5">Account Email Address</label>
+          <label class="form-label small fw-semibold text-dark mb-1.5">Email Address</label>
           <div class="saas-input-group">
             <i class="fa-solid fa-envelope saas-input-icon"></i>
-            <input type="email" name="email" class="form-control" placeholder="you@example.com" required autofocus>
+            <input type="email" name="email" class="form-control" placeholder="you@example.com" required autofocus value="<?= htmlspecialchars($_POST['email'] ?? '') ?>">
           </div>
         </div>
 
-        <!-- Submit Button with Loading State -->
+        <!-- Send Reset Link Button -->
         <button type="submit" id="submitBtn" class="btn btn-saas-primary w-100 py-2.5 mb-3">
-          <i class="fa-solid fa-paper-plane me-1.5"></i> Send Recovery Instructions
+          <i class="fa-solid fa-paper-plane me-1.5"></i> Send Reset Link
         </button>
       </form>
 
       <!-- Back to Login Link -->
       <div class="text-center mt-3 pt-3 border-top">
         <a href="<?= BASE_URL ?>login.php" class="small text-primary fw-semibold text-decoration-none">
-          <i class="fa-solid fa-arrow-left me-1"></i> Back to Sign In
+          <i class="fa-solid fa-arrow-left me-1"></i> Back to Login
         </a>
       </div>
     </div>
@@ -172,30 +159,13 @@ $pageTitle = "Forgot Password – SkillBridge";
     // Form Submit Loading State
     function handleFormSubmit(form) {
       const btn = document.getElementById('submitBtn');
-      btn.disabled = true;
-      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i> Processing Request...';
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i> Sending Reset Link...';
+      }
       return true;
     }
 
-    // Parallax Effect for Background Tech Icons
-    let mouseX = 0, mouseY = 0;
-    let currentX = 0, currentY = 0;
-
-    document.addEventListener('mousemove', (e) => {
-      mouseX = (e.clientX - window.innerWidth / 2) * 0.025;
-      mouseY = (e.clientY - window.innerHeight / 2) * 0.025;
-    });
-
-    function animateParallax() {
-      currentX += (mouseX - currentX) * 0.05;
-      currentY += (mouseY - currentY) * 0.05;
-      const bg = document.querySelector('.tech-bg-container');
-      if (bg) {
-        bg.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
-      }
-      requestAnimationFrame(animateParallax);
-    }
-    requestAnimationFrame(animateParallax);
   </script>
 </body>
 </html>

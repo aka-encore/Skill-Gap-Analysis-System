@@ -9,16 +9,14 @@
         <!-- App Footer -->
         <footer class="app-footer-saas d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
             <div class="footer-saas-copyright text-center text-md-start">
-                &copy; <?= date('Y') ?> <strong>SkillBridge</strong> – AI-Based Skill Gap Analysis & Learning Management System. All rights reserved.
+                &copy; 2026 <strong>SkillBridge</strong> – Skill Gap Analysis & LMS. All rights reserved.
             </div>
             <div class="d-flex align-items-center gap-3 flex-wrap justify-content-center">
                 <a href="<?= BASE_URL ?>privacy-policy.php" class="footer-saas-link"><i class="bi bi-shield-lock me-1"></i> Privacy Policy</a>
                 <span class="text-muted opacity-50">&bull;</span>
-                <a href="<?= BASE_URL ?>terms-of-service.php" class="footer-saas-link"><i class="bi bi-file-text me-1"></i> Terms of Service</a>
+                <a href="<?= BASE_URL ?>terms-of-service.php" class="footer-saas-link"><i class="bi bi-file-text me-1"></i> Terms & Conditions</a>
                 <span class="text-muted opacity-50">&bull;</span>
-                <a href="<?= BASE_URL ?>student/help.php" class="footer-saas-link"><i class="bi bi-question-circle me-1"></i> Help</a>
-                <span class="text-muted opacity-50">&bull;</span>
-                <a href="<?= BASE_URL ?>about.php" class="footer-saas-link"><i class="bi bi-info-circle me-1"></i> About</a>
+                <a href="mailto:skill.profile.project1@gmail.com" class="footer-saas-link"><i class="bi bi-envelope me-1"></i> Support</a>
             </div>
         </footer>
     </div> <!-- /.main-wrapper -->

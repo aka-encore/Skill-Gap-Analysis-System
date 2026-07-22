@@ -83,7 +83,7 @@ include __DIR__ . '/../includes/header.php';
 <!-- 4 Key Metrics Widgets (Modern SaaS Cards) -->
 <div class="stats-grid-saas mb-4">
     <!-- Card 1: Total Students -->
-    <div class="saas-stat-card primary-card">
+    <div class="saas-stat-card primary-card" style="cursor:pointer;" onclick="window.location.href='<?= BASE_URL ?>faculty/students.php'">
         <div class="stat-card-header">
             <span class="stat-card-title">Total Students</span>
             <div class="stat-icon-saas primary-gradient">
@@ -119,7 +119,7 @@ include __DIR__ . '/../includes/header.php';
     </div>
 
     <!-- Card 3: Total Submissions -->
-    <div class="saas-stat-card success-card">
+    <div class="saas-stat-card success-card" style="cursor:pointer;" onclick="window.location.href='<?= BASE_URL ?>faculty/evaluate.php'">
         <div class="stat-card-header">
             <span class="stat-card-title">Total Submissions</span>
             <div class="stat-icon-saas success-gradient">
@@ -137,7 +137,7 @@ include __DIR__ . '/../includes/header.php';
     </div>
 
     <!-- Card 4: Class Avg Score -->
-    <div class="saas-stat-card warning-card">
+    <div class="saas-stat-card warning-card" style="cursor:pointer;" onclick="window.location.href='<?= BASE_URL ?>faculty/skill-gap.php'">
         <div class="stat-card-header">
             <span class="stat-card-title">Class Avg Score</span>
             <div class="stat-icon-saas warning-gradient">

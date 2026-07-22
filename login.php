@@ -25,9 +25,14 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     if (!verify_csrf_token()) {
         $error = 'Invalid CSRF security token. Please try again.';
     } else {
-        $loginInput = trim($_POST['login_input'] ?? '');
-        $password = $_POST['password'] ?? '';
-        $remember = isset($_POST['remember_me']);
+        $loginInput   = trim($_POST['login_input'] ?? '');
+        $password     = $_POST['password'] ?? '';
+        $remember     = isset($_POST['remember_me']);
+        $selectedRole = strtolower(trim($_POST['selected_role'] ?? 'student'));
+
+        if (!in_array($selectedRole, ['student', 'faculty', 'admin'])) {
+            $selectedRole = 'student';
+        }
 
         if (empty($loginInput) || empty($password)) {
             $error = 'Please enter both your email/username and password.';
@@ -36,17 +41,25 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             $user = $db->fetch("SELECT * FROM users WHERE email = ? OR username = ?", [$loginInput, $loginInput]);
 
             if ($user && password_verify($password, $user['password'])) {
-                login_user($user, $remember);
-                set_flash_message('success', "Welcome back, " . htmlspecialchars($_SESSION['full_name'] ?? $user['username']) . "!");
-                
-                match ($user['role']) {
-                    'student' => redirect(BASE_URL . 'student/dashboard.php'),
-                    'faculty' => redirect(BASE_URL . 'faculty/dashboard.php'),
-                    'admin'   => redirect(BASE_URL . 'admin/dashboard.php'),
-                    default   => redirect(BASE_URL . 'index.php')
-                };
+                // Strict Role-Based Account Validation
+                if ($user['role'] !== $selectedRole) {
+                    $error = 'Invalid email/username, password, or role.';
+                } elseif ((int)($user['email_verified'] ?? 1) === 0) {
+                    $verifyUrl = BASE_URL . 'verify-email.php?email=' . urlencode($user['email']);
+                    $error = 'Please verify your email before logging in. <a href="' . htmlspecialchars($verifyUrl) . '" class="fw-bold text-decoration-underline text-danger ms-1">Verify Email</a>';
+                } else {
+                    login_user($user, $remember && ($user['role'] !== 'admin'));
+                    set_flash_message('success', "Welcome back, " . htmlspecialchars($_SESSION['full_name'] ?? $user['username']) . "!");
+                    
+                    match ($user['role']) {
+                        'student' => redirect(BASE_URL . 'student/dashboard.php'),
+                        'faculty' => redirect(BASE_URL . 'faculty/dashboard.php'),
+                        'admin'   => redirect(BASE_URL . 'admin/dashboard.php'),
+                        default   => redirect(BASE_URL . 'index.php')
+                    };
+                }
             } else {
-                $error = 'Invalid email/username or password. Please try again.';
+                $error = 'Invalid email/username, password, or role.';
             }
         }
     }
@@ -72,52 +85,6 @@ $pageTitle = "Sign In – SkillBridge";
   <div class="auth-ambient-glow-1"></div>
   <div class="auth-ambient-glow-2"></div>
 
-  <!-- Floating Technology Background Icons (Parallax Animation) -->
-  <div class="tech-bg-container" aria-hidden="true">
-    <div class="tech-icon-wrap" style="top: 6%; left: 4%; animation-duration: 18s;">
-      <i class="tech-icon fa-brands fa-html5" style="--brand-color: #E34F26; font-size: 3.2rem;"></i>
-    </div>
-    <div class="tech-icon-wrap" style="top: 22%; left: 12%; animation-duration: 24s; animation-delay: -3s;">
-      <i class="tech-icon fa-brands fa-python" style="--brand-color: #3776AB; font-size: 3.5rem;"></i>
-    </div>
-    <div class="tech-icon-wrap" style="top: 8%; left: 22%; animation-duration: 20s; animation-delay: -7s;">
-      <i class="tech-icon fa-brands fa-react" style="--brand-color: #61DAFB; font-size: 3.4rem;"></i>
-    </div>
-    <div class="tech-icon-wrap" style="top: 35%; left: 5%; animation-duration: 22s; animation-delay: -2s;">
-      <i class="tech-icon fa-brands fa-node-js" style="--brand-color: #339933; font-size: 2.9rem;"></i>
-    </div>
-    <div class="tech-icon-wrap" style="top: 48%; left: 14%; animation-duration: 19s; animation-delay: -11s;">
-      <i class="tech-icon fa-brands fa-docker" style="--brand-color: #2496ED; font-size: 3.1rem;"></i>
-    </div>
-    <div class="tech-icon-wrap" style="top: 15%; left: 32%; animation-duration: 26s; animation-delay: -5s;">
-      <i class="tech-icon fa-brands fa-angular" style="--brand-color: #DD0031; font-size: 3.0rem;"></i>
-    </div>
-    <div class="tech-icon-wrap" style="top: 64%; left: 6%; animation-duration: 23s; animation-delay: -4s;">
-      <i class="tech-icon fa-brands fa-square-js" style="--brand-color: #F7DF1E; font-size: 3.2rem;"></i>
-    </div>
-    <div class="tech-icon-wrap" style="top: 60%; left: 24%; animation-duration: 20s; animation-delay: -6s;">
-      <i class="tech-icon fa-solid fa-brain" style="--brand-color: #8E75FF; font-size: 3.4rem;"></i>
-    </div>
-    <div class="tech-icon-wrap" style="top: 5%; left: 68%; animation-duration: 21s; animation-delay: -2s;">
-      <i class="tech-icon fa-brands fa-css3-alt" style="--brand-color: #1572B6; font-size: 3.3rem;"></i>
-    </div>
-    <div class="tech-icon-wrap" style="top: 18%; left: 82%; animation-duration: 25s; animation-delay: -9s;">
-      <i class="tech-icon fa-brands fa-java" style="--brand-color: #ED8B00; font-size: 3.1rem;"></i>
-    </div>
-    <div class="tech-icon-wrap" style="top: 28%; left: 88%; animation-duration: 20s; animation-delay: -6s;">
-      <i class="tech-icon fa-brands fa-php" style="--brand-color: #777BB4; font-size: 3.0rem;"></i>
-    </div>
-    <div class="tech-icon-wrap" style="top: 62%; left: 75%; animation-duration: 22s; animation-delay: -8s;">
-      <i class="tech-icon fa-brands fa-laravel" style="--brand-color: #FF2D20; font-size: 3.1rem;"></i>
-    </div>
-    <div class="tech-icon-wrap" style="top: 76%; left: 86%; animation-duration: 18s; animation-delay: -3s;">
-      <i class="tech-icon fa-brands fa-aws" style="--brand-color: #FF9900; font-size: 3.3rem;"></i>
-    </div>
-    <div class="tech-icon-wrap" style="top: 92%; left: 48%; animation-duration: 21s; animation-delay: -2s;">
-      <i class="tech-icon fa-solid fa-database" style="--brand-color: #4479A1; font-size: 2.8rem;"></i>
-    </div>
-  </div>
-
   <!-- Main Centered SaaS Card Wrapper -->
   <div class="auth-center-wrapper">
     <div class="auth-card-modern">
@@ -135,16 +102,17 @@ $pageTitle = "Sign In – SkillBridge";
       </div>
 
       <!-- Segmented Control Role Selector -->
+      <?php $activeRole = $_POST['selected_role'] ?? 'student'; ?>
       <div class="role-selector" id="roleSelector">
-        <button type="button" class="role-tab active" data-role="student" onclick="selectRole('student', this)">
+        <button type="button" class="role-tab <?= $activeRole === 'student' ? 'active' : '' ?>" data-role="student" onclick="selectRole('student', this)">
           <span>👨‍🎓</span>
           <span>Student</span>
         </button>
-        <button type="button" class="role-tab" data-role="faculty" onclick="selectRole('faculty', this)">
+        <button type="button" class="role-tab <?= $activeRole === 'faculty' ? 'active' : '' ?>" data-role="faculty" onclick="selectRole('faculty', this)">
           <span>👨‍🏫</span>
           <span>Faculty</span>
         </button>
-        <button type="button" class="role-tab" data-role="admin" onclick="selectRole('admin', this)">
+        <button type="button" class="role-tab <?= $activeRole === 'admin' ? 'active' : '' ?>" data-role="admin" onclick="selectRole('admin', this)">
           <span>👨‍💼</span>
           <span>Admin</span>
         </button>
@@ -155,7 +123,7 @@ $pageTitle = "Sign In – SkillBridge";
         <?php if (!empty($error)): ?>
           <div class="alert alert-danger py-2.5 px-3 small rounded-3 border-0 mb-4 d-flex align-items-center gap-2 shadow-xs">
             <i class="fa-solid fa-triangle-exclamation"></i>
-            <div><?= htmlspecialchars($error) ?></div>
+            <div><?= $error ?></div>
           </div>
         <?php endif; ?>
 
@@ -169,6 +137,7 @@ $pageTitle = "Sign In – SkillBridge";
       <!-- Authenticated Login Form -->
       <form action="<?= BASE_URL ?>login.php" method="POST" autocomplete="off" id="loginForm" onsubmit="handleLoginSubmit(this)">
         <?= csrf_field() ?>
+        <input type="hidden" name="selected_role" id="selectedRoleInput" value="<?= htmlspecialchars($activeRole) ?>">
         
         <!-- Email or Username Field -->
         <div class="mb-3.5">
@@ -195,7 +164,7 @@ $pageTitle = "Sign In – SkillBridge";
         </div>
 
         <!-- Remember Me Checkbox -->
-        <div class="d-flex align-items-center justify-content-between mb-4">
+        <div class="d-flex align-items-center justify-content-between mb-4" id="rememberMeWrapper">
           <div class="form-check">
             <input class="form-check-input" type="checkbox" name="remember_me" id="rememberMe">
             <label class="form-check-input-label small text-muted" for="rememberMe">Remember me for 30 days</label>
@@ -231,10 +200,21 @@ $pageTitle = "Sign In – SkillBridge";
       }
     }
 
-    // Role Tab Selector UI - Clears Validation Errors on Role Change
+    // Role Tab Selector UI - Clears Validation Errors & Handles Admin Remember-Me Visibility
     function selectRole(role, btnElement) {
       document.querySelectorAll('.role-tab').forEach(tab => tab.classList.remove('active'));
       btnElement.classList.add('active');
+
+      const roleInput = document.getElementById('selectedRoleInput');
+      if (roleInput) {
+        roleInput.value = role;
+      }
+
+      // Hide Remember Me checkbox for Admin
+      const rememberWrapper = document.getElementById('rememberMeWrapper');
+      if (rememberWrapper) {
+        rememberWrapper.style.display = (role === 'admin') ? 'none' : 'flex';
+      }
 
       // 1. Immediately hide and clear error/success alerts
       const alertContainer = document.getElementById('alertContainer');
@@ -251,6 +231,17 @@ $pageTitle = "Sign In – SkillBridge";
       });
     }
 
+    document.addEventListener('DOMContentLoaded', () => {
+      const activeTab = document.querySelector('.role-tab.active');
+      if (activeTab) {
+        const role = activeTab.getAttribute('data-role');
+        const rememberWrapper = document.getElementById('rememberMeWrapper');
+        if (rememberWrapper && role === 'admin') {
+          rememberWrapper.style.display = 'none';
+        }
+      }
+    });
+
     // Form Submit Loading State & Anti-Double-Submit
     function handleLoginSubmit(form) {
       const btn = document.getElementById('submitBtn');
@@ -258,26 +249,6 @@ $pageTitle = "Sign In – SkillBridge";
       btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i> Authenticating...';
       return true;
     }
-
-    // Parallax Effect for Background Tech Icons
-    let mouseX = 0, mouseY = 0;
-    let currentX = 0, currentY = 0;
-
-    document.addEventListener('mousemove', (e) => {
-      mouseX = (e.clientX - window.innerWidth / 2) * 0.025;
-      mouseY = (e.clientY - window.innerHeight / 2) * 0.025;
-    });
-
-    function animateParallax() {
-      currentX += (mouseX - currentX) * 0.05;
-      currentY += (mouseY - currentY) * 0.05;
-      const bg = document.querySelector('.tech-bg-container');
-      if (bg) {
-        bg.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
-      }
-      requestAnimationFrame(animateParallax);
-    }
-    requestAnimationFrame(animateParallax);
   </script>
 </body>
 </html>

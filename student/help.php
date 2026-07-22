@@ -231,10 +231,15 @@ include __DIR__ . '/../includes/header.php';
     <div class="max-w-600 mx-auto">
       <div class="fs-1 text-primary mb-3"><i class="fa-solid fa-headset"></i></div>
       <h4 class="fw-bold text-dark mb-2">Still need help?</h4>
-      <p class="text-muted small mb-4">Our support team and academic faculty are here to assist you with any platform issues or guidance.</p>
+      <p class="text-muted small mb-2">Our support team and academic faculty are here to assist you with any platform issues or guidance.</p>
+      <div class="mb-4">
+        <span class="badge bg-primary-subtle text-primary border rounded-pill px-3 py-1.5 fs-6 font-monospace">
+          <i class="fa-solid fa-envelope me-1"></i> skill.profile.project1@gmail.com
+        </span>
+      </div>
       <div class="d-flex justify-content-center gap-3 flex-wrap">
-        <a href="mailto:support@skillbridge.edu" class="btn btn-primary rounded-pill px-4 py-2 small fw-semibold">
-          <i class="fa-solid fa-envelope me-1"></i> Contact Support
+        <a href="mailto:skill.profile.project1@gmail.com" class="btn btn-primary rounded-pill px-4 py-2 small fw-semibold">
+          <i class="fa-solid fa-paper-plane me-1"></i> Contact Support (Email Us)
         </a>
         <a href="<?= BASE_URL ?>student/dashboard.php" class="btn btn-outline-secondary rounded-pill px-4 py-2 small fw-semibold">
           <i class="fa-solid fa-gauge-high me-1"></i> Back to Dashboard

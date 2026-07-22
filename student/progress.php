@@ -377,7 +377,7 @@ include __DIR__ . '/../includes/header.php';
   </div>
 
   <!-- 2. MONTHLY/WEEKLY PROGRESS CHART & SKILLS SIDE-BY-SIDE GRID -->
-  <div class="row g-4 mb-4">
+  <div class="row g-4 mb-4" id="skill-progress">
     <!-- Left: Learning & Assessment Analytics Interactive Canvas Chart -->
     <div class="col-lg-7">
       <div class="card border-0 shadow-sm rounded-4 p-4 h-100" id="monthly-progress-card">

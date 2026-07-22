@@ -1,7 +1,7 @@
 <?php
 /**
  * SkillBridge - Terms of Service Page
- * AI-Based Skill Gap Analysis & Learning Management System
+ * Skill Gap Analysis & Learning Management System
  */
 require_once __DIR__ . '/config/config.php';
 require_once __DIR__ . '/includes/auth.php';
@@ -20,7 +20,7 @@ include __DIR__ . '/includes/header.php';
       </span>
       <h1 class="fw-bold display-5 mb-2">Terms of Service</h1>
       <p class="text-white-50 fs-5 mb-3">
-        Rules, guidelines, user responsibilities, and terms governing your use of SkillBridge AI-Based Skill Gap Analysis & LMS.
+        Rules, guidelines, user responsibilities, and terms governing your use of SkillBridge Skill Gap Analysis & LMS.
       </p>
       <div class="d-flex align-items-center gap-3 text-white-50 small">
         <span><i class="bi bi-calendar3 me-1"></i> Last Updated: January 15, 2026</span>
@@ -219,7 +219,7 @@ include __DIR__ . '/includes/header.php';
         <div class="p-3 bg-light rounded-3 d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3 border border-light-subtle">
           <div>
             <strong class="text-dark d-block mb-1">SkillBridge Legal & Administrative Support</strong>
-            <span class="text-muted small"><i class="bi bi-envelope me-1"></i> legal@skillbridge.edu &bull; <i class="bi bi-building me-1"></i> SkillBridge Governance Office</span>
+            <span class="text-muted small"><i class="bi bi-envelope me-1"></i> <a href="mailto:skill.profile.project1@gmail.com" class="text-decoration-none text-primary">skill.profile.project1@gmail.com</a> &bull; <i class="bi bi-building me-1"></i> SkillBridge Governance Office</span>
           </div>
           <a href="<?= BASE_URL ?>student/help.php" class="btn btn-primary btn-sm rounded-pill px-4 fw-semibold flex-shrink-0">
             <i class="bi bi-life-ring me-1"></i> Help Center

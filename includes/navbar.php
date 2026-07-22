@@ -168,62 +168,40 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const baseUrl = '<?= BASE_URL ?>';
 
+    const userRole = '<?= $_SESSION['user_role'] ?? 'student' ?>';
+    const roleDir = (userRole === 'admin') ? 'admin' : ((userRole === 'faculty') ? 'faculty' : 'student');
+
     // 1. Full Navigation & Sidebar Modules Index
     const modulesIndex = [
-        { title: 'Dashboard', desc: 'Overview, skill scores, streak & activity', url: baseUrl + 'student/dashboard.php', icon: 'fa-gauge-high', category: 'Sidebar Modules' },
-        { title: 'My Profile', desc: 'Personal details, email, department & password', url: baseUrl + 'student/profile.php', icon: 'fa-user-circle', category: 'Sidebar Modules' },
-        { title: 'Assessments', desc: 'Take skill tests, view active & completed quizzes', url: baseUrl + 'student/assessments.php', icon: 'fa-clipboard-check', category: 'Sidebar Modules' },
-        { title: 'Notifications', desc: 'Alerts, announcements & activity updates', url: baseUrl + 'student/notification.php', icon: 'fa-bell', category: 'Sidebar Modules' },
-        { title: 'Skill Gap Analysis', desc: 'Radar charts, target skill gaps & priorities', url: baseUrl + 'student/skill-gap.php', icon: 'fa-magnifying-glass-chart', category: 'Sidebar Modules' },
-        { title: 'Courses & Recommendations', desc: 'Tailored learning courses & progress tracking', url: baseUrl + 'student/recommendations.php', icon: 'fa-graduation-cap', category: 'Sidebar Modules' },
+        { title: 'Dashboard', desc: 'Overview, skill scores, streak & activity', url: baseUrl + roleDir + '/dashboard.php', icon: 'fa-gauge-high', category: 'Sidebar Modules' },
+        { title: 'My Profile', desc: 'Personal details, email, department & password', url: baseUrl + roleDir + '/profile.php#profile-information', icon: 'fa-user-circle', category: 'Sidebar Modules' },
+        { title: 'Profile', desc: 'Personal details, email, department & password', url: baseUrl + roleDir + '/profile.php#profile-information', icon: 'fa-user-circle', category: 'Sidebar Modules' },
+        { title: 'Assessments', desc: 'Take skill tests, view active & completed quizzes', url: baseUrl + (userRole === 'student' ? 'student/assessments.php' : (userRole === 'faculty' ? 'faculty/assessments.php' : 'admin/assessments.php')), icon: 'fa-clipboard-check', category: 'Sidebar Modules' },
+        { title: 'Completed Assessments', desc: 'View score history and passed quizzes', url: baseUrl + 'student/assessments.php#completed-assessments', icon: 'fa-clipboard-check', category: 'Sidebar Modules' },
+        { title: 'Pending Assessments', desc: 'Active quizzes and skill wizard', url: baseUrl + 'student/assessments.php#pending-assessments', icon: 'fa-clipboard-list', category: 'Sidebar Modules' },
+        { title: 'Assessment History', desc: 'Historical quiz attempts and scores', url: baseUrl + 'student/assessments.php#completed-assessments', icon: 'fa-history', category: 'Sidebar Modules' },
+        { title: 'Notifications', desc: 'Alerts, announcements & activity updates', url: baseUrl + (userRole === 'admin' ? 'admin/notifications.php' : 'student/notification.php#notifications-section'), icon: 'fa-bell', category: 'Sidebar Modules' },
+        { title: 'Skill Gap Analysis', desc: 'Radar charts, target skill gaps & priorities', url: baseUrl + (userRole === 'faculty' ? 'faculty/skill-gap.php' : 'student/skill-gap.php'), icon: 'fa-magnifying-glass-chart', category: 'Sidebar Modules' },
+        { title: 'Courses & Recommendations', desc: 'Tailored learning courses & progress tracking', url: baseUrl + (userRole === 'admin' ? 'admin/courses.php' : 'student/recommendations.php#recommended-courses'), icon: 'fa-graduation-cap', category: 'Sidebar Modules' },
+        { title: 'Courses', desc: 'Tailored learning courses catalog', url: baseUrl + (userRole === 'admin' ? 'admin/courses.php' : 'student/recommendations.php#recommended-courses'), icon: 'fa-book-open', category: 'Sidebar Modules' },
         { title: 'Skill Roadmap', desc: 'Step-by-step career skill pathway', url: baseUrl + 'student/roadmap.php', icon: 'fa-road', category: 'Sidebar Modules' },
-        { title: 'Learning Progress', desc: 'Completed courses, analytics & leaderboard', url: baseUrl + 'student/progress.php', icon: 'fa-chart-line', category: 'Sidebar Modules' },
-        { title: 'Feedback', desc: 'Submit system feedback & feature requests', url: baseUrl + 'student/feedback.php', icon: 'fa-comments', category: 'Sidebar Modules' },
+        { title: 'Learning Progress', desc: 'Completed courses, analytics & leaderboard', url: baseUrl + 'student/progress.php#skill-progress', icon: 'fa-chart-line', category: 'Sidebar Modules' },
+        { title: 'Skill Progress', desc: 'Real-time skill levels & progress tracking', url: baseUrl + 'student/progress.php#skill-progress', icon: 'fa-chart-line', category: 'Sidebar Modules' },
+        { title: 'Achievement', desc: 'View badges, awards, and completed goals', url: baseUrl + 'student/dashboard.php#achievements-section', icon: 'fa-trophy', category: 'Sidebar Modules' },
+        { title: 'Feedback', desc: 'Submit system feedback & feature requests', url: baseUrl + (userRole === 'faculty' ? 'faculty/feedback.php' : 'student/feedback.php#feedback-section'), icon: 'fa-comments', category: 'Sidebar Modules' },
+        { title: 'Reports', desc: 'Institutional analytics & PDF/CSV exports', url: baseUrl + 'admin/reports.php', icon: 'fa-file-earmark-pdf', category: 'Sidebar Modules' },
+        { title: 'Faculty Dashboard', desc: 'Faculty management overview and metrics', url: baseUrl + 'faculty/dashboard.php', icon: 'fa-chalkboard-user', category: 'Sidebar Modules' },
+        { title: 'Admin Dashboard', desc: 'System administrator control center', url: baseUrl + 'admin/dashboard.php', icon: 'fa-shield-lock', category: 'Sidebar Modules' },
         { title: 'About Us', desc: 'Platform mission, technology stack & details', url: baseUrl + 'about.php', icon: 'fa-circle-info', category: 'Sidebar Modules' },
-        { title: 'Help & Support', desc: 'Searchable FAQs, guides & documentation', url: baseUrl + 'student/help.php', icon: 'fa-life-ring', category: 'Sidebar Modules' },
-        { title: 'Settings', desc: 'Account preferences & notification settings', url: baseUrl + 'student/settings.php', icon: 'fa-gear', category: 'Sidebar Modules' },
+        { title: 'Help & Support', desc: 'Searchable FAQs, guides & documentation', url: baseUrl + (userRole === 'faculty' ? 'faculty/help.php' : (userRole === 'admin' ? 'help.php' : 'student/help.php')), icon: 'fa-life-ring', category: 'Sidebar Modules' },
+        { title: 'Settings', desc: 'Account preferences & notification settings', url: baseUrl + (userRole === 'admin' ? 'admin/settings.php' : 'student/settings.php#change-password'), icon: 'fa-gear', category: 'Sidebar Modules' },
         { title: 'Privacy Policy', desc: 'Data security, protection & user rights', url: baseUrl + 'privacy-policy.php', icon: 'fa-shield-lock', category: 'Sidebar Modules' },
         { title: 'Terms of Service', desc: 'Platform terms, rules & acceptable use', url: baseUrl + 'terms-of-service.php', icon: 'fa-file-text', category: 'Sidebar Modules' }
     ];
 
-    // 2. Dynamic Content Indexer for Current Page
+    // 2. Curated Feature Search Items
     function getPageDynamicItems() {
-        const items = [];
-        
-        // Specific Dashboard Content Indexing
-        if (window.location.pathname.includes('dashboard.php') || window.location.pathname.endsWith('/student/')) {
-            items.push(
-                { title: 'Overall Skill Score', desc: 'Dashboard card: Skill percentage & cohort rank', url: baseUrl + 'student/dashboard.php', action: () => typeof openSkillScoreModal === 'function' && openSkillScoreModal(), icon: 'fa-star', category: 'Dashboard Content' },
-                { title: 'Completed Assessments', desc: 'Dashboard card: Total tests completed', url: baseUrl + 'student/history.php', icon: 'fa-clipboard-check', category: 'Dashboard Content' },
-                { title: 'Courses Completed', desc: 'Dashboard card: Finished learning modules', url: baseUrl + 'student/recommendations.php', icon: 'fa-book-open', category: 'Dashboard Content' },
-                { title: 'Current Level', desc: 'Dashboard card: Skill level & overall progress', url: baseUrl + 'student/progress.php', icon: 'fa-layer-group', category: 'Dashboard Content' },
-                { title: 'Current Skills', desc: 'Dashboard section: Skill breakdown bars', url: baseUrl + 'student/skill-gap.php', icon: 'fa-chart-bar', category: 'Dashboard Content' },
-                { title: 'Recommended Courses', desc: 'Dashboard section: Course suggestions', url: baseUrl + 'student/recommendations.php', icon: 'fa-graduation-cap', category: 'Dashboard Content' },
-                { title: 'Recent Activity', desc: 'Dashboard section: Latest quiz attempts & scores', url: baseUrl + 'student/history.php', icon: 'fa-history', category: 'Dashboard Content' },
-                { title: 'Learning Streak', desc: 'Dashboard header: Active day streak & calendar', url: baseUrl + 'student/dashboard.php', action: () => typeof openStreakModal === 'function' && openStreakModal(), icon: 'fa-fire', category: 'Dashboard Content' }
-            );
-        }
-
-        // Dynamically extract page headings & section titles
-        document.querySelectorAll('.stat-card-title, h1, h2, h3, h4, h5, .card-title').forEach(el => {
-            const title = el.textContent.trim();
-            if (title && title.length > 2 && title.length < 50) {
-                if (!modulesIndex.some(m => m.title.toLowerCase() === title.toLowerCase()) && !items.some(i => i.title.toLowerCase() === title.toLowerCase())) {
-                    let sectionUrl = window.location.pathname;
-                    const container = el.closest('[id]');
-                    if (container) sectionUrl += '#' + container.id;
-                    items.push({
-                        title: title,
-                        desc: 'Current Page Section',
-                        url: sectionUrl,
-                        icon: 'fa-bookmark',
-                        category: 'Page Sections'
-                    });
-                }
-            }
-        });
-
-        return items;
+        return [];
     }
 
     // 3. Search Engine Filter & UI Rendering

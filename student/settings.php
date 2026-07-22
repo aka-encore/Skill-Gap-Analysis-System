@@ -94,7 +94,7 @@ include __DIR__ . '/../includes/header.php';
     <!-- LEFT COLUMN: SETTINGS PANELS -->
     <div class="col-lg-8">
       <!-- 1. CHANGE PASSWORD & SECURITY -->
-      <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white">
+      <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white" id="change-password">
         <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-lock text-warning me-2"></i> Security & Password</h5>
         <p class="text-muted small mb-4">Update your account password to keep your learning records secure.</p>
 

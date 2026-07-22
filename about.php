@@ -1,7 +1,7 @@
 <?php
 /**
  * SkillBridge - About Us Page
- * AI-Based Skill Gap Analysis & Learning Management System
+ * Skill Gap Analysis & Learning Management System
  */
 require_once __DIR__ . '/config/config.php';
 require_once __DIR__ . '/config/database.php';
@@ -17,7 +17,7 @@ $totalSkills      = (int)($db->fetch("SELECT COUNT(*) as cnt FROM skills")['cnt'
 $totalAssessments = (int)($db->fetch("SELECT COUNT(*) as cnt FROM assessments")['cnt'] ?? 0);
 $totalCourses     = (int)($db->fetch("SELECT COUNT(*) as cnt FROM courses")['cnt'] ?? 0);
 
-$pageTitle = "About SkillBridge - AI-Based Skill Gap Analysis Platform";
+$pageTitle = "About SkillBridge – Skill Gap Analysis & Learning Management System";
 include __DIR__ . '/includes/header.php';
 ?>
 
@@ -63,7 +63,7 @@ include __DIR__ . '/includes/header.php';
       </span>
       <h1 class="fw-bold display-5 mb-3" style="color: var(--text-heading);">Helping Students <span class="text-primary">Build Better Careers</span></h1>
       <p class="fs-5 mb-4 leading-relaxed" style="color: var(--text-secondary);">
-        Empowering students with AI-driven skill analysis, personalized learning, and data-driven career development.
+        Empowering students with comprehensive skill gap analysis, personalized learning, and data-driven career development.
       </p>
       <div class="d-flex justify-content-center gap-3 flex-wrap">
         <a href="<?= BASE_URL ?>student/assessments.php" class="btn btn-primary rounded-pill px-4 py-2.5 fs-6 fw-semibold">
@@ -118,7 +118,7 @@ include __DIR__ . '/includes/header.php';
       </span>
       <h3 class="fw-bold mb-3" style="color: var(--text-heading);">Our Mission</h3>
       <p class="fs-5 leading-relaxed mb-0" style="color: var(--text-secondary);">
-        SkillBridge aims to bridge the gap between students' current skills and industry expectations by providing AI-powered skill assessments, personalized learning roadmaps, and continuous progress tracking to help learners become career-ready.
+        SkillBridge aims to bridge the gap between students' current skills and industry expectations by providing comprehensive skill assessments, personalized learning roadmaps, and continuous progress tracking to help learners become career-ready.
       </p>
     </div>
   </div>
@@ -127,7 +127,7 @@ include __DIR__ . '/includes/header.php';
   <div class="mb-5">
     <div class="text-center mb-4">
       <h3 class="fw-bold mb-1" style="color: var(--text-heading);">What SkillBridge Offers</h3>
-      <p class="small" style="color: var(--text-muted);">Comprehensive AI-driven tools designed for modern technical education.</p>
+      <p class="small" style="color: var(--text-muted);">Comprehensive tools designed for modern technical education.</p>
     </div>
 
     <div class="row g-4">
@@ -136,7 +136,7 @@ include __DIR__ . '/includes/header.php';
           <div class="stat-icon primary mb-3 fs-4" style="width: 44px; height: 44px; border-radius: 12px; display:flex; align-items:center; justify-content:center;">
             <i class="fa-solid fa-brain"></i>
           </div>
-          <h5 class="fw-bold mb-2" style="color: var(--text-heading);">AI-Based Skill Gap Analysis</h5>
+          <h5 class="fw-bold mb-2" style="color: var(--text-heading);">Skill Gap Analysis</h5>
           <p class="small mb-0" style="color: var(--text-secondary);">Automated comparison of student proficiency against target role benchmarks.</p>
         </div>
       </div>
@@ -205,7 +205,7 @@ include __DIR__ . '/includes/header.php';
         <div class="d-flex align-items-center gap-3 p-3 rounded-3" style="background: var(--bg-alt); border: 1px solid var(--border);">
           <div class="timeline-step-badge">3</div>
           <div>
-            <div class="fw-bold small" style="color: var(--text-heading);">AI Analyzes Score</div>
+            <div class="fw-bold small" style="color: var(--text-heading);">System Analyzes Score</div>
             <div style="font-size: 11px; color: var(--text-muted);">Weighted calculation</div>
           </div>
         </div>

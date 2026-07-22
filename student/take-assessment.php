@@ -237,10 +237,10 @@ include __DIR__ . '/../includes/header.php';
                     </button>
                 <?php endforeach; ?>
             </div>
-        </div>
     </div>
 </div>
 
+<script src="<?= BASE_URL ?>assets/js/assessment-timer.js"></script>
 <script>
 let proctorWarnings = 0;
 const maxProctorWarnings = 3;

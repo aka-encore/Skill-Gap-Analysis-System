@@ -12,13 +12,9 @@ require_role('student');
 $studentId = $_SESSION['profile_id'];
 $db = Database::getInstance();
 
-// Dismiss recommendation handler
-if (isset($_GET['dismiss_id'])) {
-    $dismissId = (int)$_GET['dismiss_id'];
-    $db->update('recommendations', ['is_dismissed' => 1], 'id = ? AND student_id = ?', [$dismissId, $studentId]);
-    set_flash_message('success', 'Recommendation dismissed.');
-    redirect(BASE_URL . 'student/recommendations.php');
-}
+// Redirect seamlessly to full Courses & Recommendations module
+$queryString = $_SERVER['QUERY_STRING'] ? '?' . $_SERVER['QUERY_STRING'] : '?tab=recommended';
+redirect(BASE_URL . 'student/courses.php' . $queryString);
 
 // Enroll / Start Course handler
 if (isset($_GET['enroll_course_id'])) {
@@ -60,7 +56,7 @@ include __DIR__ . '/../includes/header.php';
     </div>
 </div>
 
-<div class="row g-4">
+<div class="row g-4" id="recommended-courses">
     <?php if (empty($recommendations)): ?>
         <div class="col-12 text-center py-5">
             <i class="bi bi-check2-circle text-success display-3 mb-3"></i>

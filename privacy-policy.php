@@ -1,7 +1,7 @@
 <?php
 /**
  * SkillBridge - Privacy Policy Page
- * AI-Based Skill Gap Analysis & Learning Management System
+ * Skill Gap Analysis & Learning Management System
  */
 require_once __DIR__ . '/config/config.php';
 require_once __DIR__ . '/includes/auth.php';
@@ -20,7 +20,7 @@ include __DIR__ . '/includes/header.php';
       </span>
       <h1 class="fw-bold display-5 mb-2">Privacy Policy</h1>
       <p class="text-white-50 fs-5 mb-3">
-        Learn how SkillBridge handles, protects, and respects your personal and skill evaluation data across our AI-Based Skill Gap Analysis & LMS platform.
+        Learn how SkillBridge handles, protects, and respects your personal and skill evaluation data across our Skill Gap Analysis & LMS platform.
       </p>
       <div class="d-flex align-items-center gap-3 text-white-50 small">
         <span><i class="bi bi-calendar3 me-1"></i> Last Updated: January 15, 2026</span>
@@ -30,41 +30,37 @@ include __DIR__ . '/includes/header.php';
     </div>
   </div>
 
-  <!-- MAIN CONTENT CONTAINER -->
   <div class="row g-4">
-    <!-- STICKY TABLE OF CONTENTS -->
+    <!-- LEFT SIDEBAR STICKY NAVIGATION -->
     <div class="col-lg-3 d-none d-lg-block">
-      <div class="card border-0 shadow-sm rounded-4 p-3 legal-nav-sticky bg-white">
-        <h6 class="fw-bold text-dark mb-3 px-2">On This Page</h6>
-        <nav class="nav flex-column gap-1">
-          <a href="#introduction" class="legal-toc-link active"><i class="bi bi-file-text me-2"></i> 1. Introduction</a>
-          <a href="#info-collect" class="legal-toc-link"><i class="bi bi-folder-check me-2"></i> 2. Info We Collect</a>
-          <a href="#how-used" class="legal-toc-link"><i class="bi bi-cpu me-2"></i> 3. How Info Is Used</a>
-          <a href="#security" class="legal-toc-link"><i class="bi bi-lock me-2"></i> 4. Data Security</a>
-          <a href="#cookies" class="legal-toc-link"><i class="bi bi-cookie me-2"></i> 5. Cookies</a>
-          <a href="#rights" class="legal-toc-link"><i class="bi bi-person-check me-2"></i> 6. User Rights</a>
-          <a href="#third-party" class="legal-toc-link"><i class="bi bi-diagram-3 me-2"></i> 7. Third-Party Services</a>
-          <a href="#contact" class="legal-toc-link"><i class="bi bi-envelope me-2"></i> 8. Contact Info</a>
-          <a href="#updates" class="legal-toc-link"><i class="bi bi-arrow-repeat me-2"></i> 9. Policy Updates</a>
-        </nav>
+      <div class="legal-nav-card sticky-top" style="top: 90px; z-index: 10;">
+        <h6 class="fw-bold text-dark mb-3 px-2">Privacy Topics</h6>
+        <div class="nav flex-column nav-pills gap-1">
+          <a href="#intro" class="nav-link active rounded-3 text-start"><i class="bi bi-info-circle me-2"></i> 1. Introduction</a>
+          <a href="#info-collect" class="nav-link rounded-3 text-start"><i class="bi bi-folder-check me-2"></i> 2. Information Collected</a>
+          <a href="#how-we-use" class="nav-link rounded-3 text-start"><i class="bi bi-gear me-2"></i> 3. How We Use Data</a>
+          <a href="#cookies" class="nav-link rounded-3 text-start"><i class="bi bi-cookie me-2"></i> 4. Cookies & Sessions</a>
+          <a href="#data-sharing" class="nav-link rounded-3 text-start"><i class="bi bi-share me-2"></i> 5. Data Sharing</a>
+          <a href="#data-security" class="nav-link rounded-3 text-start"><i class="bi bi-shield-lock me-2"></i> 6. Data Security</a>
+          <a href="#user-rights" class="nav-link rounded-3 text-start"><i class="bi bi-person-check me-2"></i> 7. Your User Rights</a>
+          <a href="#contact" class="nav-link rounded-3 text-start"><i class="bi bi-envelope me-2"></i> 8. Contact Support</a>
+        </div>
       </div>
     </div>
 
-    <!-- POLICY SECTIONS -->
+    <!-- RIGHT CONTENT AREA -->
     <div class="col-lg-9">
       <!-- 1. Introduction -->
-      <section id="introduction" class="legal-card-section">
+      <section id="intro" class="legal-card-section">
         <div class="d-flex align-items-center gap-3 mb-3">
-          <div class="legal-section-icon">
-            <i class="bi bi-file-text"></i>
-          </div>
+          <div class="legal-section-icon bg-primary-subtle text-primary"><i class="bi bi-info-circle fs-4"></i></div>
           <div>
             <h4 class="fw-bold text-dark mb-0">1. Introduction</h4>
             <span class="text-muted small">Overview & Governance</span>
           </div>
         </div>
         <p class="text-secondary leading-relaxed mb-3">
-          Welcome to <strong>SkillBridge</strong> (“we,” “our,” or “us”). SkillBridge is an AI-based Skill Gap Analysis & Learning Management System designed to evaluate technical competencies, generate custom learning roadmaps, and connect academic curriculum with industry requirements.
+          Welcome to <strong>SkillBridge</strong> (“we,” “our,” or “us”). SkillBridge is a Skill Gap Analysis & Learning Management System designed to evaluate technical competencies, generate custom learning roadmaps, and connect academic curriculum with industry requirements.
         </p>
         <p class="text-secondary leading-relaxed mb-0">
           This Privacy Policy explains how we collect, process, store, and safeguard your information when you access our system through any device. By registering an account or using SkillBridge services, you agree to the collection and use of information in accordance with this policy.
@@ -213,7 +209,7 @@ include __DIR__ . '/includes/header.php';
         <div class="p-3 bg-light rounded-3 d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3 border border-light-subtle">
           <div>
             <strong class="text-dark d-block mb-1">SkillBridge Data Protection & Support</strong>
-            <span class="text-muted small"><i class="bi bi-envelope me-1"></i> support@skillbridge.edu &bull; <i class="bi bi-building me-1"></i> Department of Computer Science & Engineering</span>
+            <span class="text-muted small"><i class="bi bi-envelope me-1"></i> <a href="mailto:skill.profile.project1@gmail.com" class="text-decoration-none text-primary">skill.profile.project1@gmail.com</a> &bull; <i class="bi bi-building me-1"></i> Department of Computer Science & Engineering</span>
           </div>
           <a href="<?= BASE_URL ?>student/help.php" class="btn btn-primary btn-sm rounded-pill px-4 fw-semibold flex-shrink-0">
             <i class="bi bi-life-ring me-1"></i> Help Center

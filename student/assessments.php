@@ -80,7 +80,7 @@ include __DIR__ . '/../includes/header.php';
 <!-- ══════════════════════════════════════════════════════════ -->
 <!-- MULTI-STEP ASSESSMENT SETUP WIZARD (STARTS DIRECTLY)        -->
 <!-- ══════════════════════════════════════════════════════════ -->
-<div class="saas-card p-4 p-md-5 mb-5">
+<div class="saas-card p-4 p-md-5 mb-5" id="pending-assessments">
 
     <!-- STEP INDICATOR DOTS -->
     <div id="stepIndicatorContainer" class="step-indicator">
@@ -275,7 +275,7 @@ include __DIR__ . '/../includes/header.php';
     <span class="badge saas-badge-primary"><?= count($completedAssessments) ?> Completed</span>
 </div>
 
-<div class="saas-card mb-5 overflow-hidden">
+<div class="saas-card mb-5 overflow-hidden" id="completed-assessments">
     <div class="card-body p-0">
         <?php if (empty($completedAssessments)): ?>
             <div class="saas-empty-state">

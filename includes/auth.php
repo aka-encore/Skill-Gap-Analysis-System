@@ -12,11 +12,12 @@ require_once __DIR__ . '/functions.php';
  */
 function is_logged_in(): bool {
     if (isset($_SESSION['user_id']) && !empty($_SESSION['user_id'])) {
-        // Enforce session timeout check (e.g., 1 hour)
+        // Enforce session timeout check (1 hour)
         $timeout = 3600;
         if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity'] > $timeout)) {
-            logout_user();
-            return false;
+            // Active session expired: clear session variables without destroying persistent cookie token
+            unset($_SESSION['user_id'], $_SESSION['user_role'], $_SESSION['username'], $_SESSION['last_activity'], $_SESSION['profile_id']);
+            return check_remember_token();
         }
         $_SESSION['last_activity'] = time();
         return true;
@@ -74,6 +75,9 @@ function require_role($allowedRoles): void {
  * Authenticate and log in user
  */
 function login_user(array $user, bool $remember = false): void {
+    if (session_status() === PHP_SESSION_NONE) {
+        @session_start();
+    }
     $_SESSION['user_id'] = $user['id'];
     $_SESSION['username'] = $user['username'];
     $_SESSION['user_email'] = $user['email'];
@@ -99,7 +103,8 @@ function login_user(array $user, bool $remember = false): void {
         $_SESSION['avatar'] = $ad['avatar'] ?? 'default-avatar.png';
     }
 
-    if ($remember) {
+    // Persistent Remember Me token generation (Student & Faculty only, Admin excluded)
+    if ($remember && $user['role'] !== 'admin') {
         $token = bin2hex(random_bytes(32));
         $db->update('users', ['remember_token' => $token], 'id = ?', [$user['id']]);
         setcookie('remember_token', $token, time() + (86400 * 30), "/", "", false, true); // 30 days
@@ -115,10 +120,17 @@ function logout_user(): void {
     if (session_status() === PHP_SESSION_NONE) {
         @session_start();
     }
+    $db = Database::getInstance();
     if (isset($_SESSION['user_id'])) {
-        log_activity($_SESSION['user_id'], 'LOGOUT', "User {$_SESSION['username']} logged out.");
+        // Invalidate remember token in database
+        $db->update('users', ['remember_token' => null], 'id = ?', [$_SESSION['user_id']]);
+        log_activity($_SESSION['user_id'], 'LOGOUT', "User " . ($_SESSION['username'] ?? 'Account') . " logged out.");
     }
-    $_SESSION = [];
+    if (isset($_COOKIE['remember_token'])) {
+        $db->update('users', ['remember_token' => null], 'remember_token = ?', [$_COOKIE['remember_token']]);
+    }
+    $_SESSION = array();
+    session_unset();
     if (ini_get("session.use_cookies") && !headers_sent()) {
         $params = session_get_cookie_params();
         setcookie(session_name(), '', time() - 42000,
@@ -127,7 +139,8 @@ function logout_user(): void {
         );
     }
     if (isset($_COOKIE['remember_token']) && !headers_sent()) {
-        setcookie('remember_token', '', time() - 3600, "/");
+        setcookie('remember_token', '', time() - 3600, "/", "", false, true);
+        unset($_COOKIE['remember_token']);
     }
     if (session_status() === PHP_SESSION_ACTIVE) {
         session_destroy();
@@ -142,7 +155,7 @@ function check_remember_token(): bool {
         $token = $_COOKIE['remember_token'];
         $db = Database::getInstance();
         $user = $db->fetch("SELECT * FROM users WHERE remember_token = ?", [$token]);
-        if ($user) {
+        if ($user && $user['role'] !== 'admin') {
             login_user($user, false);
             return true;
         }

@@ -1378,61 +1378,6 @@ h1, h2, h3, h4, h5, h6, .brand-title {
     filter: blur(60px);
 }
 
-/* Floating Technology Background Icons Container */
-.tech-bg-container {
-    position: fixed;
-    inset: -40px;
-    pointer-events: none;
-    z-index: 1;
-    overflow: hidden;
-    transition: transform 0.2s cubic-bezier(0.1, 1, 0.1, 1);
-    will-change: transform;
-}
-
-.tech-icon-wrap {
-    position: absolute;
-    pointer-events: auto;
-    animation: floatTechIcon 20s linear infinite alternate;
-    will-change: transform;
-}
-
-.tech-icon-wrap:nth-child(even) {
-    animation-name: floatTechIconReverse;
-}
-
-.tech-icon {
-    display: inline-block;
-    color: var(--brand-color, #26658C);
-    opacity: 0.25;
-    filter: blur(0.5px);
-    cursor: pointer;
-    user-select: none;
-    transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
-                opacity 0.35s ease,
-                filter 0.35s ease,
-                text-shadow 0.35s ease;
-}
-
-.tech-icon:hover {
-    opacity: 0.95 !important;
-    filter: blur(0px) !important;
-    transform: scale(1.28) rotate(8deg);
-    text-shadow: 0 0 20px var(--brand-color, #26658C), 0 0 40px var(--brand-color, #26658C);
-    z-index: 50;
-}
-
-@keyframes floatTechIcon {
-    0% { transform: translateY(0px) rotate(0deg) scale(1); }
-    50% { transform: translateY(-28px) rotate(6deg) scale(1.04); }
-    100% { transform: translateY(22px) rotate(-5deg) scale(0.96); }
-}
-
-@keyframes floatTechIconReverse {
-    0% { transform: translateY(0px) rotate(0deg) scale(1); }
-    50% { transform: translateY(30px) rotate(-8deg) scale(0.96); }
-    100% { transform: translateY(-18px) rotate(6deg) scale(1.04); }
-}
-
 /* Centered Auth Card Container */
 .auth-center-wrapper {
     position: relative;
@@ -2801,4 +2746,15 @@ body.dark-mode .role-selector {
 }
 [data-theme="dark"] .selection-card .card-icon {
     color: var(--primary) !important;
+}
+
+/* Section Target Highlighting Animation */
+.section-target-highlight {
+    animation: highlightPulse 2.5s ease;
+}
+
+@keyframes highlightPulse {
+    0% { box-shadow: 0 0 0 4px rgba(38, 101, 140, 0.4); transform: scale(1.005); }
+    50% { box-shadow: 0 0 20px 8px rgba(20, 184, 166, 0.3); }
+    100% { box-shadow: none; transform: scale(1); }
 }

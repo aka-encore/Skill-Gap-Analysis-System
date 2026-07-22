@@ -210,10 +210,15 @@ include __DIR__ . '/../includes/header.php';
     <div class="max-w-600 mx-auto">
       <div class="fs-1 text-primary mb-3"><i class="fa-solid fa-headset"></i></div>
       <h4 class="fw-bold text-dark mb-2">Faculty Support & Systems Helpdesk</h4>
-      <p class="text-muted small mb-4">Contact our IT administration team for assistance with assessment permissions, question uploads, or student record updates.</p>
+      <p class="text-muted small mb-2">Contact our IT administration team for assistance with assessment permissions, question uploads, or student record updates.</p>
+      <div class="mb-4">
+        <span class="badge bg-primary-subtle text-primary border rounded-pill px-3 py-1.5 fs-6 font-monospace">
+          <i class="fa-solid fa-envelope me-1"></i> skill.profile.project1@gmail.com
+        </span>
+      </div>
       <div class="d-flex justify-content-center gap-3 flex-wrap">
-        <a href="mailto:faculty-support@skillbridge.edu" class="btn btn-primary rounded-pill px-4 py-2 small fw-semibold">
-          <i class="fa-solid fa-envelope me-1"></i> Contact IT Support
+        <a href="mailto:skill.profile.project1@gmail.com" class="btn btn-primary rounded-pill px-4 py-2 small fw-semibold">
+          <i class="fa-solid fa-paper-plane me-1"></i> Contact Support (Email Us)
         </a>
         <a href="<?= BASE_URL ?>faculty/dashboard.php" class="btn btn-outline-secondary rounded-pill px-4 py-2 small fw-semibold">
           <i class="fa-solid fa-gauge-high me-1"></i> Faculty Dashboard

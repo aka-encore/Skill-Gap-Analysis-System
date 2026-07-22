@@ -6,7 +6,7 @@ require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/functions.php';
 
-$pageTitle = $pageTitle ?? APP_NAME . ' - Skill Gap Analysis & LMS';
+$pageTitle = $pageTitle ?? APP_NAME . ' – Skill Gap Analysis & LMS';
 $currentUser = get_logged_in_user();
 ?>
 <!DOCTYPE html>
@@ -30,8 +30,9 @@ $currentUser = get_logged_in_user();
     <!-- Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     
-    <!-- Early FOUC Prevention Theme Engine -->
+    <!-- Early FOUC Prevention Theme Engine & Base URL -->
     <script>
+    window.BASE_URL = '<?= BASE_URL ?>';
     (function() {
         var savedTheme = localStorage.getItem('skillbridge_theme') || 'system';
         var resolvedTheme = savedTheme;

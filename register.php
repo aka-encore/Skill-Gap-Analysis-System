@@ -6,6 +6,7 @@
  */
 require_once __DIR__ . '/config/config.php';
 require_once __DIR__ . '/config/database.php';
+require_once __DIR__ . '/config/mail.php';
 require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/functions.php';
 require_once __DIR__ . '/includes/validators.php';
@@ -88,12 +89,19 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                     $db->beginTransaction();
 
                     $passwordHash = password_hash($password, PASSWORD_BCRYPT);
+                    // Generate secure 6-digit OTP (10 minutes validity)
+                    $otp = (string)random_int(100000, 999999);
+                    $otpExpiry = date('Y-m-d H:i:s', time() + 600);
+
                     $userId = $db->insert('users', [
-                        'username'   => $username,
-                        'email'      => $email,
-                        'password'   => $passwordHash,
-                        'role'       => $role,
-                        'created_at' => date('Y-m-d H:i:s')
+                        'username'               => $username,
+                        'email'                  => $email,
+                        'password'               => $passwordHash,
+                        'role'                   => $role,
+                        'email_verified'         => 0,
+                        'email_verification_otp' => $otp,
+                        'otp_expiry'             => $otpExpiry,
+                        'created_at'             => date('Y-m-d H:i:s')
                     ]);
 
                     if ($role === 'faculty') {
@@ -127,8 +135,12 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
 
                     $db->commit();
 
-                    set_flash_message('success', 'Registration successful! You may now sign in to your new account.');
-                    redirect(BASE_URL . 'login.php');
+                    // Send verification OTP via email
+                    send_otp_email($email, $otp);
+
+                    set_flash_message('info', 'Registration successful! A 6-digit verification code has been sent to your email address.');
+                    // Redirect to verify-email.php passing email in query param (never OTP)
+                    redirect(BASE_URL . 'verify-email.php?email=' . urlencode($email));
 
                 } catch (Exception $e) {
                     $db->rollBack();
@@ -161,49 +173,6 @@ $pageTitle = "Create Account – SkillBridge";
   <!-- Ambient Background Orbs -->
   <div class="auth-ambient-glow-1"></div>
   <div class="auth-ambient-glow-2"></div>
-
-  <!-- Floating Technology Background Icons (Parallax Animation) -->
-  <div class="tech-bg-container" aria-hidden="true">
-    <div class="tech-icon-wrap" style="top: 6%; left: 4%; animation-duration: 18s;">
-      <i class="tech-icon fa-brands fa-html5" style="--brand-color: #E34F26; font-size: 3.2rem;"></i>
-    </div>
-    <div class="tech-icon-wrap" style="top: 22%; left: 12%; animation-duration: 24s; animation-delay: -3s;">
-      <i class="tech-icon fa-brands fa-python" style="--brand-color: #3776AB; font-size: 3.5rem;"></i>
-    </div>
-    <div class="tech-icon-wrap" style="top: 8%; left: 22%; animation-duration: 20s; animation-delay: -7s;">
-      <i class="tech-icon fa-brands fa-react" style="--brand-color: #61DAFB; font-size: 3.4rem;"></i>
-    </div>
-    <div class="tech-icon-wrap" style="top: 35%; left: 5%; animation-duration: 22s; animation-delay: -2s;">
-      <i class="tech-icon fa-brands fa-node-js" style="--brand-color: #339933; font-size: 2.9rem;"></i>
-    </div>
-    <div class="tech-icon-wrap" style="top: 48%; left: 14%; animation-duration: 19s; animation-delay: -11s;">
-      <i class="tech-icon fa-brands fa-docker" style="--brand-color: #2496ED; font-size: 3.1rem;"></i>
-    </div>
-    <div class="tech-icon-wrap" style="top: 64%; left: 6%; animation-duration: 23s; animation-delay: -4s;">
-      <i class="tech-icon fa-brands fa-square-js" style="--brand-color: #F7DF1E; font-size: 3.2rem;"></i>
-    </div>
-    <div class="tech-icon-wrap" style="top: 60%; left: 24%; animation-duration: 20s; animation-delay: -6s;">
-      <i class="tech-icon fa-solid fa-brain" style="--brand-color: #8E75FF; font-size: 3.4rem;"></i>
-    </div>
-    <div class="tech-icon-wrap" style="top: 5%; left: 68%; animation-duration: 21s; animation-delay: -2s;">
-      <i class="tech-icon fa-brands fa-css3-alt" style="--brand-color: #1572B6; font-size: 3.3rem;"></i>
-    </div>
-    <div class="tech-icon-wrap" style="top: 18%; left: 82%; animation-duration: 25s; animation-delay: -9s;">
-      <i class="tech-icon fa-brands fa-java" style="--brand-color: #ED8B00; font-size: 3.1rem;"></i>
-    </div>
-    <div class="tech-icon-wrap" style="top: 28%; left: 88%; animation-duration: 20s; animation-delay: -6s;">
-      <i class="tech-icon fa-brands fa-php" style="--brand-color: #777BB4; font-size: 3.0rem;"></i>
-    </div>
-    <div class="tech-icon-wrap" style="top: 62%; left: 75%; animation-duration: 22s; animation-delay: -8s;">
-      <i class="tech-icon fa-brands fa-laravel" style="--brand-color: #FF2D20; font-size: 3.1rem;"></i>
-    </div>
-    <div class="tech-icon-wrap" style="top: 76%; left: 86%; animation-duration: 18s; animation-delay: -3s;">
-      <i class="tech-icon fa-brands fa-aws" style="--brand-color: #FF9900; font-size: 3.3rem;"></i>
-    </div>
-    <div class="tech-icon-wrap" style="top: 92%; left: 48%; animation-duration: 21s; animation-delay: -2s;">
-      <i class="tech-icon fa-solid fa-database" style="--brand-color: #4479A1; font-size: 2.8rem;"></i>
-    </div>
-  </div>
 
   <!-- Main Centered SaaS Registration Wrapper -->
   <div class="auth-center-wrapper" style="max-width: 580px;">
@@ -580,26 +549,6 @@ $pageTitle = "Create Account – SkillBridge";
       btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i> Creating Account...';
       return true;
     }
-
-    // Parallax Effect for Background Tech Icons
-    let mouseX = 0, mouseY = 0;
-    let currentX = 0, currentY = 0;
-
-    document.addEventListener('mousemove', (e) => {
-      mouseX = (e.clientX - window.innerWidth / 2) * 0.025;
-      mouseY = (e.clientY - window.innerHeight / 2) * 0.025;
-    });
-
-    function animateParallax() {
-      currentX += (mouseX - currentX) * 0.05;
-      currentY += (mouseY - currentY) * 0.05;
-      const bg = document.querySelector('.tech-bg-container');
-      if (bg) {
-        bg.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
-      }
-      requestAnimationFrame(animateParallax);
-    }
-    requestAnimationFrame(animateParallax);
   </script>
 </body>
 </html>

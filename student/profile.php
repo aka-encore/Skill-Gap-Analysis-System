@@ -61,10 +61,15 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && isset($_POST['update_pro
         redirect(BASE_URL . 'student/profile.php');
     }
 
-    // Phone validations
-    if (!empty($phone) && !preg_match("/^\+?[0-9]{7,15}$/", $phone)) {
-        set_flash_message('danger', 'Phone number must contain digits only.');
-        redirect(BASE_URL . 'student/profile.php');
+    $currPhone = trim($student['phone'] ?? '');
+
+    // Phone / Mobile validations (Trigger ONLY when mobile number is modified by the user)
+    if ($phone !== $currPhone && !empty($phone)) {
+        $rawDigits = preg_replace('/[^0-9]/', '', $phone);
+        if (preg_match('/[a-zA-Z]/', $phone) || strlen($rawDigits) < 7 || strlen($rawDigits) > 15) {
+            set_flash_message('danger', 'Mobile number must contain only digits.');
+            redirect(BASE_URL . 'student/profile.php');
+        }
     }
 
     // Handle Avatar File Upload
@@ -255,7 +260,7 @@ include __DIR__ . '/../includes/header.php';
 
 <div class="dash-content">
   <!-- PROFILE HEADER BANNER -->
-  <div class="saas-card p-4 p-md-5 mb-4 position-relative overflow-hidden">
+  <div class="saas-card p-4 p-md-5 mb-4 position-relative overflow-hidden" id="profile-information">
     <div class="row align-items-start g-4">
       <div class="col-auto position-relative">
         <?php 

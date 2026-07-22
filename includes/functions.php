@@ -21,7 +21,7 @@ function sanitize_input($data): string {
  */
 function redirect(string $url): void {
     if (!headers_sent()) {
-        header("Location: " . $url);
+        header("Location: " . $url, true, 303);
         exit;
     } else {
         echo "<script>window.location.href='" . htmlspecialchars($url) . "';</script>";
@@ -125,17 +125,26 @@ function generate_recommendations_for_result(int $studentId, int $assessmentId, 
     $skillId = $assessment['skill_id'];
     $gapMetrics = calculate_skill_gap($scorePercentage);
 
-    // Create a notification for assessment completion
-    $statusText = $scorePercentage >= 60 ? 'Passed' : 'Needs Improvement';
-    $db->insert('notifications', [
-        'user_id' => $student['user_id'],
-        'title' => 'Assessment Completed: ' . $assessment['title'],
-        'message' => "You scored " . number_format($scorePercentage, 2) . "% ({$statusText}). Check your skill gap report.",
-        'link' => BASE_URL . 'student/assessment-result.php?id=' . $assessmentId,
-        'is_read' => 0,
-        'type' => 'assessment',
-        'created_at' => date('Y-m-d H:i:s')
-    ]);
+    // Notify the Faculty member who created this assessment (Requirement 15)
+    if (!empty($assessment['created_by_faculty_id'])) {
+        $faculty = $db->fetch(
+            "SELECT f.*, u.id as user_id FROM faculty f JOIN users u ON f.user_id = u.id WHERE f.id = ?",
+            [$assessment['created_by_faculty_id']]
+        );
+        if ($faculty && !empty($faculty['user_id'])) {
+            $studentName = trim(($student['first_name'] ?? 'Student') . ' ' . ($student['last_name'] ?? ''));
+            $completionTime = date('d M Y, h:i A');
+            $db->insert('notifications', [
+                'user_id'    => $faculty['user_id'],
+                'title'      => 'Student Quiz Submission: ' . $assessment['title'],
+                'message'    => "Student {$studentName} completed assessment '{$assessment['title']}' with a score of " . number_format($scorePercentage, 1) . "% on {$completionTime}.",
+                'link'       => BASE_URL . 'faculty/evaluate.php?student_id=' . $studentId,
+                'is_read'    => 0,
+                'type'       => 'assessment',
+                'created_at' => date('Y-m-d H:i:s')
+            ]);
+        }
+    }
 
     // If weak skill, automatically match suitable courses
     if ($gapMetrics['is_weak']) {
