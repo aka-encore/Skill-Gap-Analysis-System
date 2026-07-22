@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jul 22, 2026 at 05:52 AM
+-- Generation Time: Jul 22, 2026 at 09:50 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -166,7 +166,30 @@ INSERT INTO `activity_logs` (`id`, `user_id`, `action`, `description`, `ip_addre
 (126, 36, 'LOGIN', 'User encore.exe logged in successfully as student.', '::1', '2026-07-22 03:44:35'),
 (127, 36, 'LOGOUT', 'User encore.exe logged out.', '::1', '2026-07-22 03:45:32'),
 (128, 36, 'LOGIN', 'User encore.exe logged in successfully as student.', '::1', '2026-07-22 03:54:22'),
-(129, 36, 'ASSESSMENT_SUBMITTED', 'Completed assessment PHP 8 Core Concepts & PDO Mastery (25 MCQs) with score 0.0%', '::1', '2026-07-22 03:54:52');
+(129, 36, 'ASSESSMENT_SUBMITTED', 'Completed assessment PHP 8 Core Concepts & PDO Mastery (25 MCQs) with score 0.0%', '::1', '2026-07-22 03:54:52'),
+(130, 36, 'LOGIN', 'User encore.exe logged in successfully as student.', '::1', '2026-07-22 10:04:57'),
+(131, 36, 'LOGOUT', 'User encore.exe logged out.', '::1', '2026-07-22 10:25:12'),
+(132, 37, 'REGISTER', 'New student registered: babudon2 (STU-1037)', '::1', '2026-07-22 10:27:19'),
+(133, 37, 'RESEND_OTP', 'Resent email verification OTP for warriorbabu402@gmail.com.', '::1', '2026-07-22 10:28:11'),
+(134, 1, 'FORGOT_PASSWORD_REQUEST', 'Password reset requested for sudrikyash1@gmail.com.', '::1', '2026-07-22 10:29:43'),
+(135, NULL, 'REGISTER', 'New student registered: sumedh2 (STU-1038)', '::1', '2026-07-22 10:31:26'),
+(136, NULL, 'RESEND_OTP', 'Resent email verification OTP for khalikarsumedh07@gmail.com.', '::1', '2026-07-22 10:33:18'),
+(137, NULL, 'RESEND_OTP', 'Resent email verification OTP for khalikarsumedh07@gmail.com.', '::1', '2026-07-22 10:35:54'),
+(138, 36, 'FORGOT_PASSWORD_REQUEST', 'Password reset requested for marathaedits96@gmail.com.', '::1', '2026-07-22 10:36:20'),
+(139, 36, 'FORGOT_PASSWORD_REQUEST', 'Password reset requested for marathaedits96@gmail.com.', '::1', '2026-07-22 10:36:38'),
+(140, NULL, 'REGISTER', 'New student registered: sumedh (STU-1039)', '::1', '2026-07-22 10:38:56'),
+(141, 40, 'REGISTER', 'New student registered: vaibhav1 (STU-1040)', '::1', '2026-07-22 11:07:05'),
+(142, 41, 'REGISTER', 'New student registered: pavan (STU-1041)', '::1', '2026-07-22 11:42:41'),
+(143, 42, 'REGISTER', 'New student registered: rona (STU-1042)', '::1', '2026-07-22 11:44:45'),
+(144, 36, 'FORGOT_PASSWORD_REQUEST', 'Password reset requested for marathaedits96@gmail.com.', '::1', '2026-07-22 11:57:18'),
+(145, 36, 'FORGOT_PASSWORD_REQUEST', 'Password reset requested for marathaedits96@gmail.com.', '::1', '2026-07-22 12:11:24'),
+(146, 43, 'REGISTER', 'New student registered: heroic (STU-1043)', '::1', '2026-07-22 12:13:32'),
+(147, 44, 'REGISTER', 'New student registered: nsr (STU-1044)', '::1', '2026-07-22 13:12:45'),
+(148, 45, 'REGISTER', 'New student registered: nikhil (STU-1045)', '::1', '2026-07-22 13:16:46'),
+(149, 45, 'EMAIL_VERIFIED', 'User nikhil verified email successfully via OTP.', '::1', '2026-07-22 13:17:35'),
+(150, 45, 'LOGIN', 'User nikhil logged in successfully as student.', '::1', '2026-07-22 13:17:52'),
+(151, 45, 'LOGOUT', 'User nikhil logged out.', '::1', '2026-07-22 13:18:33'),
+(152, 45, 'FORGOT_PASSWORD_REQUEST', 'Password reset requested for bettercallsaul9848@gmail.com.', '::1', '2026-07-22 13:19:35');
 
 -- --------------------------------------------------------
 
@@ -802,8 +825,7 @@ INSERT INTO `notifications` (`id`, `user_id`, `title`, `message`, `link`, `is_re
 (6, 1, 'System Backup Reminder', 'Weekly database backup and audit scheduled today.', '/admin/backup.php', 0, 'system', '2026-07-20 20:01:07'),
 (7, 2, 'Class Assessment Submitted', 'Student John Doe has completed PHP 8 Core Concepts & PDO Mastery.', '/faculty/evaluate.php?assessment_id=1', 1, 'assessment', '2026-07-20 20:01:07'),
 (36, 2, 'Student Quiz Submission: PHP 8 Core Concepts & PDO Mastery', 'Student John Doe completed assessment \'PHP 8 Core Concepts & PDO Mastery\' with a score of 85.0% on 22 Jul 2026, 01:53 AM.', 'http://localhostC:/Users/yashs/.gemini/antigravity-ide/brain/cbc92975-2724-482c-b2ef-ecac81861c28/scratch/faculty/evaluate.php?student_id=1', 0, 'assessment', '2026-07-22 01:53:39'),
-(37, 2, 'Student Quiz Submission: PHP 8 Core Concepts & PDO Mastery', 'Student Encore Abj completed assessment \'PHP 8 Core Concepts & PDO Mastery\' with a score of 0.0% on 22 Jul 2026, 03:54 AM.', 'http://localhost/Skill Gap Analysis/Skill-Gap-Analysis-System/faculty/evaluate.php?student_id=30', 0, 'assessment', '2026-07-22 03:54:52'),
-(38, 36, 'New Course Recommendation', 'We recommended course \'Mastering Pure PHP 8 Development\' to help improve your PHP 8 Web Development skill.', 'http://localhost/Skill Gap Analysis/Skill-Gap-Analysis-System/student/recommendations.php', 0, 'recommendation', '2026-07-22 03:54:52');
+(37, 2, 'Student Quiz Submission: PHP 8 Core Concepts & PDO Mastery', 'Student Encore Abj completed assessment \'PHP 8 Core Concepts & PDO Mastery\' with a score of 0.0% on 22 Jul 2026, 03:54 AM.', 'http://localhost/Skill Gap Analysis/Skill-Gap-Analysis-System/faculty/evaluate.php?student_id=30', 0, 'assessment', '2026-07-22 03:54:52');
 
 -- --------------------------------------------------------
 
@@ -966,7 +988,14 @@ INSERT INTO `students` (`id`, `user_id`, `student_code`, `first_name`, `last_nam
 (18, 24, 'STU-1018', 'Amelia', 'Garcia', 'default-avatar.png', NULL, 'Mumbai, India', '555-0118', 'Data Science', 3, '2026-07-20 20:01:07'),
 (19, 25, 'STU-1019', 'Lucas', 'Martinez', 'default-avatar.png', NULL, 'Mumbai, India', '555-0119', 'Computer Science', 5, '2026-07-20 20:01:07'),
 (20, 26, 'STU-1020', 'Harper', 'Robinson', 'default-avatar.png', NULL, 'Mumbai, India', '555-0120', 'Information Technology', 4, '2026-07-20 20:01:07'),
-(30, 36, 'STU-1036', 'Encore', 'Abj', 'avatar_user_36_1784664668.jpg', 'hii', 'Pune, India', '+91 7558272740', 'Computer Science', 1, '2026-07-22 01:03:55');
+(30, 36, 'STU-1036', 'Encore', 'Abj', 'avatar_user_36_1784664668.jpg', 'hii', 'Pune, India', '+91 7558272740', 'Computer Science', 1, '2026-07-22 01:03:55'),
+(31, 37, 'STU-1037', 'babu', 'don', 'default-avatar.png', NULL, 'Mumbai, India', '+91 9524628562', 'Information Technology', 3, '2026-07-22 10:27:19'),
+(34, 40, 'STU-1040', 'vaibhav', 'tarwade', 'default-avatar.png', NULL, 'Mumbai, India', '+91 9130754790', 'Information Technology', 3, '2026-07-22 11:07:05'),
+(35, 41, 'STU-1041', 'Pavan', 'Thote', 'default-avatar.png', NULL, 'Mumbai, India', '', 'Information Technology', 6, '2026-07-22 11:42:41'),
+(36, 42, 'STU-1042', 'Vardhan', 'R', 'default-avatar.png', NULL, 'Mumbai, India', '+91 7558272740', 'Computer Science', 1, '2026-07-22 11:44:45'),
+(37, 43, 'STU-1043', 'Heroic', 'FF', 'default-avatar.png', NULL, 'Mumbai, India', '', 'Computer Science', 1, '2026-07-22 12:13:32'),
+(38, 44, 'STU-1044', 'Nikhil', 'Raut', 'default-avatar.png', NULL, 'Mumbai, India', '+91 9021987113', 'Computer Science', 1, '2026-07-22 13:12:45'),
+(39, 45, 'STU-1045', 'NIkhil', 'R', 'default-avatar.png', NULL, 'Mumbai, India', '+91 9021987113', 'Computer Science', 1, '2026-07-22 13:16:46');
 
 -- --------------------------------------------------------
 
@@ -1131,7 +1160,7 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id`, `username`, `email`, `password`, `role`, `remember_token`, `reset_token`, `reset_token_expiry`, `email_verified`, `email_verification_otp`, `otp_expiry`, `created_at`, `updated_at`) VALUES
-(1, 'admin', 'sudrikyash1@gmail.com', '$2y$10$1WZxZiSjh.uF.FNVrB32Ae4TkHSDS8pmoFv44FlrCAK9RgbyQLW4u', 'admin', NULL, NULL, NULL, 1, NULL, NULL, '2026-07-20 20:01:07', '2026-07-22 03:12:17'),
+(1, 'admin', 'sudrikyash1@gmail.com', '$2y$10$1WZxZiSjh.uF.FNVrB32Ae4TkHSDS8pmoFv44FlrCAK9RgbyQLW4u', 'admin', NULL, '52a6534684bfc56cc5aad10b2fc4cada9437d2c7a98e19fdc362d1c9e98c59a0', '2026-07-22 10:59:38', 1, NULL, NULL, '2026-07-20 20:01:07', '2026-07-22 10:29:38'),
 (2, 'f_turing', 'faculty1@skillbridge.edu', '$2y$10$41.rpNoFnuBqBQU0yXPmm.ZjpGPXcT0sET25C48qJv6Mo/tHsi74q', 'faculty', NULL, NULL, NULL, 1, NULL, NULL, '2026-07-20 20:01:07', '2026-07-20 20:01:07'),
 (3, 'f_hopper', 'faculty2@skillbridge.edu', '$2y$10$41.rpNoFnuBqBQU0yXPmm.ZjpGPXcT0sET25C48qJv6Mo/tHsi74q', 'faculty', NULL, NULL, NULL, 1, NULL, NULL, '2026-07-20 20:01:07', '2026-07-20 20:01:07'),
 (4, 'f_knuth', 'faculty3@skillbridge.edu', '$2y$10$41.rpNoFnuBqBQU0yXPmm.ZjpGPXcT0sET25C48qJv6Mo/tHsi74q', 'faculty', NULL, NULL, NULL, 1, NULL, NULL, '2026-07-20 20:01:07', '2026-07-20 20:01:07'),
@@ -1157,7 +1186,14 @@ INSERT INTO `users` (`id`, `username`, `email`, `password`, `role`, `remember_to
 (24, 's_amelia', 'student18@skillbridge.edu', '$2y$10$wcAqojau3uCIVwrAonlQcejo77iQ3AwutVa/vU7E.tJ2hQncjOfsm', 'student', NULL, NULL, NULL, 1, NULL, NULL, '2026-07-20 20:01:07', '2026-07-20 20:01:07'),
 (25, 's_lucas', 'student19@skillbridge.edu', '$2y$10$wcAqojau3uCIVwrAonlQcejo77iQ3AwutVa/vU7E.tJ2hQncjOfsm', 'student', NULL, NULL, NULL, 1, NULL, NULL, '2026-07-20 20:01:07', '2026-07-20 20:01:07'),
 (26, 's_harper', 'student20@skillbridge.edu', '$2y$10$wcAqojau3uCIVwrAonlQcejo77iQ3AwutVa/vU7E.tJ2hQncjOfsm', 'student', NULL, NULL, NULL, 1, NULL, NULL, '2026-07-20 20:01:07', '2026-07-20 20:01:07'),
-(36, 'encore.exe', 'marathaedits96@gmail.com', '$2y$10$yLSa7GCcjioj49VoLrizp.WOEOhCjS9gM6iMhiAbZdrxnTM260Mku', 'student', NULL, NULL, NULL, 1, NULL, NULL, '2026-07-22 01:03:55', '2026-07-22 03:45:32');
+(36, 'encore.exe', 'marathaedits96@gmail.com', '$2y$10$yLSa7GCcjioj49VoLrizp.WOEOhCjS9gM6iMhiAbZdrxnTM260Mku', 'student', NULL, '6e6829a54c19eeebc26ffec754f5ff64f0ea3bad25de2a4426a4b8de77ac9058', '2026-07-22 12:41:14', 1, NULL, NULL, '2026-07-22 01:03:55', '2026-07-22 12:11:14'),
+(37, 'babudon2', 'warriorbabu402@gmail.com', '$2y$10$y6xKKbevdAudPrAMjsGmU.xKIEtwqRn4baiQt/i1KdROW3BEqatQa', 'student', NULL, NULL, NULL, 0, '702532', '2026-07-22 10:38:06', '2026-07-22 10:27:19', '2026-07-22 10:28:06'),
+(40, 'vaibhav1', 'vaibhavtarwade007@gmail.com', '$2y$10$d8AGe46LIoubzrHwCh3H4OexvdwSqcEgj9PH4S7CzVha3uvbXtDly', 'student', NULL, NULL, NULL, 0, '182106', '2026-07-22 11:17:05', '2026-07-22 11:07:05', '2026-07-22 11:07:05'),
+(41, 'pavan', 'heroicff2727@gmail.com', '$2y$10$uN2ITTwYv/hFP89g.2UjFeAv7JE2zMn33LuiSygwX24MD98mu/kSu', 'student', NULL, NULL, NULL, 0, '776965', '2026-07-22 11:52:41', '2026-07-22 11:42:41', '2026-07-22 11:42:41'),
+(42, 'rona', 'mohitspatil255@gmail.com', '$2y$10$bZXTgKgBS/tXBT3c3RR19.zQZcJczm842SbPxWMde8d3OtD/7TrLi', 'student', NULL, NULL, NULL, 0, '442498', '2026-07-22 11:55:03', '2026-07-22 11:44:45', '2026-07-22 11:45:03'),
+(43, 'heroic', 'ravindramude44@gmail.com', '$2y$10$AnO/mUslQ.0dxcjFIl55q.lBPiEOZyJh31x5Arr0WpEE8qSxSrmzm', 'student', NULL, NULL, NULL, 0, '647949', '2026-07-22 12:25:09', '2026-07-22 12:13:32', '2026-07-22 12:15:09'),
+(44, 'nsr', 'nikhilrout9848@gmail.com', '$2y$10$Q2/GkoKJ8tYBUxHvTDQ9R.NCGn/7pXjH.FtGDeCF77rxOTKcCMchC', 'student', NULL, NULL, NULL, 0, '362934', '2026-07-22 13:22:45', '2026-07-22 13:12:45', '2026-07-22 13:12:45'),
+(45, 'nikhil', 'bettercallsaul9848@gmail.com', '$2y$10$rkzVJ4ALhbUtdQeotAk4mOj2.JzWlYqscxDYAKTRVlIzONr/MVthq', 'student', NULL, '60e7ac49a72776ae04e9eb4ade23dba6bed35b8033e5b3be335617db2c3fbb65', '2026-07-22 13:49:30', 1, NULL, NULL, '2026-07-22 13:16:46', '2026-07-22 13:19:30');
 
 -- --------------------------------------------------------
 
@@ -1345,7 +1381,7 @@ ALTER TABLE `user_sessions`
 -- AUTO_INCREMENT for table `activity_logs`
 --
 ALTER TABLE `activity_logs`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=130;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=153;
 
 --
 -- AUTO_INCREMENT for table `admins`
@@ -1435,7 +1471,7 @@ ALTER TABLE `skills`
 -- AUTO_INCREMENT for table `students`
 --
 ALTER TABLE `students`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=31;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=40;
 
 --
 -- AUTO_INCREMENT for table `student_answers`
@@ -1453,7 +1489,7 @@ ALTER TABLE `student_progress`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=37;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=46;
 
 --
 -- AUTO_INCREMENT for table `user_sessions`

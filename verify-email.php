@@ -109,10 +109,14 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 $_SESSION[$sessionKey] = time();
 
                 // Send new OTP email
-                send_otp_email($email, $newOtp);
+                $resendResult = send_otp_email($email, $newOtp);
 
-                $infoMessage = 'A new 6-digit verification code has been sent to your email address.';
-                log_activity($user['id'], 'RESEND_OTP', "Resent email verification OTP for {$email}.");
+                if (!empty($resendResult['success'])) {
+                    $infoMessage = 'A new 6-digit verification code has been sent to your email address.';
+                    log_activity($user['id'], 'RESEND_OTP', "Resent email verification OTP for {$email}.");
+                } else {
+                    $errorMessage = 'Failed to send verification code: ' . htmlspecialchars($resendResult['message'] ?? 'SMTP Error');
+                }
             }
         }
     }

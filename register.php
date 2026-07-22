@@ -136,9 +136,13 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                     $db->commit();
 
                     // Send verification OTP via email
-                    send_otp_email($email, $otp);
+                    $otpMailResult = send_otp_email($email, $otp);
 
-                    set_flash_message('info', 'Registration successful! A 6-digit verification code has been sent to your email address.');
+                    if (!empty($otpMailResult['success'])) {
+                        set_flash_message('info', 'Registration successful! A 6-digit verification code has been sent to your email address.');
+                    } else {
+                        set_flash_message('warning', 'Registration successful, but email sending failed (' . htmlspecialchars($otpMailResult['message'] ?? 'SMTP Error') . '). Please use the resend option if needed.');
+                    }
                     // Redirect to verify-email.php passing email in query param (never OTP)
                     redirect(BASE_URL . 'verify-email.php?email=' . urlencode($email));
 

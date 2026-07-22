@@ -43,11 +43,14 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && isset($_POST['submit_fee
             [$userId, $category, $rating, $message]
         );
 
-        // Build mailto URL for user's default email client
+        $userEmailAddr = $student['email'] ?? '';
+        require_once __DIR__ . '/../config/mail.php';
+        $feedbackMailRes = send_feedback_email('student', $studentName, $userEmailAddr, $category, $rating, $message);
+
+        // Build mailto URL for fallback
         $subject = "SkillBridge Feedback - " . $category;
         $stars = str_repeat('★', $rating);
         $dateTime = date('Y-m-d H:i:s');
-        $userEmailAddr = $student['email'] ?? '';
 
         $emailBody = "SkillBridge Feedback\n\n"
                    . "Name:\n" . $studentName . "\n\n"
@@ -62,7 +65,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && isset($_POST['submit_fee
         $mailtoUrl = "mailto:skill.profile.project1@gmail.com?subject=" . rawurlencode($subject) . "&body=" . rawurlencode($emailBody);
 
         $_SESSION['open_mailto'] = $mailtoUrl;
-        set_flash_message('success', 'Thank you! Your feedback has been saved to database and your mail client opened.');
+        set_flash_message('success', 'Thank you! Your feedback has been saved successfully.');
         redirect(BASE_URL . 'student/feedback.php');
     }
 }
