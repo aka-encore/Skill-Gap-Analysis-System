@@ -7,14 +7,25 @@ require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/../config/database.php';
 
 $role = $_SESSION['user_role'] ?? 'student';
-$currentScript = basename($_SERVER['PHP_SELF']);
-$currentDir = basename(dirname($_SERVER['PHP_SELF']));
 
 if (!function_exists('isActive')) {
-    function isActive($page, $dir = ''): string {
-        global $currentScript, $currentDir;
-        if ($dir && $currentDir !== $dir) return '';
-        return $currentScript === $page ? 'active' : '';
+    function isActive($pages, $dir = ''): string {
+        $scriptPath = parse_url($_SERVER['SCRIPT_NAME'] ?? $_SERVER['PHP_SELF'] ?? '', PHP_URL_PATH);
+        $scriptPath = str_replace('\\', '/', $scriptPath);
+        $currentScript = basename($scriptPath);
+        $currentDir = basename(dirname($scriptPath));
+
+        if ($dir && strtolower($currentDir) !== strtolower($dir)) {
+            return '';
+        }
+
+        $pagesArray = (array)$pages;
+        foreach ($pagesArray as $p) {
+            if (strtolower($currentScript) === strtolower($p)) {
+                return 'active';
+            }
+        }
+        return '';
     }
 }
 
@@ -77,11 +88,11 @@ if (!empty($_SESSION['department'])) {
         <div class="nav-icon"><i class="fa-solid fa-user-circle"></i></div>
         <span>My Profile</span>
       </a>
-      <a href="<?= BASE_URL ?>student/assessments.php" class="sidebar-nav-item <?= isActive('assessments.php', 'student') ?>" title="Assessments">
+      <a href="<?= BASE_URL ?>student/assessments.php" class="sidebar-nav-item <?= isActive(['assessments.php', 'take-assessment.php', 'assessment-result.php'], 'student') ?>" title="Assessments">
         <div class="nav-icon"><i class="fa-solid fa-clipboard-check"></i></div>
         <span>Assessments</span>
       </a>
-      <a href="<?= BASE_URL ?>student/notification.php" class="sidebar-nav-item <?= isActive('notification.php', 'student') ?>" title="Notifications">
+      <a href="<?= BASE_URL ?>student/notification.php" class="sidebar-nav-item <?= isActive(['notification.php', 'notifications.php'], 'student') ?>" title="Notifications">
         <div class="nav-icon"><i class="fa-solid fa-bell"></i></div>
         <span>Notifications</span>
         <?php if ($unreadNotifCount > 0): ?>
@@ -94,7 +105,7 @@ if (!empty($_SESSION['department'])) {
         <div class="nav-icon"><i class="fa-solid fa-magnifying-glass-chart"></i></div>
         <span>Skill Gap</span>
       </a>
-      <a href="<?= BASE_URL ?>student/courses.php" class="sidebar-nav-item <?= isActive('courses.php', 'student') || isActive('recommendations.php', 'student') ?>" title="Courses & Recommendations">
+      <a href="<?= BASE_URL ?>student/courses.php" class="sidebar-nav-item <?= isActive(['courses.php', 'recommendations.php'], 'student') ?>" title="Courses & Recommendations">
         <div class="nav-icon"><i class="fa-solid fa-graduation-cap"></i></div>
         <span>Courses</span>
       </a>
@@ -134,7 +145,7 @@ if (!empty($_SESSION['department'])) {
           <span class="nav-badge"><?= $unreadNotifCount ?></span>
         <?php endif; ?>
       </a>
-      <a href="<?= BASE_URL ?>faculty/assessments.php" class="sidebar-nav-item <?= isActive('assessments.php', 'faculty') ?>" title="Manage Assessments">
+      <a href="<?= BASE_URL ?>faculty/assessments.php" class="sidebar-nav-item <?= isActive(['assessments.php', 'create-assessment.php', 'edit-assessment.php', 'evaluate.php'], 'faculty') ?>" title="Manage Assessments">
         <div class="nav-icon"><i class="fa-solid fa-clipboard-check"></i></div>
         <span>Assessments</span>
       </a>
@@ -146,9 +157,20 @@ if (!empty($_SESSION['department'])) {
         <div class="nav-icon"><i class="fa-solid fa-users"></i></div>
         <span>Students</span>
       </a>
-      <a href="<?= BASE_URL ?>faculty/skill-gap.php" class="sidebar-nav-item <?= isActive('skill-gap.php', 'faculty') ?>" title="Skill Analytics">
+      <a href="<?= BASE_URL ?>faculty/skill-gap.php" class="sidebar-nav-item <?= isActive(['skill-gap.php', 'recommend-courses.php'], 'faculty') ?>" title="Skill Analytics">
         <div class="nav-icon"><i class="fa-solid fa-chart-pie"></i></div>
         <span>Skill Analytics</span>
+      </a>
+      <a href="<?= BASE_URL ?>faculty/notifications.php" class="sidebar-nav-item <?= isActive('notifications.php', 'faculty') ?>" title="Notifications">
+        <div class="nav-icon"><i class="fa-solid fa-bell"></i></div>
+        <span>Notifications</span>
+        <?php if ($unreadNotifCount > 0): ?>
+          <span class="nav-badge"><?= $unreadNotifCount ?></span>
+        <?php endif; ?>
+      </a>
+      <a href="<?= BASE_URL ?>faculty/announcements.php" class="sidebar-nav-item <?= isActive('announcements.php', 'faculty') ?>" title="Announcements">
+        <div class="nav-icon"><i class="fa-solid fa-bullhorn"></i></div>
+        <span>Announcements</span>
       </a>
       <a href="<?= BASE_URL ?>faculty/feedback.php" class="sidebar-nav-item <?= isActive('feedback.php', 'faculty') ?>" title="Feedback">
         <div class="nav-icon"><i class="fa-solid fa-comments"></i></div>
@@ -173,12 +195,26 @@ if (!empty($_SESSION['department'])) {
         <div class="nav-icon"><i class="fa-solid fa-chalkboard-user"></i></div>
         <span>Faculty</span>
       </a>
+      <a href="<?= BASE_URL ?>admin/faculty-applications.php" class="sidebar-nav-item <?= isActive('faculty-applications.php', 'admin') ?>" title="Faculty Applications">
+        <div class="nav-icon"><i class="fa-solid fa-user-clock"></i></div>
+        <span>Faculty Applications</span>
+        <?php 
+          $pendingFacCount = (int)($sidebarDb->fetch("SELECT COUNT(*) as cnt FROM faculty WHERE approval_status = 'pending'")['cnt'] ?? 0);
+          if ($pendingFacCount > 0): 
+        ?>
+          <span class="nav-badge text-bg-warning"><?= $pendingFacCount ?></span>
+        <?php endif; ?>
+      </a>
       <a href="<?= BASE_URL ?>admin/notifications.php" class="sidebar-nav-item <?= isActive('notifications.php', 'admin') ?>" title="Notifications">
         <div class="nav-icon"><i class="fa-solid fa-bell"></i></div>
         <span>Notifications</span>
         <?php if ($unreadNotifCount > 0): ?>
           <span class="nav-badge"><?= $unreadNotifCount ?></span>
         <?php endif; ?>
+      </a>
+      <a href="<?= BASE_URL ?>admin/announcements.php" class="sidebar-nav-item <?= isActive('announcements.php', 'admin') ?>" title="Announcements">
+        <div class="nav-icon"><i class="fa-solid fa-bullhorn"></i></div>
+        <span>Announcements</span>
       </a>
       <a href="<?= BASE_URL ?>admin/courses.php" class="sidebar-nav-item <?= isActive('courses.php', 'admin') ?>" title="Manage Courses">
         <div class="nav-icon"><i class="fa-solid fa-book"></i></div>
@@ -205,7 +241,7 @@ if (!empty($_SESSION['department'])) {
 
   <div class="sidebar-footer">
     <div class="sidebar-user">
-      <a href="<?= BASE_URL ?><?= $role ?>/profile.php" class="sidebar-profile-link d-flex align-items-center gap-2 text-decoration-none" title="<?= htmlspecialchars($sidebarUserName) ?> (<?= ucfirst($role) ?>)">
+      <a href="<?= BASE_URL ?><?= $role ?>/profile.php" class="sidebar-profile-link d-flex align-items-center gap-2 text-decoration-none <?= isActive('profile.php', $role) ?>" title="<?= htmlspecialchars($sidebarUserName) ?> (<?= ucfirst($role) ?>)">
         <img src="<?= htmlspecialchars($sidebarAvatarUrl) ?>" alt="Avatar" class="rounded-circle object-fit-cover" width="36" height="36" style="flex-shrink:0;">
         <div class="sidebar-user-info overflow-hidden">
           <div class="sidebar-user-name text-truncate fw-semibold" style="max-width: 140px; color: #0F172A; font-size: 0.88rem;"><?= htmlspecialchars($sidebarUserName) ?></div>

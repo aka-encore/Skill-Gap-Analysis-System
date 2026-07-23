@@ -35,13 +35,16 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         $lastName    = trim($_POST['last_name'] ?? '');
         $username    = trim($_POST['username'] ?? '');
         $email       = trim($_POST['email'] ?? '');
-        $countryCode = trim($_POST['country_code'] ?? '+91');
-        $phoneRaw    = trim($_POST['phone'] ?? '');
-        $department  = trim($_POST['department'] ?? 'Computer Science');
-        $semester    = (int)($_POST['current_semester'] ?? 1);
-        $designation = trim($_POST['designation'] ?? 'Assistant Professor');
-        $password    = $_POST['password'] ?? '';
-        $confirmPassword = $_POST['confirm_password'] ?? '';
+        $countryCode      = trim($_POST['country_code'] ?? '+91');
+        $phoneRaw         = trim($_POST['phone'] ?? '');
+        $collegeName      = trim($_POST['college_name'] ?? '');
+        $department       = trim($_POST['department'] ?? 'Computer Science');
+        $semester         = (int)($_POST['current_semester'] ?? 1);
+        $designation      = trim($_POST['designation'] ?? 'Assistant Professor');
+        $employeeCodeReq  = trim($_POST['employee_code'] ?? '');
+        $experienceYears  = (int)($_POST['experience_years'] ?? 0);
+        $password         = $_POST['password'] ?? '';
+        $confirmPassword  = $_POST['confirm_password'] ?? '';
 
         // 1. First Name Validations
         if (empty($firstName)) {
@@ -65,11 +68,15 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         elseif (empty($email) || !validate_email($email)) {
             $error = 'Please enter a valid email address.';
         }
-        // 5. Mobile Number (10 Digits) Validations
+        // 5. Faculty Specific Validations (College Name Required)
+        elseif ($role === 'faculty' && empty($collegeName)) {
+            $error = 'College Name is required for Faculty registration.';
+        }
+        // 6. Mobile Number (10 Digits) Validations
         elseif (!empty($phoneRaw) && !preg_match("/^[0-9]{10}$/", $phoneRaw)) {
             $error = 'Please enter a valid 10-digit mobile number.';
         }
-        // 6. Password Validations
+        // 7. Password Validations
         elseif (empty($password) || strlen($password) < 6) {
             $error = 'Password must be at least 6 characters long.';
         } elseif ($password !== $confirmPassword) {
@@ -86,6 +93,34 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 $error = 'Username or email address is already registered.';
             } else {
                 try {
+                    // Handle Optional Faculty Document Uploads
+                    $idCardFile = null;
+                    $appointmentLetterFile = null;
+
+                    if ($role === 'faculty') {
+                        $uploadDir = __DIR__ . '/uploads/faculty_docs/';
+                        if (!is_dir($uploadDir)) {
+                            @mkdir($uploadDir, 0777, true);
+                        }
+                        $allowedExts = ['jpg', 'jpeg', 'png', 'pdf'];
+
+                        if (!empty($_FILES['id_card_file']['name']) && $_FILES['id_card_file']['error'] === UPLOAD_ERR_OK) {
+                            $ext = strtolower(pathinfo($_FILES['id_card_file']['name'], PATHINFO_EXTENSION));
+                            if (in_array($ext, $allowedExts)) {
+                                $idCardFile = 'idcard_' . time() . '_' . random_int(1000, 9999) . '.' . $ext;
+                                move_uploaded_file($_FILES['id_card_file']['tmp_name'], $uploadDir . $idCardFile);
+                            }
+                        }
+
+                        if (!empty($_FILES['appointment_letter_file']['name']) && $_FILES['appointment_letter_file']['error'] === UPLOAD_ERR_OK) {
+                            $ext = strtolower(pathinfo($_FILES['appointment_letter_file']['name'], PATHINFO_EXTENSION));
+                            if (in_array($ext, $allowedExts)) {
+                                $appointmentLetterFile = 'appointment_' . time() . '_' . random_int(1000, 9999) . '.' . $ext;
+                                move_uploaded_file($_FILES['appointment_letter_file']['tmp_name'], $uploadDir . $appointmentLetterFile);
+                            }
+                        }
+                    }
+
                     $db->beginTransaction();
 
                     $passwordHash = password_hash($password, PASSWORD_BCRYPT);
@@ -98,6 +133,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                         'email'                  => $email,
                         'password'               => $passwordHash,
                         'role'                   => $role,
+                        'status'                 => $role === 'faculty' ? 'pending' : 'active',
                         'email_verified'         => 0,
                         'email_verification_otp' => $otp,
                         'otp_expiry'             => $otpExpiry,
@@ -105,18 +141,24 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                     ]);
 
                     if ($role === 'faculty') {
-                        $empCode = 'EMP-' . (1000 + $userId);
+                        $empCode = !empty($employeeCodeReq) ? $employeeCodeReq : ('FAC-' . (1000 + $userId));
                         $db->insert('faculty', [
-                            'user_id'       => $userId,
-                            'employee_code' => $empCode,
-                            'first_name'    => $firstName,
-                            'last_name'     => $lastName,
-                            'avatar'        => 'default-avatar.png',
-                            'department'    => $department,
-                            'designation'   => $designation,
-                            'created_at'    => date('Y-m-d H:i:s')
+                            'user_id'                 => $userId,
+                            'employee_code'           => $empCode,
+                            'first_name'              => $firstName,
+                            'last_name'               => $lastName,
+                            'college_name'            => $collegeName,
+                            'mobile_number'           => $phoneFull,
+                            'avatar'                  => 'default-avatar.png',
+                            'department'              => $department,
+                            'designation'             => $designation,
+                            'experience_years'        => $experienceYears,
+                            'id_card_file'            => $idCardFile,
+                            'appointment_letter_file' => $appointmentLetterFile,
+                            'approval_status'         => 'pending',
+                            'created_at'              => date('Y-m-d H:i:s')
                         ]);
-                        log_activity($userId, 'REGISTER', "New faculty registered: {$username} ({$empCode})");
+                        log_activity($userId, 'REGISTER_FACULTY_APPLICATION', "New faculty application submitted: {$username} ({$empCode}) at {$collegeName}");
                     } else {
                         $studentCode = 'STU-' . (1000 + $userId);
                         $db->insert('students', [
@@ -215,7 +257,7 @@ $pageTitle = "Create Account – SkillBridge";
       <?php endif; ?>
 
       <!-- Registration Form -->
-      <form action="<?= BASE_URL ?>register.php" method="POST" autocomplete="off" id="regForm" onsubmit="return handleRegSubmit(this)">
+      <form action="<?= BASE_URL ?>register.php" method="POST" enctype="multipart/form-data" onsubmit="return handleRegSubmit(this)">
         <?= csrf_field() ?>
         <input type="hidden" name="role" id="selectedRoleInput" value="student">
         
@@ -280,10 +322,51 @@ $pageTitle = "Create Account – SkillBridge";
 
           <!-- Faculty Designation Field -->
           <div class="col-md-6" id="facultyDesignationCol" style="display:none;">
-            <label class="form-label small fw-semibold text-dark mb-1.5">Designation</label>
+            <label class="form-label small fw-semibold text-dark mb-1.5">Designation <span class="text-danger">*</span></label>
             <div class="saas-input-group">
               <i class="fa-solid fa-id-badge saas-input-icon"></i>
-              <input type="text" name="designation" class="form-control" placeholder="Assistant Professor" value="Assistant Professor">
+              <input type="text" name="designation" class="form-control" placeholder="Assistant Professor" value="<?= htmlspecialchars($_POST['designation'] ?? 'Assistant Professor') ?>">
+            </div>
+          </div>
+        </div>
+
+        <!-- Faculty Specific Professional Details & File Uploads -->
+        <div id="facultyExtraFields" style="display:none;">
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-dark mb-1.5">College Name <span class="text-danger">*</span></label>
+            <div class="saas-input-group">
+              <i class="fa-solid fa-building-columns saas-input-icon"></i>
+              <input type="text" name="college_name" id="collegeNameInput" class="form-control" placeholder="e.g., National Institute of Technology / SkillBridge University" value="<?= htmlspecialchars($_POST['college_name'] ?? '') ?>">
+            </div>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold text-dark mb-1.5">Employee ID <span class="text-muted fw-normal">(Optional)</span></label>
+              <div class="saas-input-group">
+                <i class="fa-solid fa-id-card-clip saas-input-icon"></i>
+                <input type="text" name="employee_code" class="form-control" placeholder="e.g., FAC-1002" value="<?= htmlspecialchars($_POST['employee_code'] ?? '') ?>">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold text-dark mb-1.5">Years of Experience <span class="text-muted fw-normal">(Optional)</span></label>
+              <div class="saas-input-group">
+                <i class="fa-solid fa-briefcase saas-input-icon"></i>
+                <input type="number" name="experience_years" class="form-control" min="0" max="60" placeholder="e.g., 5" value="<?= htmlspecialchars($_POST['experience_years'] ?? '') ?>">
+              </div>
+            </div>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold text-dark mb-1.5">Upload Faculty ID Card <span class="text-muted fw-normal">(Optional)</span></label>
+              <input type="file" name="id_card_file" class="form-control rounded-3" accept=".jpg,.jpeg,.png,.pdf" style="background:#F8FAFC; border-color:#E2E8F0; padding:0.6rem 0.8rem; font-size:0.85rem;">
+              <div class="text-muted" style="font-size: 11px; margin-top: 4px;">Formats: JPG, PNG, PDF (Max 5MB)</div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold text-dark mb-1.5">Upload Appointment Letter <span class="text-muted fw-normal">(Optional)</span></label>
+              <input type="file" name="appointment_letter_file" class="form-control rounded-3" accept=".jpg,.jpeg,.png,.pdf" style="background:#F8FAFC; border-color:#E2E8F0; padding:0.6rem 0.8rem; font-size:0.85rem;">
+              <div class="text-muted" style="font-size: 11px; margin-top: 4px;">Formats: JPG, PNG, PDF (Max 5MB)</div>
             </div>
           </div>
         </div>
@@ -452,8 +535,12 @@ $pageTitle = "Create Account – SkillBridge";
       const isStudent = role === 'student';
       document.getElementById('studentSemesterCol').style.display = isStudent ? 'block' : 'none';
       document.getElementById('facultyDesignationCol').style.display = isStudent ? 'none' : 'block';
+      const facultyExtra = document.getElementById('facultyExtraFields');
+      if (facultyExtra) {
+        facultyExtra.style.display = isStudent ? 'none' : 'block';
+      }
 
-      document.getElementById('submitBtnText').textContent = isStudent ? 'Create Student Account' : 'Create Faculty Account';
+      document.getElementById('submitBtnText').textContent = isStudent ? 'Create Student Account' : 'Submit Faculty Application';
       clearFieldErrors();
     }
 

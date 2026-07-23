@@ -92,7 +92,59 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     handleHashScroll();
     window.addEventListener('hashchange', handleHashScroll);
+
+    // 5. Dynamic Sidebar Active State Resolution Engine
+    updateSidebarActiveState();
+    window.addEventListener('popstate', updateSidebarActiveState);
 });
+
+/**
+ * Dynamic Sidebar Active State Resolution Engine
+ * Ensures exactly 1 matching sidebar item is highlighted as active.
+ * Excludes logout link. Supports browser back/forward and direct navigation.
+ */
+function updateSidebarActiveState() {
+    const sidebar = document.getElementById('sidebar');
+    if (!sidebar) return;
+
+    const navItems = sidebar.querySelectorAll('.sidebar-nav-item');
+    if (!navItems.length) return;
+
+    const currentPath = window.location.pathname.toLowerCase().replace(/\\/g, '/');
+    const currentFilename = currentPath.split('/').pop() || 'index.php';
+
+    let matchedItem = null;
+
+    navItems.forEach(item => {
+        const href = item.getAttribute('href');
+        if (!href || href.includes('logout.php')) return;
+
+        try {
+            const url = new URL(href, window.location.origin);
+            const itemPath = url.pathname.toLowerCase().replace(/\\/g, '/');
+            const itemFilename = itemPath.split('/').pop();
+
+            if (itemPath === currentPath) {
+                matchedItem = item;
+            } else if (itemFilename && itemFilename === currentFilename) {
+                matchedItem = item;
+            } else if (currentFilename === 'recommendations.php' && itemFilename === 'courses.php') {
+                matchedItem = item;
+            } else if (['take-assessment.php', 'assessment-result.php'].includes(currentFilename) && itemFilename === 'assessments.php') {
+                matchedItem = item;
+            } else if (['create-assessment.php', 'edit-assessment.php', 'evaluate.php'].includes(currentFilename) && itemFilename === 'assessments.php') {
+                matchedItem = item;
+            } else if (currentFilename === 'recommend-courses.php' && itemFilename === 'skill-gap.php') {
+                matchedItem = item;
+            }
+        } catch(e) {}
+    });
+
+    if (matchedItem) {
+        navItems.forEach(item => item.classList.remove('active'));
+        matchedItem.classList.add('active');
+    }
+}
 
 /**
  * Mark all notifications as read via AJAX

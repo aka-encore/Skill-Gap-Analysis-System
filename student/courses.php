@@ -132,8 +132,8 @@ foreach ($allCourses as &$courseRef) {
 }
 unset($courseRef);
 
-// 7. Fetch Database Enrolled Courses
-$enrolledCourses = $db->fetchAll(
+// 7. Fetch Database Enrolled & Completed Courses
+$allUserProgress = $db->fetchAll(
     "SELECT c.*, sp.progress_percentage, sp.status as enrollment_status, sp.last_updated
      FROM student_progress sp
      JOIN courses c ON sp.course_id = c.id
@@ -142,10 +142,21 @@ $enrolledCourses = $db->fetchAll(
     [$studentId]
 );
 
-foreach ($enrolledCourses as &$enrolledRef) {
-    $enrolledRef['lessons'] = $lessonsByCourse[$enrolledRef['id']] ?? [];
+$enrolledCourses = [];
+$completedCourses = [];
+
+foreach ($allUserProgress as &$progressRef) {
+    $progressRef['lessons'] = $lessonsByCourse[$progressRef['id']] ?? [];
+    $pPct = (int)($progressRef['progress_percentage'] ?? 0);
+    $st = $progressRef['enrollment_status'] ?? '';
+
+    if ($pPct >= 100 || $st === 'completed') {
+        $completedCourses[] = $progressRef;
+    } else {
+        $enrolledCourses[] = $progressRef;
+    }
 }
-unset($enrolledRef);
+unset($progressRef);
 
 // 8. DYNAMIC METADATA EXTRACTION FROM MYSQL FOR FILTERS
 $dbTracksRaw = $db->fetchAll("SELECT DISTINCT track_category FROM courses WHERE track_category IS NOT NULL AND track_category != ''");
@@ -283,13 +294,16 @@ include __DIR__ . '/../includes/header.php';
   <div class="saas-card p-3 mb-4">
     <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
       
-      <!-- Clean Tabs (Requirement 1: Removed Recommended Picks tab) -->
-      <div class="d-flex gap-2" id="courseTabsList">
+      <!-- Clean Tabs: All Courses, Enrolled Courses, Completed Courses -->
+      <div class="d-flex gap-2 flex-wrap" id="courseTabsList">
         <button type="button" class="btn btn-primary btn-sm rounded-pill px-3 fw-semibold" onclick="switchCourseTab('all')" id="tab-all">
           All Courses
         </button>
         <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3 fw-semibold" onclick="switchCourseTab('enrolled')" id="tab-enrolled">
           Enrolled Courses <span class="badge bg-secondary rounded-pill ms-1" id="enrolledBadgeCount"><?= count($enrolledCourses) ?></span>
+        </button>
+        <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3 fw-semibold" onclick="switchCourseTab('completed')" id="tab-completed">
+          Completed Courses <span class="badge bg-secondary rounded-pill ms-1" id="completedBadgeCount"><?= count($completedCourses) ?></span>
         </button>
       </div>
 
@@ -456,13 +470,16 @@ include __DIR__ . '/../includes/header.php';
 const TOTAL_CATALOG_COUNT = <?= (int)$totalCatalogCount ?>;
 const ALL_COURSES = <?= json_encode($allCourses) ?>;
 const ENROLLED_COURSES = <?= json_encode($enrolledCourses) ?>;
+const COMPLETED_COURSES = <?= json_encode($completedCourses) ?>;
 
 let currentTab = 'all';
 
 document.addEventListener('DOMContentLoaded', () => {
   const urlParams = new URLSearchParams(window.location.search);
   const tabParam = urlParams.get('tab');
-  if (tabParam === 'enrolled') {
+  if (tabParam === 'completed') {
+    switchCourseTab('completed');
+  } else if (tabParam === 'enrolled') {
     switchCourseTab('enrolled');
   } else {
     renderCoursesGrid();
@@ -474,13 +491,18 @@ function switchCourseTab(tab) {
   currentTab = tab;
   const btnAll = document.getElementById('tab-all');
   const btnEnrolled = document.getElementById('tab-enrolled');
+  const btnCompleted = document.getElementById('tab-completed');
+
+  [btnAll, btnEnrolled, btnCompleted].forEach(btn => {
+    if (btn) btn.className = 'btn btn-outline-secondary btn-sm rounded-pill px-3 fw-semibold';
+  });
 
   if (tab === 'enrolled') {
-    btnEnrolled.className = 'btn btn-primary btn-sm rounded-pill px-3 fw-semibold';
-    btnAll.className = 'btn btn-outline-secondary btn-sm rounded-pill px-3 fw-semibold';
+    if (btnEnrolled) btnEnrolled.className = 'btn btn-primary btn-sm rounded-pill px-3 fw-semibold';
+  } else if (tab === 'completed') {
+    if (btnCompleted) btnCompleted.className = 'btn btn-primary btn-sm rounded-pill px-3 fw-semibold';
   } else {
-    btnAll.className = 'btn btn-primary btn-sm rounded-pill px-3 fw-semibold';
-    btnEnrolled.className = 'btn btn-outline-secondary btn-sm rounded-pill px-3 fw-semibold';
+    if (btnAll) btnAll.className = 'btn btn-primary btn-sm rounded-pill px-3 fw-semibold';
   }
   applyCourseFilters();
 }
@@ -494,7 +516,12 @@ function applyCourseFilters() {
   const price = document.getElementById('priceFilterSelect').value;
   const sort = document.getElementById('sortFilterSelect').value;
 
-  let dataset = (currentTab === 'enrolled') ? ENROLLED_COURSES : ALL_COURSES;
+  let dataset = ALL_COURSES;
+  if (currentTab === 'enrolled') {
+    dataset = ENROLLED_COURSES;
+  } else if (currentTab === 'completed') {
+    dataset = COMPLETED_COURSES;
+  }
 
   let filtered = dataset.filter(c => {
     // Search
@@ -543,9 +570,10 @@ function applyCourseFilters() {
   const showingEl = document.getElementById('filteredShowingText');
   const isFilterActive = search || track !== 'all tracks' || level !== 'all levels' || platform !== 'all platforms' || price !== 'all';
   if (showingEl) {
-    if (isFilterActive || currentTab === 'enrolled') {
+    if (isFilterActive || currentTab === 'enrolled' || currentTab === 'completed') {
       showingEl.style.display = 'inline-block';
-      showingEl.textContent = `Showing ${filtered.length} of ${TOTAL_CATALOG_COUNT} Courses`;
+      const labelText = currentTab === 'completed' ? 'Completed' : (currentTab === 'enrolled' ? 'Enrolled' : 'Catalog');
+      showingEl.textContent = `Showing ${filtered.length} ${labelText} Courses`;
     } else {
       showingEl.style.display = 'none';
     }

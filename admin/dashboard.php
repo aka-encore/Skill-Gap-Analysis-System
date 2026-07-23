@@ -194,7 +194,7 @@ include __DIR__ . '/../includes/header.php';
                         </a>
                     </div>
                     <div class="col-6 col-md-4">
-                        <a href="<?= BASE_URL ?>admin/notifications.php" class="btn btn-light w-100 p-3 text-center rounded-3 border text-decoration-none">
+                        <a href="<?= BASE_URL ?>admin/announcements.php" class="btn btn-light w-100 p-3 text-center rounded-3 border text-decoration-none">
                             <i class="bi bi-megaphone text-danger fs-3 d-block mb-1"></i>
                             <strong class="text-dark small d-block">Announcements</strong>
                         </a>

@@ -77,9 +77,37 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
 
                     log_activity($user['id'], 'EMAIL_VERIFIED', "User {$user['username']} verified email successfully via OTP.");
 
-                    // Requirement: Display "Email verified successfully." and redirect after 3s to login.php
-                    $successMessage = 'Email verified successfully.';
-                    set_flash_message('success', 'Email verified successfully. You may now log in to your account.');
+                    if ($user['role'] === 'faculty') {
+                        // Ensure status is set to pending
+                        $db->update('users', ['status' => 'pending'], 'id = ?', [$user['id']]);
+                        $db->update('faculty', ['approval_status' => 'pending'], 'user_id = ?', [$user['id']]);
+
+                        // Fetch Faculty Details for Admin Notification
+                        $fac = $db->fetch("SELECT first_name, last_name FROM faculty WHERE user_id = ?", [$user['id']]);
+                        $fullName = trim(($fac['first_name'] ?? '') . ' ' . ($fac['last_name'] ?? ''));
+                        if (empty($fullName)) $fullName = $user['username'];
+
+                        // Dispatch Admin Notification for new Faculty Application
+                        $admins = $db->fetchAll("SELECT id FROM users WHERE role = 'admin'");
+                        foreach ($admins as $a) {
+                            $db->insert('notifications', [
+                                'user_id'    => $a['id'],
+                                'title'      => 'New Faculty Application',
+                                'message'    => "New Faculty Registration Application from {$fullName}.",
+                                'link'       => BASE_URL . 'admin/faculty-applications.php',
+                                'is_read'    => 0,
+                                'type'       => 'system',
+                                'created_at' => date('Y-m-d H:i:s')
+                            ]);
+                        }
+
+                        $pendingMsg = 'Your registration application has been submitted successfully. Your account is currently under review by the administrator. You will receive an email once your application has been approved or rejected.';
+                        set_flash_message('info', $pendingMsg);
+                        redirect(BASE_URL . 'login.php');
+                    } else {
+                        $successMessage = 'Email verified successfully.';
+                        set_flash_message('success', 'Email verified successfully. You may now log in to your account.');
+                    }
                 }
             }
         } elseif ($action === 'resend') {

@@ -20,11 +20,11 @@ use PHPMailer\PHPMailer\Exception;
 if (!defined('SMTP_HOST'))       define('SMTP_HOST',       'smtp.gmail.com');
 if (!defined('SMTP_PORT'))       define('SMTP_PORT',       587); // Use 587 for TLS, 465 for SSL
 if (!defined('SMTP_SECURE'))     define('SMTP_SECURE',     PHPMailer::ENCRYPTION_STARTTLS); // STARTTLS or SMTPS
-if (!defined('SMTP_USER'))       define('SMTP_USER',       'skill.bridge.project1@gmail.com');
-if (!defined('SMTP_PASS'))       define('SMTP_PASS',       'tkgg qkwf mcvu dchq'); // Gmail App Password
-if (!defined('SMTP_FROM_EMAIL')) define('SMTP_FROM_EMAIL', 'skill.bridge.project1@gmail.com');
+if (!defined('SMTP_USER'))       define('SMTP_USER',       'sudrikyash1@gmail.com');
+if (!defined('SMTP_PASS'))       define('SMTP_PASS',       'xlwm lcsx nzlc wdla'); // Gmail App Password
+if (!defined('SMTP_FROM_EMAIL')) define('SMTP_FROM_EMAIL', 'sudrikyash1@gmail.com');
 if (!defined('SMTP_FROM_NAME'))  define('SMTP_FROM_NAME',  'SkillBridge Team');
-if (!defined('SUPPORT_EMAIL'))   define('SUPPORT_EMAIL',   'skill.bridge.project1@gmail.com');
+if (!defined('SUPPORT_EMAIL'))   define('SUPPORT_EMAIL',   'sudrikyash1@gmail.com');
 
 /**
  * Centralized PHPMailer Instance Factory
@@ -269,5 +269,73 @@ function send_feedback_email(string $userRole, string $userName, string $userEma
             'success' => false,
             'message' => 'Mailer Error: ' . ($mail->ErrorInfo ?? $e->getMessage())
         ];
+    }
+}
+
+/**
+ * Send Faculty Registration Approval Email via SMTP
+ */
+function send_faculty_approval_email(string $toEmail, string $facultyName): array {
+    try {
+        $mail = create_phpmailer_instance();
+        $mail->addAddress($toEmail, $facultyName);
+        $mail->isHTML(true);
+        $mail->Subject = 'Faculty Registration Approved';
+
+        $body = "
+        <div style='font-family:Arial,sans-serif; line-height:1.6; color:#333; max-width:600px; margin:0 auto; border:1px solid #e0e0e0; border-radius:10px; padding:25px;'>
+            <h2 style='color:#28a745; margin-top:0;'>Faculty Registration Approved</h2>
+            <p>Dear " . htmlspecialchars($facultyName) . ",</p>
+            <p><strong>Congratulations!</strong></p>
+            <p>Your SkillBridge Faculty account has been approved by the administrator.</p>
+            <p>You may now log in using your registered credentials.</p>
+            <p style='margin-top:20px;'><a href='" . BASE_URL . "login.php' style='display:inline-block; padding:10px 20px; background:#26658C; color:#ffffff; text-decoration:none; border-radius:5px; font-weight:bold;'>Sign In to Faculty Portal</a></p>
+            <hr style='border:none; border-top:1px solid #eee; margin:20px 0;' />
+            <p style='font-size:12px; color:#888;'>Regards,<br/>SkillBridge Administration Team</p>
+        </div>";
+
+        $mail->Body    = $body;
+        $mail->AltBody = "Dear {$facultyName},\n\nCongratulations!\n\nYour SkillBridge Faculty account has been approved by the administrator.\n\nYou may now log in using your registered credentials.\n\nSign In: " . BASE_URL . "login.php\n\nRegards,\nSkillBridge Team";
+
+        $mail->send();
+        return ['success' => true, 'message' => 'Faculty approval email sent successfully.'];
+    } catch (Exception $e) {
+        error_log("send_faculty_approval_email Exception: " . $e->getMessage());
+        return ['success' => false, 'message' => 'Mailer Error: ' . ($mail->ErrorInfo ?? $e->getMessage())];
+    }
+}
+
+/**
+ * Send Faculty Registration Rejection Email via SMTP
+ */
+function send_faculty_rejection_email(string $toEmail, string $facultyName, string $reason = ''): array {
+    try {
+        $mail = create_phpmailer_instance();
+        $mail->addAddress($toEmail, $facultyName);
+        $mail->isHTML(true);
+        $mail->Subject = 'Faculty Registration Update';
+
+        $reasonHtml = !empty($reason) ? "<p><strong>Reason:</strong><br/>" . nl2br(htmlspecialchars($reason)) . "</p>" : "";
+        $reasonText = !empty($reason) ? "\nReason:\n" . $reason . "\n" : "";
+
+        $body = "
+        <div style='font-family:Arial,sans-serif; line-height:1.6; color:#333; max-width:600px; margin:0 auto; border:1px solid #e0e0e0; border-radius:10px; padding:25px;'>
+            <h2 style='color:#dc3545; margin-top:0;'>Faculty Registration Update</h2>
+            <p>Dear " . htmlspecialchars($facultyName) . ",</p>
+            <p>Your Faculty registration application was not approved.</p>
+            {$reasonHtml}
+            <p>Please contact the administrator for further assistance.</p>
+            <hr style='border:none; border-top:1px solid #eee; margin:20px 0;' />
+            <p style='font-size:12px; color:#888;'>Regards,<br/>SkillBridge Administration Team</p>
+        </div>";
+
+        $mail->Body    = $body;
+        $mail->AltBody = "Dear {$facultyName},\n\nYour Faculty registration application was not approved.{$reasonText}\nPlease contact the administrator for further assistance.\n\nRegards,\nSkillBridge Team";
+
+        $mail->send();
+        return ['success' => true, 'message' => 'Faculty rejection email sent successfully.'];
+    } catch (Exception $e) {
+        error_log("send_faculty_rejection_email Exception: " . $e->getMessage());
+        return ['success' => false, 'message' => 'Mailer Error: ' . ($mail->ErrorInfo ?? $e->getMessage())];
     }
 }

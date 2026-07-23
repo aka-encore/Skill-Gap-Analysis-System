@@ -13,7 +13,6 @@ require_once __DIR__ . '/includes/validators.php';
 
 $errorMessage = '';
 $successMessage = '';
-$devResetLink = '';
 
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     if (!verify_csrf_token()) {
@@ -30,11 +29,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             // Check if email exists in users table (covers students, faculty, and admin)
             $user = $db->fetch("SELECT * FROM users WHERE email = ?", [$email]);
             
-            if (!$user) {
-                // Part 3 Requirement: Display "No account found with this email."
-                $errorMessage = 'No account found with this email.';
-            } else {
-                // Part 3 Requirement: Generate 32-byte secure token
+            if ($user) {
+                // Generate 32-byte secure token
                 $token = bin2hex(random_bytes(32));
                 // 30 minutes expiry
                 $expires = date('Y-m-d H:i:s', time() + 1800);
@@ -53,14 +49,15 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
 
                 if ($mailResult['success']) {
                     $successMessage = 'A password reset link has been sent to your email address.';
+                    log_activity($user['id'], 'FORGOT_PASSWORD_REQUEST', "Password reset requested for {$email}.");
                 } else {
-                    // Email delivery failed (e.g., SMTP unconfigured or network issue)
-                    $successMessage = 'Password reset link generated successfully! If SMTP is configured, check your inbox.';
-                    // Provide fallback link for local development/testing convenience
-                    $devResetLink = $resetLink;
+                    // SMTP delivery failed
+                    $errorMessage = 'Failed to send password reset email via SMTP. Please try again later.';
+                    error_log("Forgot password SMTP failure for {$email}: " . ($mailResult['message'] ?? 'Unknown error'));
                 }
-                
-                log_activity($user['id'], 'FORGOT_PASSWORD_REQUEST', "Password reset requested for {$email}.");
+            } else {
+                // Security best practice: Prevent user enumeration
+                $successMessage = 'If an account with that email address exists, a password reset link has been sent.';
             }
         }
     }
@@ -117,14 +114,6 @@ $pageTitle = "Forgot Password – SkillBridge";
             <div class="fw-semibold">Reset Link Sent</div>
           </div>
           <div><?= htmlspecialchars($successMessage) ?></div>
-          <?php if (!empty($devResetLink)): ?>
-            <div class="mt-3 pt-2 border-top">
-              <span class="badge bg-light text-dark border mb-1">Local Testing Mode:</span>
-              <a href="<?= htmlspecialchars($devResetLink) ?>" class="btn btn-dark btn-sm rounded-pill w-100 py-1.5 fw-semibold text-truncate d-block">
-                <i class="fa-solid fa-key me-1"></i> Click Here to Reset Password
-              </a>
-            </div>
-          <?php endif; ?>
         </div>
       <?php endif; ?>
 

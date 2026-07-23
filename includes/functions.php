@@ -324,3 +324,157 @@ function calculate_overall_student_skill_percentage(int $studentId): float {
     if ($skillsTestedCount === 0) return 0.0;
     return round($totalPercentageSum / $skillsTestedCount, 1);
 }
+
+/**
+ * Create a new announcement and automatically dispatch notifications to the target audience (EXCLUDING creator).
+ */
+function create_announcement(int $creatorId, string $title, string $message, string $audience = 'all', string $priority = 'normal', string $link = '#'): array {
+    $db = Database::getInstance();
+
+    // Fetch creator details
+    $creator = $db->fetch("SELECT id, username, role FROM users WHERE id = ?", [$creatorId]);
+    if (!$creator) {
+        return ['success' => false, 'message' => 'Creator user record not found.'];
+    }
+
+    $creatorName = $creator['username'] ?? 'User #' . $creatorId;
+    $creatorRole = strtolower($creator['role'] ?? 'user');
+
+    // 1. Insert announcement record
+    $announcementId = $db->insert('announcements', [
+        'created_by_user_id' => $creatorId,
+        'created_by_name'    => $creatorName,
+        'created_by_role'    => $creatorRole,
+        'title'              => $title,
+        'message'            => $message,
+        'audience'           => $audience,
+        'priority'           => $priority,
+        'status'             => 'active',
+        'link'               => $link,
+        'created_at'         => date('Y-m-d H:i:s')
+    ]);
+
+    if (!$announcementId) {
+        return ['success' => false, 'message' => 'Failed to create announcement database record.'];
+    }
+
+    // 2. Fetch audience recipients excluding creator (DO NOT notify creator)
+    $sql = "SELECT id, role FROM users WHERE id != ?";
+    $params = [$creatorId];
+
+    if ($audience === 'student') {
+        $sql .= " AND role = 'student'";
+    } elseif ($audience === 'faculty') {
+        $sql .= " AND role = 'faculty'";
+    } elseif ($audience === 'admin') {
+        $sql .= " AND role = 'admin'";
+    }
+
+    $recipients = $db->fetchAll($sql, $params);
+    $notifCount = 0;
+
+    $notifTitle = 'New Announcement';
+    $notifMsg = "{$creatorName} published a new announcement: {$title}";
+
+    foreach ($recipients as $r) {
+        $recipientRole = strtolower($r['role']);
+        $notifLink = match($recipientRole) {
+            'admin'   => BASE_URL . 'admin/announcements.php',
+            'faculty' => BASE_URL . 'faculty/announcements.php',
+            default   => BASE_URL . 'student/notification.php'
+        };
+
+        if ($link !== '#' && !empty($link)) {
+            $notifLink = $link;
+        }
+
+        $db->insert('notifications', [
+            'user_id'            => $r['id'],
+            'title'              => $notifTitle,
+            'message'            => $notifMsg,
+            'link'               => $notifLink,
+            'is_read'            => 0,
+            'type'               => 'announcement',
+            'announcement_id'    => $announcementId,
+            'created_by_user_id' => $creatorId,
+            'created_by_role'    => $creatorRole,
+            'created_at'         => date('Y-m-d H:i:s')
+        ]);
+        $notifCount++;
+    }
+
+    log_activity($creatorId, 'ANNOUNCEMENT_CREATED', "Created announcement #{$announcementId}: '{$title}' sent to {$notifCount} recipients.");
+
+    return [
+        'success'         => true,
+        'message'         => "Announcement broadcasted successfully to {$notifCount} user accounts!",
+        'announcement_id' => $announcementId,
+        'recipient_count' => $notifCount
+    ];
+}
+
+/**
+ * Edit/Update an announcement with strict role-based ownership validation.
+ */
+function update_announcement(int $announcementId, int $currentUserId, string $currentUserRole, string $title, string $message, string $audience = 'all', string $priority = 'normal', string $link = '#'): array {
+    $db = Database::getInstance();
+    $ann = $db->fetch("SELECT * FROM announcements WHERE id = ?", [$announcementId]);
+
+    if (!$ann) {
+        return ['success' => false, 'message' => 'Announcement not found.'];
+    }
+
+    // Role-based authorization check:
+    // Admin can edit any announcement; Faculty can edit ONLY their own.
+    if ($currentUserRole !== 'admin' && (int)$ann['created_by_user_id'] !== $currentUserId) {
+        return ['success' => false, 'message' => 'Access Denied: You can only edit announcements created by yourself.'];
+    }
+
+    $db->update('announcements', [
+        'title'      => $title,
+        'message'    => $message,
+        'audience'   => $audience,
+        'priority'   => $priority,
+        'link'       => $link,
+        'updated_at' => date('Y-m-d H:i:s')
+    ], 'id = ?', [$announcementId]);
+
+    // Update corresponding notification titles and messages
+    $creatorName = $ann['created_by_name'];
+    $notifMsg = "{$creatorName} published a new announcement: {$title}";
+
+    $db->update('notifications', [
+        'message' => $notifMsg
+    ], 'announcement_id = ?', [$announcementId]);
+
+    log_activity($currentUserId, 'ANNOUNCEMENT_UPDATED', "Updated announcement #{$announcementId}: '{$title}'.");
+
+    return ['success' => true, 'message' => 'Announcement updated successfully.'];
+}
+
+/**
+ * Delete an announcement with strict role-based ownership validation.
+ */
+function delete_announcement(int $announcementId, int $currentUserId, string $currentUserRole): array {
+    $db = Database::getInstance();
+    $ann = $db->fetch("SELECT * FROM announcements WHERE id = ?", [$announcementId]);
+
+    if (!$ann) {
+        return ['success' => false, 'message' => 'Announcement not found.'];
+    }
+
+    // Role-based authorization check:
+    // Admin can delete any announcement; Faculty can delete ONLY their own.
+    if ($currentUserRole !== 'admin' && (int)$ann['created_by_user_id'] !== $currentUserId) {
+        return ['success' => false, 'message' => 'Access Denied: You can only delete announcements created by yourself.'];
+    }
+
+    // Delete related notification records first
+    $db->delete('notifications', 'announcement_id = ?', [$announcementId]);
+    // Delete announcement record
+    $db->delete('announcements', 'id = ?', [$announcementId]);
+
+    log_activity($currentUserId, 'ANNOUNCEMENT_DELETED', "Deleted announcement #{$announcementId}.");
+
+    return ['success' => true, 'message' => 'Announcement deleted successfully.'];
+}

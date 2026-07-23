@@ -47,13 +47,26 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 } elseif ((int)($user['email_verified'] ?? 1) === 0) {
                     $verifyUrl = BASE_URL . 'verify-email.php?email=' . urlencode($user['email']);
                     $error = 'Please verify your email before logging in. <a href="' . htmlspecialchars($verifyUrl) . '" class="fw-bold text-decoration-underline text-danger ms-1">Verify Email</a>';
+                } elseif ($user['role'] === 'faculty') {
+                    $fac = $db->fetch("SELECT approval_status FROM faculty WHERE user_id = ?", [$user['id']]);
+                    $appStatus = strtolower($fac['approval_status'] ?? 'pending');
+                    $userStatus = strtolower($user['status'] ?? '');
+
+                    if ($appStatus === 'pending' || $userStatus === 'pending') {
+                        $error = 'Your faculty registration is currently under review by the administrator.';
+                    } elseif ($appStatus === 'rejected' || $userStatus === 'rejected') {
+                        $error = 'Your faculty registration has been rejected. Please contact the administrator for further information.';
+                    } else {
+                        login_user($user, $remember);
+                        set_flash_message('success', "Welcome back, " . htmlspecialchars($_SESSION['full_name'] ?? $user['username']) . "!");
+                        redirect(BASE_URL . 'faculty/dashboard.php');
+                    }
                 } else {
                     login_user($user, $remember && ($user['role'] !== 'admin'));
                     set_flash_message('success', "Welcome back, " . htmlspecialchars($_SESSION['full_name'] ?? $user['username']) . "!");
                     
                     match ($user['role']) {
                         'student' => redirect(BASE_URL . 'student/dashboard.php'),
-                        'faculty' => redirect(BASE_URL . 'faculty/dashboard.php'),
                         'admin'   => redirect(BASE_URL . 'admin/dashboard.php'),
                         default   => redirect(BASE_URL . 'index.php')
                     };

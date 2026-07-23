@@ -88,8 +88,9 @@ if (!file_exists(__DIR__ . '/../uploads/avatars/' . $avatar) || empty($avatar)) 
                     <div class="p-2 text-center border-top bg-light rounded-bottom-4">
                         <?php
                             $notifLink = match($userRole) {
-                                'admin' => BASE_URL . 'admin/notifications.php',
-                                default => BASE_URL . 'student/notification.php'
+                                'admin'   => BASE_URL . 'admin/notifications.php',
+                                'faculty' => BASE_URL . 'faculty/notifications.php',
+                                default   => BASE_URL . 'student/notification.php'
                             };
                         ?>
                         <a href="<?= $notifLink ?>" class="small text-primary fw-semibold text-decoration-none">View All Notifications</a>
