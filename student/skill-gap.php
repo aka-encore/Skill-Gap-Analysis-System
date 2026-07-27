@@ -112,6 +112,139 @@ include __DIR__ . '/../includes/header.php';
     background: rgba(38, 101, 140, 0.04) !important;
 }
 
+/* ── Premium SaaS Dashboard KPI Card Styles ── */
+.kpi-card-premium {
+    position: relative;
+    overflow: hidden;
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 20px !important;
+    padding: 1.25rem 1.25rem !important;
+    box-shadow: var(--shadow-sm) !important;
+    transition: transform 150ms cubic-bezier(0.4, 0, 0.2, 1), 
+                box-shadow 150ms cubic-bezier(0.4, 0, 0.2, 1), 
+                border-color 150ms cubic-bezier(0.4, 0, 0.2, 1) !important;
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100%;
+}
+
+/* Light Mode Accent Glows & Colors */
+.kpi-card-blue {
+    --kpi-accent: #2563EB;
+    --kpi-glow: rgba(37, 99, 235, 0.04);
+    --kpi-icon-bg: rgba(37, 99, 235, 0.05);
+    --kpi-icon-border: rgba(37, 99, 235, 0.12);
+    background-image: radial-gradient(circle at 100% 0%, var(--kpi-glow), transparent 70%) !important;
+}
+.kpi-card-red {
+    --kpi-accent: #EF4444;
+    --kpi-glow: rgba(239, 68, 68, 0.04);
+    --kpi-icon-bg: rgba(239, 68, 68, 0.05);
+    --kpi-icon-border: rgba(239, 68, 68, 0.12);
+    background-image: radial-gradient(circle at 100% 0%, var(--kpi-glow), transparent 70%) !important;
+}
+.kpi-card-amber {
+    --kpi-accent: #D97706;
+    --kpi-glow: rgba(217, 119, 6, 0.04);
+    --kpi-icon-bg: rgba(217, 119, 6, 0.05);
+    --kpi-icon-border: rgba(217, 119, 6, 0.12);
+    background-image: radial-gradient(circle at 100% 0%, var(--kpi-glow), transparent 70%) !important;
+}
+.kpi-card-green {
+    --kpi-accent: #10B981;
+    --kpi-glow: rgba(16, 185, 129, 0.04);
+    --kpi-icon-bg: rgba(16, 185, 129, 0.05);
+    --kpi-icon-border: rgba(16, 185, 129, 0.12);
+    background-image: radial-gradient(circle at 100% 0%, var(--kpi-glow), transparent 70%) !important;
+}
+
+/* Dark Mode Overrides */
+[data-theme="dark"] .kpi-card-blue {
+    --kpi-accent: #60A5FA;
+    --kpi-glow: rgba(96, 165, 250, 0.06);
+    --kpi-icon-bg: rgba(96, 165, 250, 0.10);
+    --kpi-icon-border: rgba(96, 165, 250, 0.20);
+}
+[data-theme="dark"] .kpi-card-red {
+    --kpi-accent: #F87171;
+    --kpi-glow: rgba(248, 113, 113, 0.06);
+    --kpi-icon-bg: rgba(248, 113, 113, 0.10);
+    --kpi-icon-border: rgba(248, 113, 113, 0.20);
+}
+[data-theme="dark"] .kpi-card-amber {
+    --kpi-accent: #FBBF24;
+    --kpi-glow: rgba(251, 191, 36, 0.06);
+    --kpi-icon-bg: rgba(251, 191, 36, 0.10);
+    --kpi-icon-border: rgba(251, 191, 36, 0.20);
+}
+[data-theme="dark"] .kpi-card-green {
+    --kpi-accent: #34D399;
+    --kpi-glow: rgba(52, 211, 153, 0.06);
+    --kpi-icon-bg: rgba(52, 211, 153, 0.10);
+    --kpi-icon-border: rgba(52, 211, 153, 0.20);
+}
+
+/* Hover Elevations */
+.kpi-card-premium:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: var(--shadow-md) !important;
+    border-color: var(--kpi-accent) !important;
+}
+
+/* Circular Premium Icon Container */
+.kpi-icon-container {
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: var(--kpi-icon-bg);
+    border: 1px solid var(--kpi-icon-border);
+    color: var(--kpi-accent);
+    font-size: 0.95rem;
+    flex-shrink: 0;
+    transition: transform 150ms ease;
+}
+
+.kpi-card-premium:hover .kpi-icon-container {
+    transform: scale(1.05);
+}
+
+/* Typography styles */
+.kpi-label {
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    line-height: 1.3;
+}
+
+.kpi-value {
+    font-size: 1.85rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: var(--text-heading);
+    margin-top: 0.4rem;
+    margin-bottom: 0.25rem;
+    line-height: 1.1;
+    font-family: var(--font-heading);
+}
+
+.kpi-status {
+    font-size: 0.74rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+
 .modal-backdrop-custom {
     position: fixed;
     inset: 0;
@@ -214,13 +347,19 @@ include __DIR__ . '/../includes/header.php';
 <div class="row g-3 mb-4">
     <!-- A. Current Skill Level -->
     <div class="col-6 col-lg-3">
-        <div class="card card-stat card-stat-clickable border-0 shadow-sm rounded-4 p-3 h-100" onclick="openStatCardModal('skill-level')" title="Click for Skill Progress Breakdown">
-            <div class="d-flex align-items-center gap-3">
-                <div class="p-3 rounded-circle bg-primary-subtle text-primary fs-4"><i class="fa-solid fa-star"></i></div>
+        <div class="card h-100 kpi-card-premium kpi-card-blue card-stat-clickable" onclick="openStatCardModal('skill-level')" title="Click for Skill Progress Breakdown">
+            <div class="d-flex flex-column justify-content-between h-100">
+                <div class="d-flex justify-content-between align-items-start gap-2">
+                    <span class="kpi-label">Current Skill Level</span>
+                    <div class="kpi-icon-container">
+                        <i class="fa-solid fa-star"></i>
+                    </div>
+                </div>
                 <div>
-                    <div class="fw-extrabold text-primary fs-3"><?= number_format($currentSkillLevel, 1) ?>%</div>
-                    <div class="text-muted small fw-semibold">Current Skill Level</div>
-                    <div class="text-success small fw-medium mt-1"><i class="fa-solid fa-arrow-up"></i> Weighted Average</div>
+                    <h3 class="kpi-value"><?= number_format($currentSkillLevel, 1) ?>%</h3>
+                    <div class="kpi-status" style="color: var(--success-text);">
+                        <i class="fa-solid fa-arrow-up"></i> Weighted Average
+                    </div>
                 </div>
             </div>
         </div>
@@ -228,13 +367,19 @@ include __DIR__ . '/../includes/header.php';
 
     <!-- B. Overall Skill Gap -->
     <div class="col-6 col-lg-3">
-        <div class="card card-stat card-stat-clickable border-0 shadow-sm rounded-4 p-3 h-100" onclick="openStatCardModal('skill-gap')" title="Click for Gap Breakdown & Priorities">
-            <div class="d-flex align-items-center gap-3">
-                <div class="p-3 rounded-circle bg-danger-subtle text-danger fs-4"><i class="fa-solid fa-triangle-exclamation"></i></div>
+        <div class="card h-100 kpi-card-premium kpi-card-red card-stat-clickable" onclick="openStatCardModal('skill-gap')" title="Click for Gap Breakdown & Priorities">
+            <div class="d-flex flex-column justify-content-between h-100">
+                <div class="d-flex justify-content-between align-items-start gap-2">
+                    <span class="kpi-label">Overall Skill Gap</span>
+                    <div class="kpi-icon-container">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                    </div>
+                </div>
                 <div>
-                    <div class="fw-extrabold text-danger fs-3"><?= number_format($overallGap, 1) ?>%</div>
-                    <div class="text-muted small fw-semibold">Overall Skill Gap</div>
-                    <div class="text-danger small fw-medium mt-1"><i class="fa-solid fa-arrow-down"></i> Needs Improvement</div>
+                    <h3 class="kpi-value"><?= number_format($overallGap, 1) ?>%</h3>
+                    <div class="kpi-status" style="color: var(--danger-text);">
+                        <i class="fa-solid fa-arrow-down"></i> Needs Improvement
+                    </div>
                 </div>
             </div>
         </div>
@@ -242,13 +387,19 @@ include __DIR__ . '/../includes/header.php';
 
     <!-- C. Target Career Match -->
     <div class="col-6 col-lg-3">
-        <div class="card card-stat card-stat-clickable border-0 shadow-sm rounded-4 p-3 h-100" onclick="openStatCardModal('career-match')" title="Click for Career Readiness">
-            <div class="d-flex align-items-center gap-3">
-                <div class="p-3 rounded-circle bg-warning-subtle text-warning fs-4"><i class="fa-solid fa-briefcase"></i></div>
+        <div class="card h-100 kpi-card-premium kpi-card-amber card-stat-clickable" onclick="openStatCardModal('career-match')" title="Click for Career Readiness">
+            <div class="d-flex flex-column justify-content-between h-100">
+                <div class="d-flex justify-content-between align-items-start gap-2">
+                    <span class="kpi-label">Target Career Match</span>
+                    <div class="kpi-icon-container">
+                        <i class="fa-solid fa-briefcase"></i>
+                    </div>
+                </div>
                 <div>
-                    <div class="fw-extrabold text-warning fs-3"><?= $careerMatch ?>%</div>
-                    <div class="text-muted small fw-semibold">Target Career Match</div>
-                    <div class="text-warning small fw-medium mt-1"><i class="fa-solid fa-arrow-up"></i> <?= $studentDept ?></div>
+                    <h3 class="kpi-value"><?= $careerMatch ?>%</h3>
+                    <div class="kpi-status" style="color: var(--warning-text);">
+                        <i class="fa-solid fa-arrow-up"></i> <?= $studentDept ?>
+                    </div>
                 </div>
             </div>
         </div>
@@ -256,13 +407,19 @@ include __DIR__ . '/../includes/header.php';
 
     <!-- D. Estimated Learning Time -->
     <div class="col-6 col-lg-3">
-        <div class="card card-stat card-stat-clickable border-0 shadow-sm rounded-4 p-3 h-100" onclick="openStatCardModal('learning-time')" title="Click for Study Plan">
-            <div class="d-flex align-items-center gap-3">
-                <div class="p-3 rounded-circle bg-success-subtle text-success fs-4"><i class="fa-solid fa-clock"></i></div>
+        <div class="card h-100 kpi-card-premium kpi-card-green card-stat-clickable" onclick="openStatCardModal('learning-time')" title="Click for Study Plan">
+            <div class="d-flex flex-column justify-content-between h-100">
+                <div class="d-flex justify-content-between align-items-start gap-2">
+                    <span class="kpi-label">Est. Learning Time</span>
+                    <div class="kpi-icon-container">
+                        <i class="fa-solid fa-clock"></i>
+                    </div>
+                </div>
                 <div>
-                    <div class="fw-extrabold text-success fs-3"><?= $estLearningTimeText ?></div>
-                    <div class="text-muted small fw-semibold">Est. Learning Time</div>
-                    <div class="text-success small fw-medium mt-1"><i class="fa-solid fa-check"></i> Personalized Plan</div>
+                    <h3 class="kpi-value"><?= $estLearningTimeText ?></h3>
+                    <div class="kpi-status" style="color: var(--success-text);">
+                        <i class="fa-solid fa-check"></i> Personalized Plan
+                    </div>
                 </div>
             </div>
         </div>
@@ -499,10 +656,20 @@ include __DIR__ . '/../includes/header.php';
 const skillsDataMap = <?php echo json_encode($skillsDataMap); ?>;
 let activeModalSkillId = null;
 
-// Initialize Chart.js Radar Chart
-document.addEventListener('DOMContentLoaded', function() {
-    const ctx = document.getElementById('skillRadarCanvas').getContext('2d');
-    new Chart(ctx, {
+let skillRadarChartInstance = null;
+
+window.initSkillGap = function() {
+    if (skillRadarChartInstance) {
+        try {
+            skillRadarChartInstance.destroy();
+        } catch(e) {}
+        skillRadarChartInstance = null;
+    }
+
+    const ctx = document.getElementById('skillRadarCanvas');
+    if (!ctx) return;
+
+    skillRadarChartInstance = new Chart(ctx.getContext('2d'), {
         type: 'radar',
         data: {
             labels: <?php echo json_encode($radarLabels); ?>,
@@ -546,7 +713,8 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     });
-});
+};
+// Handled by app.js runPageSpecificInitializer()
 
 // Modal Handler Functions
 function openStatCardModal(type) {

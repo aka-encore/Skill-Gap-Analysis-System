@@ -167,8 +167,7 @@ include __DIR__ . '/../includes/header.php';
 </div>
 
 <script>
-// Interactive 5-Star Rating Logic
-document.addEventListener('DOMContentLoaded', function () {
+window.initFeedback = function() {
     const stars = document.querySelectorAll('#starRating i');
     const ratingInput = document.getElementById('ratingInput');
     const ratingLabel = document.getElementById('ratingLabel');
@@ -182,12 +181,15 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     stars.forEach(star => {
-        star.addEventListener('click', function () {
+        const newStar = star.cloneNode(true);
+        star.parentNode.replaceChild(newStar, star);
+        
+        newStar.addEventListener('click', function () {
             const val = parseInt(this.getAttribute('data-value'));
-            ratingInput.value = val;
-            ratingLabel.textContent = labels[val];
+            if (ratingInput) ratingInput.value = val;
+            if (ratingLabel) ratingLabel.textContent = labels[val];
 
-            stars.forEach(s => {
+            document.querySelectorAll('#starRating i').forEach(s => {
                 const sVal = parseInt(s.getAttribute('data-value'));
                 if (sVal <= val) {
                     s.classList.add('active');
@@ -197,18 +199,20 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         });
     });
-});
-</script>
 
-<?php if (isset($_SESSION['open_mailto'])): 
-  $mailtoToOpen = $_SESSION['open_mailto'];
-  unset($_SESSION['open_mailto']);
-?>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
+    <?php if (isset($_SESSION['open_mailto'])): 
+      $mailtoToOpen = $_SESSION['open_mailto'];
+      unset($_SESSION['open_mailto']);
+    ?>
     window.location.href = <?= json_encode($mailtoToOpen) ?>;
-});
+    <?php endif; ?>
+};
+
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    window.initFeedback();
+} else {
+    document.addEventListener('DOMContentLoaded', window.initFeedback);
+}
 </script>
-<?php endif; ?>
 
 <?php include __DIR__ . '/../includes/footer.php'; ?>

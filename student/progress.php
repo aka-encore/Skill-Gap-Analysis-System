@@ -15,22 +15,6 @@ $studentId = $_SESSION['profile_id'];
 $userId = $_SESSION['user_id'];
 $db = Database::getInstance();
 
-// Handle Course Progress Update Form Submit
-if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && isset($_POST['update_progress'])) {
-    $progressId = (int)$_POST['progress_id'];
-    $newVal = min(100, max(0, (int)$_POST['progress_percentage']));
-    $status = ($newVal === 100) ? 'completed' : 'in_progress';
-
-    $db->update('student_progress', [
-        'progress_percentage' => $newVal,
-        'status' => $status,
-        'last_updated' => date('Y-m-d H:i:s')
-    ], 'id = ? AND student_id = ?', [$progressId, $studentId]);
-
-    set_flash_message('success', 'Course progress updated successfully.');
-    redirect(BASE_URL . 'student/progress.php');
-}
-
 // 1. Fetch student info
 $student = $db->fetch(
     "SELECT s.*, u.username, u.email FROM students s JOIN users u ON s.user_id = u.id WHERE s.id = ?",
@@ -246,6 +230,9 @@ foreach ($leaderboard as $idx => &$lbItem) {
     }
 }
 unset($lbItem);
+
+$departmentsList = array_values(array_unique(array_filter(array_column($leaderboard, 'department'))));
+sort($departmentsList);
 
 // 8. Badges dynamic status determination
 $badges = [
@@ -476,8 +463,9 @@ include __DIR__ . '/../includes/header.php';
           <div class="d-flex gap-2">
             <select id="leaderboardDeptFilter" class="leaderboard-select flex-grow-1" onchange="filterLeaderboard()">
               <option value="all">All Departments</option>
-              <option value="Computer Science">Computer Science</option>
-              <option value="Information Technology">Information Technology</option>
+              <?php foreach ($departmentsList as $deptOption): ?>
+                <option value="<?= htmlspecialchars($deptOption) ?>"><?= htmlspecialchars($deptOption) ?></option>
+              <?php endforeach; ?>
             </select>
           </div>
         </div>
@@ -492,7 +480,7 @@ include __DIR__ . '/../includes/header.php';
             };
             $userClass = $lb['is_current'] ? 'logged-in-user' : '';
           ?>
-            <div class="leaderboard-item <?= $topClass ?> <?= $userClass ?>" data-name="<?= strtolower($lb['name']) ?>" data-dept="<?= htmlspecialchars($lb['department']) ?>">
+            <div class="leaderboard-item <?= $topClass ?> <?= $userClass ?>" data-name="<?= strtolower($lb['name']) ?>" data-dept="<?= htmlspecialchars($lb['department']) ?>" data-global-rank="<?= $lb['rank'] ?>">
               <div class="lb-rank">
                 <?php if ($lb['rank'] == 1): ?><i class="fa-solid fa-crown text-warning"></i>
                 <?php else: ?>#<?= $lb['rank'] ?>
@@ -553,33 +541,25 @@ include __DIR__ . '/../includes/header.php';
       <div class="row g-3">
         <?php foreach ($progressRecords as $p): ?>
           <div class="col-md-6">
-            <div class="p-3 bg-light rounded-3 border">
-              <div class="d-flex justify-content-between align-items-center mb-2">
-                <span class="badge bg-white text-dark border fw-bold"><?= htmlspecialchars($p['course_code']) ?></span>
-                <span class="badge bg-<?= $p['status'] === 'completed' ? 'success' : 'info' ?> rounded-pill px-3 py-1">
-                  <?= strtoupper(str_replace('_', ' ', $p['status'])) ?>
-                </span>
-              </div>
-              <h6 class="fw-bold text-dark mb-1"><?= htmlspecialchars($p['course_title']) ?></h6>
-              <div class="d-flex justify-content-between small text-muted mb-2">
-                <span>Completion Status</span>
-                <span class="fw-bold text-primary"><?= $p['progress_percentage'] ?>%</span>
-              </div>
-              <div class="progress rounded-pill mb-3" style="height: 8px;">
-                <div class="progress-bar bg-<?= $p['status'] === 'completed' ? 'success' : 'primary' ?> rounded-pill" style="width: <?= $p['progress_percentage'] ?>%;"></div>
-              </div>
-
-              <form action="<?= BASE_URL ?>student/progress.php" method="POST" class="row g-2 align-items-center">
-                <input type="hidden" name="progress_id" value="<?= $p['id'] ?>">
-                <input type="hidden" name="update_progress" value="1">
-                <div class="col-8">
-                  <input type="range" name="progress_percentage" class="form-range" min="0" max="100" step="5" value="<?= $p['progress_percentage'] ?>" oninput="this.nextElementSibling.value = this.value + '%'">
-                  <output class="small text-muted ms-2 d-none"><?= $p['progress_percentage'] ?>%</output>
+            <div class="h-100 p-3 rounded-3 border d-flex flex-column justify-content-between shadow-sm" style="background: var(--bg-input); border-color: var(--border) !important;">
+              <div>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <span class="badge bg-white text-dark border fw-bold" style="font-size: 0.75rem;"><?= htmlspecialchars($p['course_code']) ?></span>
+                  <span class="badge bg-<?= $p['status'] === 'completed' ? 'success' : 'info' ?> rounded-pill px-3 py-1" style="font-size: 0.72rem;">
+                    <?= strtoupper(str_replace('_', ' ', $p['status'])) ?>
+                  </span>
                 </div>
-                <div class="col-4">
-                  <button type="submit" class="btn btn-outline-primary btn-sm w-100 rounded-pill py-1 small">Update %</button>
+                <h6 class="fw-bold text-dark mb-3" style="font-size: 0.925rem; line-height: 1.4;"><?= htmlspecialchars($p['course_title']) ?></h6>
+              </div>
+              <div>
+                <div class="d-flex justify-content-between align-items-center small text-muted mb-1.5" style="font-size: 0.78rem;">
+                  <span>Completion Status</span>
+                  <span class="fw-bold text-primary" style="font-size: 0.85rem;"><?= $p['progress_percentage'] ?>%</span>
                 </div>
-              </form>
+                <div class="progress rounded-pill" style="height: 6px; background-color: var(--border-light);">
+                  <div class="progress-bar bg-<?= $p['status'] === 'completed' ? 'success' : 'primary' ?> rounded-pill" style="width: <?= $p['progress_percentage'] ?>%;"></div>
+                </div>
+              </div>
             </div>
           </div>
         <?php endforeach; ?>
@@ -618,9 +598,21 @@ const avgAssessmentScore= <?php echo json_encode($avgAssessmentScore); ?>;
 let currentView = 'month';
 let progressChartInstance = null;
 
-document.addEventListener('DOMContentLoaded', function() {
+window.initProgress = function() {
+    if (progressChartInstance) {
+        try {
+            progressChartInstance.destroy();
+        } catch(e) {}
+        progressChartInstance = null;
+    }
     renderChartJS(currentView);
-});
+};
+
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    window.initProgress();
+} else {
+    document.addEventListener('DOMContentLoaded', window.initProgress);
+}
 
 function toggleView(view) {
     currentView = view;
@@ -779,17 +771,49 @@ function renderChartJS(view) {
 }
 
 function filterLeaderboard() {
-    const q = document.getElementById('leaderboardSearch').value.toLowerCase();
+    const q = document.getElementById('leaderboardSearch').value.toLowerCase().trim();
     const dept = document.getElementById('leaderboardDeptFilter').value;
     const items = document.querySelectorAll('#leaderboardContainer .leaderboard-item');
 
+    let visibleRank = 1;
+
     items.forEach(item => {
-        const name = item.getAttribute('data-name');
-        const itemDept = item.getAttribute('data-dept');
-        const matchName = name.includes(q);
+        const name = item.getAttribute('data-name') || '';
+        const itemDept = item.getAttribute('data-dept') || '';
+        const globalRank = parseInt(item.getAttribute('data-global-rank')) || 1;
+        const rankEl = item.querySelector('.lb-rank');
+
+        const matchName = !q || name.includes(q) || itemDept.toLowerCase().includes(q);
         const matchDept = dept === 'all' || itemDept === dept;
 
-        item.style.display = (matchName && matchDept) ? 'grid' : 'none';
+        if (matchName && matchDept) {
+            item.style.display = 'grid';
+
+            // Recalculate ranks starting from #1 when a specific department filter is active
+            const displayRankNum = (dept === 'all') ? globalRank : visibleRank;
+
+            if (rankEl) {
+                if (displayRankNum === 1) {
+                    rankEl.innerHTML = '<i class="fa-solid fa-crown text-warning"></i>';
+                } else {
+                    rankEl.textContent = '#' + displayRankNum;
+                }
+            }
+
+            // Dynamically update top-rank highlight styling classes
+            item.classList.remove('top-1', 'top-2', 'top-3');
+            if (displayRankNum === 1) {
+                item.classList.add('top-1');
+            } else if (displayRankNum === 2) {
+                item.classList.add('top-2');
+            } else if (displayRankNum === 3) {
+                item.classList.add('top-3');
+            }
+
+            visibleRank++;
+        } else {
+            item.style.display = 'none';
+        }
     });
 }
 

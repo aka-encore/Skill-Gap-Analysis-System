@@ -94,6 +94,10 @@ include __DIR__ . '/../includes/header.php';
                     <label class="form-label fw-semibold small text-secondary">Session Expiration Timeout (Seconds)</label>
                     <input type="number" name="settings[session_timeout]" class="form-control" value="<?= htmlspecialchars($settingsMap['session_timeout']['setting_value'] ?? '3600') ?>">
                 </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold small text-secondary">Default Proctoring Maximum Violations Limit</label>
+                    <input type="number" name="settings[proctoring_max_violations]" class="form-control" value="<?= htmlspecialchars($settingsMap['proctoring_max_violations']['setting_value'] ?? '3') ?>" min="1" max="10">
+                </div>
             </div>
 
             <button type="submit" class="btn btn-primary bg-gradient-primary border-0 rounded-pill px-4 py-2 fw-semibold">

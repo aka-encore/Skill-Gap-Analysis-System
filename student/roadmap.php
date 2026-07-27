@@ -47,6 +47,45 @@ foreach ($skillsRaw as $s) {
     ];
 }
 
+// Fetch all active courses with their skills mappings, progress, and lesson count for the current student
+$coursesRaw = $db->fetchAll(
+    "SELECT 
+        c.id, 
+        c.title, 
+        c.instructor, 
+        c.difficulty_level, 
+        c.duration_hours, 
+        cs.skill_id,
+        COALESCE(sp.progress_percentage, 0) AS progress_percentage,
+        COALESCE(sp.status, 'not_started') AS enrollment_status,
+        (SELECT COUNT(*) FROM lessons l WHERE l.course_id = c.id) AS total_lessons,
+        COALESCE((SELECT SUM(duration_minutes) FROM lessons l WHERE l.course_id = c.id), 0) AS total_duration_minutes
+     FROM courses c
+     JOIN course_skills cs ON c.id = cs.course_id
+     LEFT JOIN student_progress sp ON c.id = sp.course_id AND sp.student_id = ?
+     WHERE c.status = 'active'",
+    [$studentId]
+);
+
+$coursesBySkill = [];
+foreach ($coursesRaw as $c) {
+    $skillId = (int)$c['skill_id'];
+    if (!isset($coursesBySkill[$skillId])) {
+        $coursesBySkill[$skillId] = [];
+    }
+    $coursesBySkill[$skillId][] = [
+        'id' => (int)$c['id'],
+        'title' => $c['title'],
+        'instructor' => $c['instructor'],
+        'difficulty' => $c['difficulty_level'],
+        'duration' => $c['duration_hours'],
+        'total_duration_minutes' => (int)$c['total_duration_minutes'],
+        'lessons_count' => (int)$c['total_lessons'],
+        'progress' => (int)$c['progress_percentage'],
+        'status' => $c['enrollment_status']
+    ];
+}
+
 $pageTitle = "Learning Roadmap - SkillBridge";
 include __DIR__ . '/../includes/header.php';
 ?>
@@ -191,6 +230,64 @@ include __DIR__ . '/../includes/header.php';
   background: var(--primary-light); border: 1px solid var(--border); color: var(--primary); border-radius: 20px; padding: 6px 16px; font-weight: 600; font-size: 0.8rem; cursor: pointer; transition: all 0.2s;
 }
 .btn-switch-role:hover { background: var(--primary); color: #FFF; }
+
+/* SkillBridge Courses Recommendation Styling */
+.course-rec-section-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--primary);
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.course-rec-card {
+  border: 1px solid var(--border) !important;
+  background: var(--bg-card) !important;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.course-rec-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-card-hover) !important;
+  border-color: var(--primary) !important;
+}
+.course-rec-thumb {
+  height: 90px;
+  background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+}
+[data-theme="dark"] .course-rec-thumb {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+}
+
+/* YouTube Recommendation Styling */
+.youtube-section-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #ef4444;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.youtube-playlist-card {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border) !important;
+  border-left: 4px solid #ef4444 !important;
+  transition: all 0.3s ease;
+}
+.youtube-playlist-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-card-hover) !important;
+}
 </style>
 
 <!-- Main Roadmap Workspace Layout -->
@@ -341,7 +438,100 @@ include __DIR__ . '/../includes/header.php';
 <script>
 // JSON Student DB Skill Performance Array passed from PHP
 const studentSkillsData = <?php echo json_encode($studentSkills); ?>;
+const skillBridgeCourses = <?php echo json_encode($coursesBySkill); ?>;
 const userDefaultRole = <?php echo json_encode($defaultRoleKey); ?>;
+const BASE_URL = <?php echo json_encode(BASE_URL); ?>;
+
+function escapeHtml(str) {
+  return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+const youtubePlaylistsMetadata = {
+  "PL4cUxeGkcC9ivBXXWbFiFiA7aKdi88yRL": {
+    title: "HTML5 Tutorial for Beginners",
+    channel: "Net Ninja",
+    videoCount: 38,
+    duration: "5.5 hours",
+    thumbnail: "https://img.youtube.com/vi/pQN-pnXPaVg/mqdefault.jpg"
+  },
+  "PL4cUxeGkcC9itC4o504sKxpW-Z5e60p1C": {
+    title: "CSS Tutorial for Beginners",
+    channel: "Net Ninja",
+    videoCount: 29,
+    duration: "4 hours",
+    thumbnail: "https://img.youtube.com/vi/yfoY53QXEnI/mqdefault.jpg"
+  },
+  "PL4cUxeGkcC9haFPT7J25Q9GRB_Z5AlJuV": {
+    title: "JavaScript ES6+ Tutorial",
+    channel: "Net Ninja",
+    videoCount: 42,
+    duration: "7.5 hours",
+    thumbnail: "https://img.youtube.com/vi/W6NZfCO5SIk/mqdefault.jpg"
+  },
+  "PL4cUxeGkcC9goXbgTDQ0n_4TBzOO0ocPR": {
+    title: "Git & GitHub Tutorial for Beginners",
+    channel: "Net Ninja",
+    videoCount: 12,
+    duration: "2 hours",
+    thumbnail: "https://img.youtube.com/vi/3R8dxOnDXWs/mqdefault.jpg"
+  },
+  "PL4cUxeGkcC9gZD-Tvwfod2gaISzfRiP9d": {
+    title: "React.js Tutorial for Beginners",
+    channel: "Net Ninja",
+    videoCount: 32,
+    duration: "6 hours",
+    thumbnail: "https://img.youtube.com/vi/j942wKiXFu8/mqdefault.jpg"
+  },
+  "PL4cUxeGkcC9h6OAGy8Sy1x7dbVOMQGjX8": {
+    title: "UI/UX Design Tutorials",
+    channel: "DesignCourse",
+    videoCount: 24,
+    duration: "5 hours",
+    thumbnail: "https://img.youtube.com/vi/c9Wg6RyOxjU/mqdefault.jpg"
+  },
+  "PLr3d3Ku5PSPw_A_cnBscs5vU0A7a1S9mS": {
+    title: "PHP 8 Tutorial for Beginners",
+    channel: "Net Ninja",
+    videoCount: 30,
+    duration: "5 hours",
+    thumbnail: "https://img.youtube.com/vi/a7_WFUlFS9c/mqdefault.jpg"
+  },
+  "PL0b6OzIxLPbyrzCMJofzLnf_-_5E_brvs": {
+    title: "MySQL Database Tutorial",
+    channel: "Programming with Mosh",
+    videoCount: 15,
+    duration: "3 hours",
+    thumbnail: "https://img.youtube.com/vi/7S_tz1z_5bA/mqdefault.jpg"
+  },
+  "PLillGF-RfqbZ2ybcoVmjCQmVJ23MfmzpB": {
+    title: "RESTful API Design & Dev",
+    channel: "Traversy Media",
+    videoCount: 18,
+    duration: "4.5 hours",
+    thumbnail: "https://img.youtube.com/vi/g1c_x3_X4sA/mqdefault.jpg"
+  },
+  "PL10u0b3N6Lw4UfW75pXW8w216fA": {
+    title: "Web Security & OWASP Standards",
+    channel: "Hussein Nasser",
+    videoCount: 14,
+    duration: "3.5 hours",
+    thumbnail: "https://img.youtube.com/vi/mI1v5V5vR24/mqdefault.jpg"
+  },
+  "PL-osiE80TeTskrapNbzXhwoFZuGYkmo8": {
+    title: "Python Programming Tutorial",
+    channel: "Corey Schafer",
+    videoCount: 26,
+    duration: "8 hours",
+    thumbnail: "https://img.youtube.com/vi/YYXdXT2l-Gg/mqdefault.jpg"
+  },
+  "PL2_aWCzGMAwI3W_JlcBbtYTwiQSsOTa6P": {
+    title: "Data Structures & Algorithms",
+    channel: "mycodeschool",
+    videoCount: 38,
+    duration: "9 hours",
+    thumbnail: "https://img.youtube.com/vi/B31LgI4Y4DQ/mqdefault.jpg"
+  }
+};
 
 // Master Multi-Role Roadmap Definition
 const roadmaps = {
@@ -442,9 +632,15 @@ const roadmaps = {
 let currentRoleKey = userDefaultRole || 'fullstack';
 if (!roadmaps[currentRoleKey]) currentRoleKey = 'fullstack';
 
-document.addEventListener('DOMContentLoaded', function() {
+window.initRoadmap = function() {
     initRoadmapPage();
-});
+};
+
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    window.initRoadmap();
+} else {
+    document.addEventListener('DOMContentLoaded', window.initRoadmap);
+}
 
 function initRoadmapPage() {
     renderRoleCards();
@@ -515,28 +711,113 @@ function renderRoadmap(roleKey) {
             totalMilestones++;
             totalHours += m.hours;
 
-            // DYNAMIC STATUS FROM DB PERFORMANCE
+            // MATCHED SKILLBRIDGE COURSE STATUS & PROGRESS
+            const mCourses = skillBridgeCourses[m.skillId] || [];
+            let progress = 0;
             let status = 'todo';
+            let courseHtml = '';
+
             const dbSkill = studentSkillsData[m.skillId];
-            
-            if (dbSkill) {
-                if (dbSkill.score >= 60) {
+
+            if (mCourses.length > 0) {
+                const primaryCourse = mCourses[0];
+                progress = parseInt(primaryCourse.progress || 0, 10);
+                if (primaryCourse.status === 'completed' || progress >= 100) {
                     status = 'completed';
-                } else if (dbSkill.score > 0 || dbSkill.attempted_levels > 0) {
+                } else if (primaryCourse.status === 'in_progress' || progress > 0) {
                     status = 'active';
                 }
-            }
 
-            // Check override in localStorage
-            const localSaved = localStorage.getItem('m_status_' + m.id);
-            if (localSaved) status = localSaved;
+                // Compute dynamic duration from lesson minutes
+                let durationStr = '';
+                if (primaryCourse.total_duration_minutes > 0) {
+                    const h = Math.floor(primaryCourse.total_duration_minutes / 60);
+                    const mn = primaryCourse.total_duration_minutes % 60;
+                    durationStr = h > 0 ? `${h}h ${mn}m` : `${mn}m`;
+                } else {
+                    durationStr = `${primaryCourse.duration}h`;
+                }
+
+                let progressFillHtml = '';
+                if (status === 'active' || status === 'completed') {
+                    progressFillHtml = `
+                        <div class="mt-3">
+                            <div class="d-flex justify-content-between small text-muted mb-1">
+                                <span>Progress</span>
+                                <span class="fw-bold text-primary">${progress}%</span>
+                            </div>
+                            <div class="progress" style="height: 8px; background-color: var(--border-input);">
+                                <div class="progress-bar bg-primary" style="width: ${progress}%"></div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                let badgeHtml = '';
+                if (status === 'completed') {
+                    badgeHtml = `<span class="badge bg-success text-white rounded-pill"><i class="fa-solid fa-circle-check me-1"></i>Completed</span>`;
+                } else if (status === 'active') {
+                    badgeHtml = `<span class="badge bg-primary text-white rounded-pill">Enrolled</span>`;
+                }
+
+                let buttonHtml = '';
+                if (status === 'completed') {
+                    buttonHtml = `
+                        <a href="${BASE_URL}student/courses.php?course_id=${primaryCourse.id}" class="btn btn-outline-success btn-sm rounded-pill w-100 fw-bold py-2 text-center">
+                            <i class="fa-solid fa-circle-check me-1"></i> Review Course
+                        </a>
+                    `;
+                } else if (status === 'active') {
+                    buttonHtml = `
+                        <a href="${BASE_URL}student/courses.php?course_id=${primaryCourse.id}" class="btn btn-success btn-sm rounded-pill w-100 fw-bold py-2 text-center">
+                            <i class="fa-solid fa-circle-play me-1"></i> Continue Learning
+                        </a>
+                    `;
+                } else {
+                    buttonHtml = `
+                        <a href="${BASE_URL}student/courses.php?enroll_course_id=${primaryCourse.id}" class="btn btn-primary btn-sm rounded-pill w-100 fw-bold py-2 text-center">
+                            <i class="fa-solid fa-circle-play me-1"></i> Enroll Now
+                        </a>
+                    `;
+                }
+
+                courseHtml = `
+                    <div class="card border-0 shadow-sm rounded-4 overflow-hidden course-rec-card mt-3">
+                        <div class="course-rec-thumb d-flex flex-column justify-content-between p-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="badge bg-white-subtle text-white border border-white-subtle rounded-pill small">SkillBridge Course</span>
+                                ${badgeHtml}
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center text-white">
+                                <span class="badge bg-primary text-white rounded-pill small text-capitalize">${primaryCourse.difficulty}</span>
+                                <span class="small"><i class="fa-regular fa-clock me-1"></i>${durationStr} • ${primaryCourse.lessons_count} Lessons</span>
+                            </div>
+                        </div>
+                        <div class="p-3 d-flex flex-column justify-content-between flex-grow-1">
+                            <div>
+                                <h6 class="fw-bold text-dark mb-1" style="font-size: 1.05rem;">${escapeHtml(primaryCourse.title)}</h6>
+                                <div class="text-muted small mb-1"><i class="fa-solid fa-user-tie me-1"></i>${escapeHtml(primaryCourse.instructor)}</div>
+                                ${progressFillHtml}
+                            </div>
+                            <div class="pt-3 border-top mt-3">
+                                ${buttonHtml}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                courseHtml = `
+                    <div class="alert alert-light border small text-muted rounded-3 p-3 d-flex align-items-center gap-2 mt-3 mb-0">
+                        <i class="fa-solid fa-circle-info text-primary fs-6"></i> No SkillBridge course available yet.
+                    </div>
+                `;
+            }
 
             if (status === 'completed') {
                 completedMilestones++;
                 completedHours += m.hours;
             }
 
-            const isChecked = status === 'completed' ? 'checked' : '';
             const statusBadge = status === 'completed' 
                 ? '<span class="badge bg-success-subtle text-success border border-success-subtle">Completed</span>'
                 : (status === 'active' 
@@ -544,17 +825,12 @@ function renderRoadmap(roleKey) {
                     : '<span class="badge bg-light text-muted border">To Do</span>');
 
             const diffClass = m.difficulty === 'Beginner' ? 'diff-beginner' : (m.difficulty === 'Intermediate' ? 'diff-intermediate' : 'diff-advanced');
-
             const savedNote = localStorage.getItem('m_note_' + m.id) || '';
 
             timelineHtml += `
                 <div class="roadmap-milestone ${status}" id="milestone-card-${m.id}">
                     <div class="roadmap-dot ${status}">${status === 'completed' ? '✓' : mIndex + 1}</div>
                     
-                    <div class="milestone-custom-checkbox ${isChecked}" onclick="toggleMilestoneStatus('${m.id}')">
-                        ${isChecked ? '<i class="fa-solid fa-check fs-6"></i>' : ''}
-                    </div>
-
                     <div class="milestone-info">
                         <div class="milestone-title-wrapper">
                             <div class="milestone-title">${m.title}</div>
@@ -562,9 +838,8 @@ function renderRoadmap(roleKey) {
                         </div>
                         <p class="milestone-desc">${m.desc}</p>
                         
-                        <div class="d-flex align-items-center gap-2 flex-wrap mb-3">
+                        <div class="d-flex align-items-center gap-2 flex-wrap mb-2">
                             <span class="diff-badge ${diffClass}">${m.difficulty}</span>
-                            <span class="badge bg-light text-muted border"><i class="fa-solid fa-clock me-1"></i>${m.hours} hrs</span>
                             ${dbSkill ? `<span class="badge bg-info-subtle text-info border">DB Score: ${Math.round(dbSkill.score)}%</span>` : ''}
                         </div>
 
@@ -575,20 +850,7 @@ function renderRoadmap(roleKey) {
                             </div>
                         ` : ''}
 
-                        <div class="milestone-links-bar">
-                            ${m.playlistId ? `
-                                <button class="milestone-link-btn" onclick="toggleVideo('${m.id}', '${m.playlistId}')">
-                                    <i class="fa-brands fa-youtube text-danger"></i> Watch Video Playlist
-                                </button>
-                            ` : ''}
-                            ${m.docLink ? `
-                                <a href="${m.docLink}" target="_blank" class="milestone-link-btn">
-                                    <i class="fa-solid fa-book-open text-primary"></i> Documentation
-                                </a>
-                            ` : ''}
-                        </div>
-
-                        <div id="video-container-${m.id}" style="display:none;" class="milestone-video-panel"></div>
+                        ${courseHtml}
 
                         <!-- Notes Section -->
                         <div class="mt-2 border-top pt-2">

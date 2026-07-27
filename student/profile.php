@@ -32,6 +32,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && isset($_POST['update_pro
     $dept      = trim($_POST['department'] ?? '');
     $bio       = trim($_POST['bio'] ?? '');
     $location  = trim($_POST['city_location'] ?? 'Mumbai, India');
+    $collegeName = trim($_POST['college_name'] ?? '');
 
     // Name validations
     if (empty($firstName) || empty($lastName)) {
@@ -65,9 +66,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && isset($_POST['update_pro
 
     // Phone / Mobile validations (Trigger ONLY when mobile number is modified by the user)
     if ($phone !== $currPhone && !empty($phone)) {
-        $rawDigits = preg_replace('/[^0-9]/', '', $phone);
-        if (preg_match('/[a-zA-Z]/', $phone) || strlen($rawDigits) < 7 || strlen($rawDigits) > 15) {
-            set_flash_message('danger', 'Mobile number must contain only digits.');
+        if (!preg_match('/^[0-9]{10}$/', $phone)) {
+            set_flash_message('danger', 'Mobile number must contain exactly 10 digits.');
             redirect(BASE_URL . 'student/profile.php');
         }
     }
@@ -113,8 +113,9 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && isset($_POST['update_pro
     $currDept  = trim($student['department'] ?? '');
     $currBio   = trim($student['bio'] ?? '');
     $currLoc   = trim($student['city_location'] ?? '');
+    $currCollege = trim($student['college_name'] ?? '');
 
-    $hasStudentChanged = ($firstName !== $currFirst || $lastName !== $currLast || $phone !== $currPhone || $dept !== $currDept || $bio !== $currBio || $location !== $currLoc || $avatarUploaded);
+    $hasStudentChanged = ($firstName !== $currFirst || $lastName !== $currLast || $phone !== $currPhone || $dept !== $currDept || $bio !== $currBio || $location !== $currLoc || $collegeName !== $currCollege || $avatarUploaded);
     $hasUserChanged = ($username !== $currUser);
 
     if (!$hasStudentChanged && !$hasUserChanged) {
@@ -128,7 +129,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && isset($_POST['update_pro
                 'department'    => $dept,
                 'bio'           => $bio,
                 'city_location' => $location,
-                'avatar'        => $avatarName
+                'avatar'        => $avatarName,
+                'college_name'  => $collegeName
             ], 'id = ?', [$studentId]);
 
             $_SESSION['user_name'] = $firstName . ' ' . $lastName;
@@ -258,70 +260,279 @@ $pageTitle = "My Profile - SkillBridge";
 include __DIR__ . '/../includes/header.php';
 ?>
 
+<style>
+/* ── Student Profile Header Redesign CSS ── */
+.profile-card-custom {
+  border-radius: 20px !important;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04) !important;
+  border: 1px solid var(--border) !important;
+  background: var(--bg-card) !important;
+}
+
+.profile-avatar-container {
+  position: relative;
+  width: 140px;
+  height: 140px;
+  margin: 0 auto;
+}
+@media (min-width: 768px) {
+  .profile-avatar-container {
+    margin: 0 0 1rem 0;
+  }
+}
+
+.profile-avatar-container img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.profile-avatar-container:hover img {
+  transform: scale(1.08);
+}
+
+.hover-lift {
+  transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 18px rgba(38, 101, 140, 0.15) !important;
+}
+
+.info-item-card {
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.85rem 1.15rem;
+  height: 100%;
+  transition: border-color 0.22s ease, background 0.22s ease, transform 0.22s ease;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.info-item-card:hover {
+  border-color: var(--primary);
+  background: var(--bg-card);
+  transform: translateY(-1px);
+}
+
+.info-item-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(38, 101, 140, 0.07);
+  color: var(--primary);
+  font-size: 1.15rem;
+  flex-shrink: 0;
+}
+
+.info-item-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  opacity: 0.75;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
+}
+
+.info-item-value {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-heading);
+  line-height: 1.25;
+}
+
+.gradient-progress-bar {
+  background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%) !important;
+}
+
+@media (min-width: 992px) {
+  .border-lg-end {
+    border-right: 1px solid var(--border) !important;
+  }
+}
+</style>
+
 <div class="dash-content">
   <!-- PROFILE HEADER BANNER -->
-  <div class="saas-card p-4 p-md-5 mb-4 position-relative overflow-hidden" id="profile-information">
-    <div class="row align-items-start g-4">
-      <div class="col-auto position-relative">
-        <?php 
-          $avatarPath = BASE_URL . 'assets/images/default-avatar.png';
-          if (!empty($student['avatar']) && file_exists(AVATAR_UPLOAD_DIR . $student['avatar'])) {
-              $avatarPath = BASE_URL . 'uploads/avatars/' . htmlspecialchars($student['avatar']);
-          }
-        ?>
-        <div class="rounded-circle overflow-hidden shadow-sm border border-3 border-primary" style="width: 110px; height: 110px; background: var(--bg-muted);">
-          <img src="<?= $avatarPath ?>" alt="<?= $studentName ?>" style="width: 100%; height: 100%; object-fit: cover;">
-        </div>
-        <button type="button" class="btn btn-primary rounded-circle position-absolute bottom-0 end-0 p-0 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;" data-bs-toggle="modal" data-bs-target="#editProfileModal" title="Upload Photo">
-          <i class="fa-solid fa-camera" style="font-size: 0.85rem;"></i>
+  <div class="saas-card p-4 p-md-5 mb-4 position-relative overflow-hidden profile-card-custom" id="profile-information">
+    <!-- Header Actions Row (top-right alignment) -->
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+      <h4 class="fw-bold mb-0 text-primary" style="font-size: 1.25rem;"><i class="fa-solid fa-circle-user text-primary me-2"></i>My Profile Dashboard</h4>
+      <div class="d-flex align-items-center gap-2">
+        <button type="button" class="btn btn-primary rounded-pill px-3.5 py-2 small fw-semibold shadow-sm hover-lift" data-bs-toggle="modal" data-bs-target="#editProfileModal">
+          <i class="fa-solid fa-user-pen me-1.5"></i>Edit Profile
         </button>
+        <a href="<?= BASE_URL ?>student/settings.php" class="btn btn-outline-secondary rounded-pill px-3.5 py-2 small fw-semibold shadow-sm hover-lift">
+          <i class="fa-solid fa-gear me-1.5"></i>Settings
+        </a>
       </div>
+    </div>
 
-      <div class="col">
-        <!-- FIRST ROW: FULL NAME -> BRANCH BADGE -> JOINED DATE (LEFT/CENTER) & ACTION BUTTONS (RIGHT) -->
-        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-2">
-          <div class="d-flex align-items-center gap-3 flex-wrap">
-            <h2 class="fw-bold mb-0" style="color: var(--text-heading);"><?= $studentName ?></h2>
-            <span class="badge saas-badge-primary">
-              <i class="fa-solid fa-user-graduate me-1"></i> <?= !empty($student['department']) ? htmlspecialchars($student['department']) : '<span style="color: var(--text-muted);">Not Provided</span>' ?>
-            </span>
-            <div class="small" style="color: var(--text-muted);">
-              <i class="fa-solid fa-calendar-days text-primary me-1"></i> Joined <?= date('M Y', strtotime($student['user_created'] ?? 'now')) ?>
+    <div class="row g-4 align-items-stretch">
+      <!-- LEFT COLUMN -->
+      <div class="col-lg-4 col-md-5 col-12 border-lg-end pe-lg-4 d-flex flex-column justify-content-between">
+        <div>
+          <!-- Large Profile Picture -->
+          <div class="profile-avatar-container mb-3">
+            <?php 
+              $avatarPath = BASE_URL . 'assets/images/default-avatar.png';
+              if (!empty($student['avatar']) && file_exists(AVATAR_UPLOAD_DIR . $student['avatar'])) {
+                  $avatarPath = BASE_URL . 'uploads/avatars/' . htmlspecialchars($student['avatar']);
+              }
+            ?>
+            <div class="rounded-circle overflow-hidden border border-3 border-primary shadow-sm" style="width: 100%; height: 100%;">
+              <img src="<?= $avatarPath ?>" alt="<?= $studentName ?>">
+            </div>
+            <button type="button" class="btn btn-primary rounded-circle position-absolute bottom-0 end-0 p-0 d-flex align-items-center justify-content-center hover-lift shadow" style="width: 38px; height: 38px; border: 3px solid var(--bg-card);" data-bs-toggle="modal" data-bs-target="#editProfileModal" title="Upload Photo">
+              <i class="fa-solid fa-camera" style="font-size: 0.85rem;"></i>
+            </button>
+          </div>
+
+          <!-- Student Name & Username -->
+          <div class="text-center text-md-start mb-3">
+            <h2 class="fw-bold mb-1" style="color: var(--text-heading); font-size: 1.5rem;"><?= $studentName ?></h2>
+            <div class="small" style="color: var(--text-muted); font-weight: 500;">
+              <span class="badge saas-badge-primary mb-2">
+                <i class="fa-solid fa-user-graduate me-1"></i><?= !empty($student['department']) ? htmlspecialchars($student['department']) : 'Not Provided' ?>
+              </span>
+              <div class="text-muted"><i class="fa-solid fa-at text-primary me-1 text-lowercase"></i><?= !empty($student['username']) ? htmlspecialchars($student['username']) : 'Not Provided' ?></div>
             </div>
           </div>
 
-          <div class="d-flex align-items-center gap-2 flex-wrap">
-            <button type="button" class="btn btn-primary rounded-pill px-3 py-1.5 small fw-semibold" data-bs-toggle="modal" data-bs-target="#editProfileModal">
-              <i class="fa-solid fa-user-pen me-1"></i> Edit Profile
-            </button>
-            <a href="<?= BASE_URL ?>student/settings.php" class="btn btn-outline-secondary rounded-pill px-3 py-1.5 small fw-semibold">
-              <i class="fa-solid fa-gear me-1"></i> Settings
-            </a>
+          <!-- Bio -->
+          <div class="mb-4 text-center text-md-start">
+            <p class="small leading-relaxed" style="color: var(--text-secondary); opacity: 0.85; font-style: <?= empty($student['bio']) ? 'italic' : 'normal' ?>;">
+              <?= !empty($student['bio']) ? nl2br(htmlspecialchars($student['bio'])) : 'No bio added yet. Click \'Edit Profile\' to add one.' ?>
+            </p>
           </div>
         </div>
 
-        <!-- SECOND ROW: USERNAME -> STUDENT ID -> EMAIL -> PHONE NUMBER -> LOCATION -->
-        <div class="d-flex flex-wrap gap-3 small mb-3" style="color: var(--text-secondary);">
-          <div><i class="fa-solid fa-user text-primary me-1"></i> @<?= !empty($student['username']) ? htmlspecialchars($student['username']) : 'Not Provided' ?></div>
-          <div><i class="fa-solid fa-id-card text-primary me-1"></i> <?= !empty($student['student_code']) ? htmlspecialchars($student['student_code']) : 'Not Provided' ?></div>
-          <div><i class="fa-solid fa-envelope text-primary me-1"></i> <?= !empty($student['email']) ? htmlspecialchars($student['email']) : 'Not Provided' ?></div>
-          <div><i class="fa-solid fa-phone text-primary me-1"></i> <?= !empty($student['phone']) ? htmlspecialchars($student['phone']) : '<span style="color: var(--text-muted);">Not Provided</span>' ?></div>
-          <div><i class="fa-solid fa-location-dot text-primary me-1"></i> <?= !empty($student['city_location']) ? htmlspecialchars($student['city_location']) : '<span style="color: var(--text-muted);">Not Provided</span>' ?></div>
-        </div>
-
-        <!-- THIRD ROW: BIO PARAGRAPH -->
-        <p class="small mb-3 leading-relaxed max-w-700" style="color: var(--text-secondary);">
-          <?= !empty($student['bio']) ? htmlspecialchars($student['bio']) : '<span class="fst-italic opacity-75">No bio provided yet. Click "Edit Profile" to add a bio.</span>' ?>
-        </p>
-
-        <!-- FOURTH ROW: PROFILE COMPLETION STATUS BAR -->
-        <div class="max-w-500">
-          <div class="d-flex justify-content-between small fw-semibold mb-1" style="color: var(--text-secondary);">
+        <!-- Profile Completion Status -->
+        <div class="profile-completion-wrapper mt-auto pt-3 border-top" style="border-color: var(--border) !important;">
+          <div class="d-flex justify-content-between align-items-center small fw-semibold mb-2" style="color: var(--text-secondary);">
             <span>Profile Completion Status</span>
             <span class="text-primary fw-bold"><?= $completionPct ?>%</span>
           </div>
-          <div class="progress rounded-pill" style="height: 6px; background: var(--bg-muted);">
-            <div class="progress-bar rounded-pill bg-primary" style="width: <?= $completionPct ?>%;"></div>
+          <div class="progress rounded-pill shadow-sm" style="height: 10px; background: var(--bg-muted); overflow: hidden;">
+            <div class="progress-bar rounded-pill gradient-progress-bar" style="width: <?= $completionPct ?>%;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT COLUMN -->
+      <div class="col-lg-8 col-md-7 col-12 ps-lg-4 mt-md-0 mt-4">
+        <div class="h-100 d-flex flex-column justify-content-between">
+          <div>
+            <h5 class="fw-bold mb-3 text-primary" style="font-size: 1.05rem;">
+              <i class="fa-solid fa-address-card text-primary me-2"></i>Profile Information
+            </h5>
+            
+            <div class="row g-3">
+              <!-- Student ID -->
+              <div class="col-md-6 col-12">
+                <div class="info-item-card">
+                  <div class="info-item-icon">
+                    <i class="fa-solid fa-id-card"></i>
+                  </div>
+                  <div>
+                    <div class="info-item-label">Student ID</div>
+                    <div class="info-item-value"><?= !empty($student['student_code']) ? htmlspecialchars($student['student_code']) : 'Not Provided' ?></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- College Name -->
+              <div class="col-md-6 col-12">
+                <div class="info-item-card">
+                  <div class="info-item-icon">
+                    <i class="fa-solid fa-school"></i>
+                  </div>
+                  <div>
+                    <div class="info-item-label">College Name</div>
+                    <div class="info-item-value"><?= !empty($student['college_name']) ? htmlspecialchars($student['college_name']) : 'Not Provided' ?></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Department -->
+              <div class="col-md-6 col-12">
+                <div class="info-item-card">
+                  <div class="info-item-icon">
+                    <i class="fa-solid fa-graduation-cap"></i>
+                  </div>
+                  <div>
+                    <div class="info-item-label">Department</div>
+                    <div class="info-item-value"><?= !empty($student['department']) ? htmlspecialchars($student['department']) : 'Not Provided' ?></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Joined Date -->
+              <div class="col-md-6 col-12">
+                <div class="info-item-card">
+                  <div class="info-item-icon">
+                    <i class="fa-solid fa-calendar-days"></i>
+                  </div>
+                  <div>
+                    <div class="info-item-label">Joined Date</div>
+                    <div class="info-item-value"><?= !empty($student['user_created']) ? date('M d, Y', strtotime($student['user_created'])) : 'Not Provided' ?></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Email Address -->
+              <div class="col-md-6 col-12">
+                <div class="info-item-card">
+                  <div class="info-item-icon">
+                    <i class="fa-solid fa-envelope"></i>
+                  </div>
+                  <div class="text-truncate" style="max-width: calc(100% - 50px);">
+                    <div class="info-item-label">Email Address</div>
+                    <div class="info-item-value text-truncate" title="<?= htmlspecialchars($student['email'] ?? '') ?>"><?= !empty($student['email']) ? htmlspecialchars($student['email']) : 'Not Provided' ?></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Mobile Number -->
+              <div class="col-md-6 col-12">
+                <div class="info-item-card">
+                  <div class="info-item-icon">
+                    <i class="fa-solid fa-mobile-screen-button"></i>
+                  </div>
+                  <div>
+                    <div class="info-item-label">Mobile Number</div>
+                    <div class="info-item-value"><?= !empty($student['phone']) ? htmlspecialchars($student['phone']) : 'Not Provided' ?></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Location -->
+              <div class="col-md-6 col-12">
+                <div class="info-item-card">
+                  <div class="info-item-icon">
+                    <i class="fa-solid fa-location-dot"></i>
+                  </div>
+                  <div>
+                    <div class="info-item-label">Location</div>
+                    <div class="info-item-value"><?= !empty($student['city_location']) ? htmlspecialchars($student['city_location']) : 'Not Provided' ?></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Empty spacer to keep layout grid balanced on desktop -->
+              <div class="col-md-6 d-none d-md-block">
+                <div class="info-item-card border-0 bg-transparent opacity-0" style="pointer-events: none;">
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -512,7 +723,14 @@ include __DIR__ . '/../includes/header.php';
         <div class="modal-body pt-3">
           <div class="mb-3">
             <label class="form-label small fw-semibold text-muted">UPLOAD PROFILE PICTURE</label>
-            <input type="file" name="avatar_file" class="form-control rounded-3" accept="image/jpeg,image/png,image/webp">
+            <input type="file" name="avatar_file" id="avatar_file" class="form-control rounded-3" accept="image/jpeg,image/png,image/webp">
+            <div id="avatar-file-name" class="text-secondary small mt-1" style="font-size: 11px;">
+              <?php if (!empty($student['avatar']) && $student['avatar'] !== 'default-avatar.png'): ?>
+                <?= htmlspecialchars($student['avatar']) ?>
+              <?php else: ?>
+                No file selected
+              <?php endif; ?>
+            </div>
             <div class="text-muted" style="font-size: 11px; margin-top: 4px;">Accepted formats: JPG, PNG, WebP (Max size: 5MB)</div>
           </div>
 
@@ -534,6 +752,11 @@ include __DIR__ . '/../includes/header.php';
           </div>
 
           <div class="mb-3">
+            <label class="form-label small fw-semibold text-muted">COLLEGE NAME</label>
+            <input type="text" name="college_name" class="form-control rounded-3" value="<?= htmlspecialchars($student['college_name'] ?? '') ?>" placeholder="e.g. SkillBridge University">
+          </div>
+
+          <div class="mb-3">
             <label class="form-label small fw-semibold text-muted">DEPARTMENT</label>
             <select name="department" class="form-select rounded-3">
               <option value="Computer Science" <?= ($student['department'] ?? '') === 'Computer Science' ? 'selected' : '' ?>>Computer Science</option>
@@ -545,8 +768,8 @@ include __DIR__ . '/../includes/header.php';
 
           <div class="row g-3 mb-3">
             <div class="col-6">
-              <label class="form-label small fw-semibold text-muted">PHONE NUMBER</label>
-              <input type="text" name="phone" class="form-control rounded-3" value="<?= htmlspecialchars($student['phone'] ?? '') ?>" placeholder="e.g. 9876543210">
+              <label class="form-label small fw-semibold text-muted">MOBILE NUMBER</label>
+              <input type="text" name="phone" id="phone" class="form-control rounded-3" value="<?= htmlspecialchars($student['phone'] ?? '') ?>" placeholder="e.g. 9876543210" maxlength="10" inputmode="numeric" pattern="[0-9]{10}">
             </div>
             <div class="col-6">
               <label class="form-label small fw-semibold text-muted">LOCATION</label>
@@ -568,5 +791,60 @@ include __DIR__ . '/../includes/header.php';
     </div>
   </div>
 </div>
+
+<script>
+window.initProfile = function() {
+  const avatarInput = document.getElementById('avatar_file');
+  const avatarFileName = document.getElementById('avatar-file-name');
+  
+  if (avatarInput && avatarFileName) {
+    avatarInput.addEventListener('change', function() {
+      if (this.files && this.files.length > 0) {
+        avatarFileName.textContent = this.files[0].name;
+      } else {
+        avatarFileName.textContent = <?= json_encode(!empty($student['avatar']) && $student['avatar'] !== 'default-avatar.png' ? $student['avatar'] : 'No file selected') ?>;
+      }
+    });
+  }
+
+  const phoneInput = document.getElementById('phone');
+  if (phoneInput) {
+    phoneInput.addEventListener('input', function() {
+      // Remove any non-numeric character
+      this.value = this.value.replace(/[^0-9]/g, '');
+      
+      // Limit to exactly 10 digits
+      if (this.value.length > 10) {
+        this.value = this.value.slice(0, 10);
+      }
+      
+      // Set custom validation message if length > 0 and != 10
+      if (this.value.length > 0 && this.value.length < 10) {
+        this.setCustomValidity('Mobile number must contain exactly 10 digits.');
+      } else {
+        this.setCustomValidity('');
+      }
+    });
+
+    const form = phoneInput.closest('form');
+    if (form) {
+      form.addEventListener('submit', function(e) {
+        const val = phoneInput.value.trim();
+        if (val.length > 0 && val.length < 10) {
+          e.preventDefault();
+          phoneInput.setCustomValidity('Mobile number must contain exactly 10 digits.');
+          phoneInput.reportValidity();
+        }
+      });
+    }
+  }
+};
+
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+  window.initProfile();
+} else {
+  document.addEventListener('DOMContentLoaded', window.initProfile);
+}
+</script>
 
 <?php include __DIR__ . '/../includes/footer.php'; ?>

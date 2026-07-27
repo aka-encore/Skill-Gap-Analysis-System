@@ -22,18 +22,425 @@ include __DIR__ . '/../includes/header.php';
 
 <div class="dash-content">
   <!-- HERO SEARCH BANNER -->
-  <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 mb-4 text-white position-relative overflow-hidden" style="background: linear-gradient(135deg, #021024 0%, #26658C 100%);">
-    <div class="position-relative z-1 max-w-700">
-      <span class="badge bg-white-subtle text-white border border-white-subtle rounded-pill px-3 py-1.5 mb-2 small fw-semibold">
-        <i class="fa-solid fa-life-ring me-1"></i> SkillBridge Knowledge Base
-      </span>
-      <h2 class="fw-bold display-6 mb-2">How can we help you today, <?= $studentName ?>?</h2>
-      <p class="text-white-50 mb-4">Search guides, assessment rules, roadmap workflows, and frequently asked questions.</p>
-      
-      <div class="position-relative">
-        <i class="fa-solid fa-magnifying-glass position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></i>
-        <input type="text" id="helpSearchInput" class="form-control form-control-lg rounded-pill ps-5 pe-4 bg-white border-0 shadow" 
-               placeholder="Search topics (e.g. assessments, skill percentage, roadmap, leaderboard)..." onkeyup="filterHelpTopics()">
+  <style>
+  /* Custom Hero Styles */
+  .help-hero-card {
+      border-radius: 28px !important;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.4s ease;
+      animation: hero-fade-in 0.8s ease-out;
+  }
+
+  .help-hero-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      pointer-events: none;
+  }
+
+  @keyframes hero-fade-in {
+      from {
+          opacity: 0;
+          transform: translateY(15px);
+      }
+      to {
+          opacity: 1;
+          transform: translateY(0);
+      }
+  }
+
+  /* Light Theme overrides */
+  [data-theme="light"] .help-hero-card {
+      background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 50%, #eff6ff 100%);
+      border: 1px solid rgba(255, 255, 255, 0.6) !important;
+      box-shadow: 0 20px 40px rgba(37, 99, 235, 0.06);
+  }
+  [data-theme="light"] .help-hero-card::before {
+      background: rgba(255, 255, 255, 0.35);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+  }
+  [data-theme="light"] .hero-title {
+      color: #0f172a;
+  }
+  [data-theme="light"] .student-name-highlight {
+      background: linear-gradient(to right, #2563eb, #0891b2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+  }
+  [data-theme="light"] .hero-subtitle {
+      color: #475569;
+  }
+  [data-theme="light"] .hero-badge {
+      background: rgba(37, 99, 235, 0.06);
+      color: #2563eb;
+      border: 1px solid rgba(37, 99, 235, 0.12);
+  }
+
+  /* Dark Theme overrides */
+  [data-theme="dark"] .help-hero-card {
+      background: linear-gradient(135deg, #020617 0%, #0f172a 50%, #1e1b4b 100%);
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  }
+  [data-theme="dark"] .help-hero-card::before {
+      background: rgba(15, 23, 42, 0.35);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+  }
+  [data-theme="dark"] .hero-title {
+      color: #f8fafc;
+  }
+  [data-theme="dark"] .student-name-highlight {
+      background: linear-gradient(to right, #60a5fa, #22d3ee);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+  }
+  [data-theme="dark"] .hero-subtitle {
+      color: #94a3b8;
+  }
+  [data-theme="dark"] .hero-badge {
+      background: rgba(255, 255, 255, 0.06);
+      color: #e2e8f0;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  /* Floating background blobs */
+  .hero-blob {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(60px);
+      opacity: 0.25;
+      z-index: 1;
+      pointer-events: none;
+      animation: blob-float 15s infinite alternate ease-in-out;
+  }
+  [data-theme="light"] .hero-blob {
+      opacity: 0.35;
+  }
+  .blob-1 {
+      width: 250px;
+      height: 250px;
+      background: radial-gradient(circle, #3b82f6 0%, rgba(59, 130, 246, 0) 70%);
+      top: -50px;
+      left: -50px;
+      animation-delay: 0s;
+  }
+  .blob-2 {
+      width: 300px;
+      height: 300px;
+      background: radial-gradient(circle, #06b6d4 0%, rgba(6, 182, 212, 0) 70%);
+      bottom: -80px;
+      right: 15%;
+      animation-delay: 3s;
+  }
+  .blob-3 {
+      width: 200px;
+      height: 200px;
+      background: radial-gradient(circle, #6366f1 0%, rgba(99, 102, 241, 0) 70%);
+      top: 10%;
+      right: 40%;
+      animation-delay: 6s;
+  }
+
+  @keyframes blob-float {
+      0% {
+          transform: translate(0, 0) scale(1);
+      }
+      50% {
+          transform: translate(30px, -20px) scale(1.1);
+      }
+      100% {
+          transform: translate(-20px, 40px) scale(0.9);
+      }
+  }
+
+  /* Badge Styling */
+  .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px !important;
+      font-size: 0.8rem !important;
+      font-weight: 600;
+      border-radius: 100px;
+      transition: all 0.3s ease;
+  }
+  .hero-badge:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1);
+  }
+
+  /* Spacing and typography */
+  .hero-title {
+      font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+      font-size: 2.5rem;
+      line-height: 1.25;
+      letter-spacing: -0.02em;
+  }
+  .hero-subtitle {
+      font-size: 1.05rem;
+      line-height: 1.6;
+      max-width: 580px;
+  }
+
+  /* Premium Search Box */
+  .hero-search-wrapper {
+      max-width: 600px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.03);
+      border-radius: 100px;
+      transition: all 0.3s ease;
+  }
+  [data-theme="dark"] .hero-search-wrapper {
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  }
+  .hero-search-wrapper:hover {
+      box-shadow: 0 12px 30px rgba(37, 99, 235, 0.08);
+  }
+  .hero-search-input {
+      height: 58px;
+      padding-left: 56px !important;
+      padding-right: 90px !important;
+      border-radius: 100px !important;
+      font-size: 0.95rem !important;
+      font-weight: 500;
+      background: rgba(255, 255, 255, 0.8) !important;
+      border: 1px solid rgba(37, 99, 235, 0.15) !important;
+      color: #1e293b !important;
+      transition: all 0.3s ease !important;
+  }
+  [data-theme="dark"] .hero-search-input {
+      background: rgba(15, 23, 42, 0.6) !important;
+      border: 1px solid rgba(255, 255, 255, 0.1) !important;
+      color: #f1f5f9 !important;
+  }
+  .hero-search-input::placeholder {
+      color: #64748b !important;
+      font-weight: 400;
+  }
+  [data-theme="dark"] .hero-search-input::placeholder {
+      color: #475569 !important;
+  }
+  .hero-search-input:focus {
+      background: #ffffff !important;
+      border-color: #3b82f6 !important;
+      box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15) !important;
+  }
+  [data-theme="dark"] .hero-search-input:focus {
+      background: #0f172a !important;
+      border-color: #06b6d4 !important;
+      box-shadow: 0 0 0 4px rgba(6, 182, 212, 0.15) !important;
+  }
+  .search-icon {
+      position: absolute;
+      top: 50%;
+      left: 22px;
+      transform: translateY(-50%);
+      font-size: 1.15rem;
+      color: #64748b;
+      z-index: 10;
+      pointer-events: none;
+      transition: color 0.3s ease;
+  }
+  .hero-search-input:focus + .search-icon,
+  .hero-search-wrapper:hover .search-icon {
+      color: #3b82f6;
+  }
+  [data-theme="dark"] .hero-search-input:focus + .search-icon,
+  [data-theme="dark"] .hero-search-wrapper:hover .search-icon {
+      color: #06b6d4;
+  }
+
+  /* Keyboard Shortcut Badge */
+  .search-kbd-shortcut {
+      position: absolute;
+      top: 50%;
+      right: 16px;
+      transform: translateY(-50%);
+      background: rgba(0, 0, 0, 0.05);
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      color: #64748b;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 6px 12px;
+      border-radius: 8px;
+      pointer-events: none;
+      font-family: system-ui, -apple-system, sans-serif;
+      z-index: 10;
+      transition: all 0.3s ease;
+  }
+  [data-theme="dark"] .search-kbd-shortcut {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #94a3b8;
+  }
+  .hero-search-input:focus ~ .search-kbd-shortcut {
+      opacity: 0;
+      transform: translateY(-50%) scale(0.9);
+  }
+
+  /* Illustration / Floating Shapes container */
+  .illustration-container {
+      width: 320px;
+      height: 320px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+  }
+  .illustration-glow {
+      position: absolute;
+      width: 220px;
+      height: 220px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(59, 130, 246, 0.25) 0%, rgba(6, 182, 212, 0) 70%);
+      filter: blur(20px);
+      z-index: 1;
+  }
+  [data-theme="dark"] .illustration-glow {
+      background: radial-gradient(circle, rgba(6, 182, 212, 0.35) 0%, rgba(99, 102, 241, 0) 70%);
+  }
+
+  .floating-element {
+      position: absolute;
+      width: 58px;
+      height: 58px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      color: #2563eb;
+      z-index: 2;
+      transform: translate(var(--x), var(--y));
+      animation: shape-float 5s infinite ease-in-out;
+      animation-delay: var(--delay);
+  }
+  [data-theme="light"] .floating-element {
+      background: rgba(255, 255, 255, 0.65);
+      border: 1px solid rgba(255, 255, 255, 0.8);
+      box-shadow: 0 10px 25px rgba(37, 99, 235, 0.08);
+  }
+  [data-theme="dark"] .floating-element {
+      background: rgba(30, 41, 59, 0.45);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+      color: #22d3ee;
+  }
+
+  /* Shapes customized behavior */
+  .shape-chat {
+      width: 68px;
+      height: 68px;
+      font-size: 1.75rem;
+  }
+  .shape-search {
+      width: 50px;
+      height: 50px;
+      font-size: 1.25rem;
+      background: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%) !important;
+      color: #ffffff !important;
+      border: none !important;
+  }
+
+  @keyframes shape-float {
+      0% {
+          transform: translate(var(--x), var(--y));
+      }
+      50% {
+          transform: translate(var(--x), calc(var(--y) - 15px));
+      }
+      100% {
+          transform: translate(var(--x), var(--y));
+      }
+  }
+
+  /* Responsive adjustment for illustration */
+  @media (max-width: 1199.98px) {
+      .illustration-container {
+          transform: scale(0.85);
+      }
+  }
+  @media (max-width: 991.98px) {
+      .illustration-container {
+          transform: scale(0.75);
+          margin: 20px auto 0;
+      }
+      .hero-title {
+          font-size: 2.25rem;
+      }
+  }
+  @media (max-width: 575.98px) {
+      .illustration-container {
+          transform: scale(0.65);
+          margin: 15px auto 0;
+      }
+      .hero-title {
+          font-size: 1.85rem;
+      }
+      .hero-search-input {
+          height: 54px;
+          padding-left: 48px !important;
+      }
+      .search-icon {
+          left: 18px;
+      }
+  }
+  </style>
+
+  <div class="card border-0 help-hero-card mb-4 position-relative overflow-hidden">
+    <!-- Glowing Animated Blobs -->
+    <div class="hero-blob blob-1"></div>
+    <div class="hero-blob blob-2"></div>
+    <div class="hero-blob blob-3"></div>
+
+    <div class="position-relative z-3 p-4 p-md-5">
+      <div class="row align-items-center">
+        <!-- Left Column: Content & Search -->
+        <div class="col-lg-7 col-md-12">
+          <span class="badge hero-badge mb-3">
+            📘 SkillBridge Knowledge Base
+          </span>
+          <h2 class="fw-bold hero-title mb-3">How can we help you today, <span class="student-name-highlight"><?= $studentName ?></span>?</h2>
+          <p class="hero-subtitle mb-4">Search guides, assessment rules, roadmap workflows, and frequently asked questions.</p>
+          
+          <div class="position-relative hero-search-wrapper">
+            <i class="fa-solid fa-magnifying-glass search-icon"></i>
+            <input type="text" id="helpSearchInput" class="form-control hero-search-input" 
+                   placeholder="Search topics (e.g. assessments, skill percentage, roadmap, leaderboard)..." onkeyup="filterHelpTopics()">
+            <span class="search-kbd-shortcut">Ctrl K</span>
+          </div>
+        </div>
+        
+        <!-- Right Column: Illustration (Desktop/Tablet and stacks on Mobile) -->
+        <div class="col-lg-5 col-md-12 d-flex justify-content-center position-relative mt-4 mt-lg-0">
+          <div class="illustration-container">
+            <div class="floating-element shape-chat" style="--delay: 0s; --x: -70px; --y: -50px;">
+              <i class="fa-solid fa-comments"></i>
+            </div>
+            <div class="floating-element shape-question" style="--delay: 1.5s; --x: 65px; --y: -80px;">
+              <i class="fa-solid fa-question"></i>
+            </div>
+            <div class="floating-element shape-book" style="--delay: 0.8s; --x: -85px; --y: 65px;">
+              <i class="fa-solid fa-book-open"></i>
+            </div>
+            <div class="floating-element shape-cap" style="--delay: 2.2s; --x: 85px; --y: 45px;">
+              <i class="fa-solid fa-graduation-cap"></i>
+            </div>
+            <div class="floating-element shape-search" style="--delay: 3s; --x: 0px; --y: 10px;">
+              <i class="fa-solid fa-magnifying-glass"></i>
+            </div>
+            <!-- Radial Core Glow behind icons -->
+            <div class="illustration-glow"></div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -276,6 +683,16 @@ function filterFAQ(cat) {
             item.style.display = 'none';
         }
     });
+}
+
+window.initHelp = function() {
+    console.log("Help Center initialized");
+};
+
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    window.initHelp();
+} else {
+    document.addEventListener('DOMContentLoaded', window.initHelp);
 }
 </script>
 

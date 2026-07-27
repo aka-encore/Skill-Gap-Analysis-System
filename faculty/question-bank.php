@@ -15,7 +15,13 @@ $db = Database::getInstance();
 
 $assessmentId = (int)($_GET['assessment_id'] ?? $_POST['assessment_id'] ?? 0);
 
-$assessmentsList = $db->fetchAll("SELECT * FROM assessments WHERE created_by_faculty_id = ? ORDER BY title ASC", [$facultyId]);
+// Fetch ALL assessments for dropdown (Shared Academic Repository)
+$assessmentsList = $db->fetchAll(
+    "SELECT a.*, f.first_name as creator_first, f.last_name as creator_last 
+     FROM assessments a 
+     LEFT JOIN faculty f ON a.created_by_faculty_id = f.id 
+     ORDER BY a.title ASC"
+);
 
 // Default to first assessment if not specified
 if ($assessmentId === 0 && !empty($assessmentsList)) {
@@ -23,17 +29,30 @@ if ($assessmentId === 0 && !empty($assessmentsList)) {
 }
 
 $currentAssessment = null;
+$isAssessmentOwner = false;
 if ($assessmentId > 0) {
-    $currentAssessment = $db->fetch("SELECT a.*, s.name as skill_name FROM assessments a JOIN skills s ON a.skill_id = s.id WHERE a.id = ?", [$assessmentId]);
+    $currentAssessment = $db->fetch(
+        "SELECT a.*, s.name as skill_name, f.first_name as creator_first, f.last_name as creator_last 
+         FROM assessments a 
+         JOIN skills s ON a.skill_id = s.id 
+         LEFT JOIN faculty f ON a.created_by_faculty_id = f.id 
+         WHERE a.id = ?", 
+        [$assessmentId]
+    );
+    if ($currentAssessment) {
+        $isAssessmentOwner = ((int)$currentAssessment['created_by_faculty_id'] === (int)$facultyId);
+    }
 }
 
 $error = '';
 $success = '';
 
-// Question Actions: Add / Edit / Delete
+// Question Actions: Add / Edit / Delete (Ownership Enforced)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type'])) {
     if (!verify_csrf_token()) {
         $error = 'Invalid security token.';
+    } elseif (!$isAssessmentOwner) {
+        $error = 'Unauthorized: You can only add, edit, or delete questions for assessments that you created.';
     } else {
         $action = $_POST['action_type'];
         $qId = (int)($_POST['question_id'] ?? 0);
@@ -97,12 +116,18 @@ include __DIR__ . '/../includes/header.php';
 <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
     <div>
         <h3 class="fw-bold mb-1 text-dark"><i class="bi bi-question-circle text-primary me-2"></i>Question Bank Builder</h3>
-        <p class="text-muted small mb-0">Create multiple choice questions and specify correct answers</p>
+        <p class="text-muted small mb-0">Shared Question Repository — Browse all questions; edit items for your created assessments</p>
     </div>
     <?php if ($currentAssessment): ?>
-        <button class="btn btn-primary rounded-pill px-4 shadow-sm fw-semibold" data-bs-toggle="modal" data-bs-target="#questionModal" onclick="resetQuestionForm()">
-            <i class="bi bi-plus-circle me-1"></i> Add Question
-        </button>
+        <?php if ($isAssessmentOwner): ?>
+            <button class="btn btn-primary rounded-pill px-4 shadow-sm fw-semibold" data-bs-toggle="modal" data-bs-target="#questionModal" onclick="resetQuestionForm()">
+                <i class="bi bi-plus-circle me-1"></i> Add Question
+            </button>
+        <?php else: ?>
+            <span class="badge bg-light text-secondary border px-3 py-2 fs-6">
+                <i class="bi bi-lock me-1 text-warning"></i> Read-Only (Prof. <?= htmlspecialchars(trim(($currentAssessment['creator_first'] ?? '') . ' ' . ($currentAssessment['creator_last'] ?? '')) ?: 'Faculty') ?>)
+            </span>
+        <?php endif; ?>
     <?php endif; ?>
 </div>
 
@@ -124,9 +149,13 @@ include __DIR__ . '/../includes/header.php';
                     <?php if (empty($assessmentsList)): ?>
                         <option value="">-- No Assessments Created Yet --</option>
                     <?php else: ?>
-                        <?php foreach ($assessmentsList as $a): ?>
+                        <?php foreach ($assessmentsList as $a): 
+                            $isOwner = ((int)$a['created_by_faculty_id'] === (int)$facultyId);
+                            $creatorName = trim(($a['creator_first'] ?? '') . ' ' . ($a['creator_last'] ?? ''));
+                            if (empty($creatorName)) $creatorName = 'Faculty';
+                        ?>
                             <option value="<?= $a['id'] ?>" <?= $assessmentId == $a['id'] ? 'selected' : '' ?>>
-                                <?= htmlspecialchars($a['title']) ?>
+                                <?= htmlspecialchars($a['title']) ?> <?= $isOwner ? ' (Mine)' : ' (Prof. ' . htmlspecialchars($creatorName) . ')' ?>
                             </option>
                         <?php endforeach; ?>
                     <?php endif; ?>
@@ -181,7 +210,9 @@ include __DIR__ . '/../includes/header.php';
                                         <div class="saas-empty-icon"><i class="bi bi-patch-question"></i></div>
                                         <h6 class="fw-bold text-dark mb-1">No questions added yet</h6>
                                         <p class="text-muted small mb-3">Click "Add Question" button to start building question items.</p>
-                                        <button class="btn btn-sm btn-primary rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#questionModal" onclick="resetQuestionForm()">Add Question</button>
+                                        <?php if ($isAssessmentOwner): ?>
+                                            <button class="btn btn-sm btn-primary rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#questionModal" onclick="resetQuestionForm()">Add Question</button>
+                                        <?php endif; ?>
                                     </div>
                                 </td>
                             </tr>
@@ -204,18 +235,24 @@ include __DIR__ . '/../includes/header.php';
                                     </td>
                                     <td><span class="fw-bold text-dark"><?= $q['marks'] ?></span></td>
                                     <td class="pe-4 text-end">
-                                        <button class="btn btn-outline-warning btn-sm rounded-circle me-1" onclick='editQuestion(<?= json_encode($q) ?>)'>
-                                            <i class="bi bi-pencil"></i>
-                                        </button>
-                                        <form action="<?= BASE_URL ?>faculty/question-bank.php" method="POST" class="d-inline" onsubmit="return confirm('Delete this question?')">
-                                            <?= csrf_field() ?>
-                                            <input type="hidden" name="assessment_id" value="<?= $assessmentId ?>">
-                                            <input type="hidden" name="action_type" value="delete">
-                                            <input type="hidden" name="question_id" value="<?= $q['id'] ?>">
-                                            <button type="submit" class="btn btn-outline-danger btn-sm rounded-circle">
-                                                <i class="bi bi-trash"></i>
+                                        <?php if ($isAssessmentOwner): ?>
+                                            <button class="btn btn-outline-warning btn-sm rounded-circle me-1" title="Edit Question" onclick='editQuestion(<?= json_encode($q) ?>)'>
+                                                <i class="bi bi-pencil"></i>
                                             </button>
-                                        </form>
+                                            <form action="<?= BASE_URL ?>faculty/question-bank.php" method="POST" class="d-inline" onsubmit="return confirm('Delete this question?')">
+                                                <?= csrf_field() ?>
+                                                <input type="hidden" name="assessment_id" value="<?= $assessmentId ?>">
+                                                <input type="hidden" name="action_type" value="delete">
+                                                <input type="hidden" name="question_id" value="<?= $q['id'] ?>">
+                                                <button type="submit" class="btn btn-outline-danger btn-sm rounded-circle" title="Delete Question">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </form>
+                                        <?php else: ?>
+                                            <span class="badge bg-light text-muted border py-1.5 px-2.5">
+                                                <i class="bi bi-lock me-1 text-warning"></i> Read-Only
+                                            </span>
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>

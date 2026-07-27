@@ -14,9 +14,14 @@ $facultyId = $_SESSION['profile_id'];
 $assessmentId = (int)($_GET['id'] ?? 0);
 $db = Database::getInstance();
 
-$assessment = $db->fetch("SELECT * FROM assessments WHERE id = ? AND created_by_faculty_id = ?", [$assessmentId, $facultyId]);
+$assessment = $db->fetch("SELECT * FROM assessments WHERE id = ?", [$assessmentId]);
 if (!$assessment) {
     set_flash_message('danger', 'Assessment not found.');
+    redirect(BASE_URL . 'faculty/assessments.php');
+}
+
+if ((int)$assessment['created_by_faculty_id'] !== (int)$facultyId) {
+    set_flash_message('danger', 'Unauthorized: You can only edit assessments that you created.');
     redirect(BASE_URL . 'faculty/assessments.php');
 }
 

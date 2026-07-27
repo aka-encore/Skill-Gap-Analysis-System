@@ -1,3 +1,4 @@
+
 <?php
 /**
  * SkillBridge - System Activity Logs Audit Viewer
@@ -52,19 +53,19 @@ include __DIR__ . '/../includes/header.php';
     </div>
 </div>
 
-<div class="card border-0 shadow-sm rounded-4">
+<div class="audit-card">
     <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table table-hover table-custom align-middle mb-0">
+            <table class="audit-table align-middle">
                 <thead>
                     <tr>
-                        <th class="ps-4">Log ID</th>
-                        <th>User</th>
-                        <th>Role</th>
-                        <th>Action</th>
-                        <th>Log Details</th>
-                        <th>IP Address</th>
-                        <th class="pe-4 text-end">Timestamp</th>
+                        <th class="ps-4">LOG ID</th>
+                        <th>USER</th>
+                        <th>ROLE</th>
+                        <th>ACTION</th>
+                        <th>DESCRIPTION</th>
+                        <th>IP ADDRESS</th>
+                        <th class="pe-4 text-end">TIMESTAMP</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -75,13 +76,13 @@ include __DIR__ . '/../includes/header.php';
                     <?php else: ?>
                         <?php foreach ($logs as $l): ?>
                             <tr>
-                                <td class="ps-4 font-monospace small">#<?= $l['id'] ?></td>
-                                <td class="fw-semibold text-dark"><?= htmlspecialchars($l['username'] ?? 'Guest / System') ?></td>
-                                <td><span class="badge bg-secondary"><?= strtoupper($l['role'] ?? 'SYSTEM') ?></span></td>
-                                <td><span class="badge bg-light text-dark border"><?= htmlspecialchars($l['action']) ?></span></td>
-                                <td class="small text-muted"><?= htmlspecialchars($l['description']) ?></td>
-                                <td class="small font-monospace text-muted"><?= htmlspecialchars($l['ip_address']) ?></td>
-                                <td class="pe-4 text-end small text-muted"><?= format_date($l['created_at']) ?></td>
+                                <td class="ps-4 font-monospace opacity-75 small">#<?= $l['id'] ?></td>
+                                <td class="fw-semibold"><?= htmlspecialchars($l['username'] ?? 'Guest / System') ?></td>
+                                <td><span class="badge <?= get_role_badge_class($l['role'] ?? 'SYSTEM') ?>"><?= strtoupper($l['role'] ?? 'SYSTEM') ?></span></td>
+                                <td><span class="badge <?= get_action_badge_class($l['action']) ?>"><?= htmlspecialchars($l['action']) ?></span></td>
+                                <td><?= htmlspecialchars($l['description']) ?></td>
+                                <td class="font-monospace opacity-75"><?= htmlspecialchars($l['ip_address']) ?></td>
+                                <td class="pe-4 text-end opacity-75"><?= format_date($l['created_at']) ?></td>
                             </tr>
                         <?php endforeach; ?>
                     <?php endif; ?>

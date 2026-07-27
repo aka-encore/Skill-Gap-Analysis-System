@@ -123,7 +123,7 @@ include __DIR__ . '/../includes/header.php';
         <div class="saas-stat-card danger-card h-100" style="cursor:pointer;" onclick="window.location.href='<?= BASE_URL ?>admin/assessments.php'">
             <div class="stat-card-header">
                 <span class="stat-card-title">Tests</span>
-                <div class="stat-icon-saas primary-gradient">
+                <div class="stat-icon-saas danger-gradient">
                     <i class="bi bi-journal-check"></i>
                 </div>
             </div>
@@ -214,14 +214,14 @@ include __DIR__ . '/../includes/header.php';
 <!-- Activity Audit Trail -->
 <div class="row">
     <div class="col-12">
-        <div class="card border-0 shadow-sm rounded-4">
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
             <div class="card-header bg-white border-0 py-3 px-4 d-flex justify-content-between align-items-center">
-                <h5 class="fw-bold mb-0"><i class="bi bi-journal-text me-2 text-info"></i>System Audit Activity Trail</h5>
+                <h5 class="fw-bold mb-0" style="color: var(--text-heading);"><i class="bi bi-journal-text me-2 text-info"></i>System Audit Activity Trail</h5>
                 <a href="<?= BASE_URL ?>admin/activity-logs.php" class="btn btn-light btn-sm rounded-pill text-primary">View Full Logs</a>
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table class="table table-hover table-custom align-middle mb-0">
+                    <table class="saas-table align-middle mb-0">
                         <thead>
                             <tr>
                                 <th class="ps-4">User</th>
@@ -235,12 +235,12 @@ include __DIR__ . '/../includes/header.php';
                         <tbody>
                             <?php foreach ($recentLogs as $log): ?>
                                 <tr>
-                                    <td class="ps-4 fw-semibold text-dark"><?= htmlspecialchars($log['username'] ?? 'System') ?></td>
-                                    <td><span class="badge bg-secondary"><?= strtoupper($log['role'] ?? 'SYSTEM') ?></span></td>
-                                    <td><span class="badge bg-light text-dark border"><?= htmlspecialchars($log['action']) ?></span></td>
-                                    <td class="small text-muted"><?= htmlspecialchars($log['description']) ?></td>
-                                    <td class="small font-monospace text-muted"><?= htmlspecialchars($log['ip_address']) ?></td>
-                                    <td class="pe-4 text-end small text-muted"><?= format_date($log['created_at']) ?></td>
+                                    <td class="ps-4 fw-semibold" style="color: var(--text-heading);"><?= htmlspecialchars($log['username'] ?? 'System') ?></td>
+                                    <td><span class="badge <?= get_role_badge_class($log['role'] ?? 'SYSTEM') ?>"><?= strtoupper($log['role'] ?? 'SYSTEM') ?></span></td>
+                                    <td><span class="badge <?= get_action_badge_class($log['action']) ?>"><?= htmlspecialchars($log['action']) ?></span></td>
+                                    <td style="color: var(--text-body);"><?= htmlspecialchars($log['description']) ?></td>
+                                    <td class="font-monospace small" style="color: var(--text-muted);"><?= htmlspecialchars($log['ip_address']) ?></td>
+                                    <td class="pe-4 text-end small" style="color: var(--text-muted);"><?= format_date($log['created_at']) ?></td>
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>
@@ -251,10 +251,19 @@ include __DIR__ . '/../includes/header.php';
     </div>
 </div>
 
-<script src="<?= BASE_URL ?>assets/js/charts-config.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    new Chart(document.getElementById('userRatioCanvas'), {
+window.initAdminDashboard = function() {
+    if (typeof _chartReady === 'function' && !_chartReady()) return;
+    const ctx = document.getElementById('userRatioCanvas');
+    if (!ctx) return;
+
+    if (typeof _destroyExistingChart === 'function') {
+        _destroyExistingChart(ctx);
+    } else {
+        try { const ec = Chart.getChart(ctx); if (ec) ec.destroy(); } catch(e) {}
+    }
+
+    new Chart(ctx, {
         type: 'doughnut',
         data: {
             labels: ['Students', 'Faculty', 'Admins'],
@@ -269,7 +278,8 @@ document.addEventListener('DOMContentLoaded', function() {
             plugins: { legend: { position: 'bottom' } }
         }
     });
-});
+};
+// Handled by app.js runPageSpecificInitializer()
 </script>
 
 <?php include __DIR__ . '/../includes/footer.php'; ?>

@@ -120,109 +120,163 @@ include __DIR__ . '/../includes/header.php';
 ?>
 
 <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
-    <div>
-        <h3 class="fw-bold mb-1"><i class="fa-solid fa-user-clock text-primary me-2"></i>Faculty Registration Applications</h3>
-        <p class="text-muted small mb-0">Review, approve, and manage faculty registration requests across institutions</p>
+    <div class="d-flex align-items-center gap-3">
+        <div class="d-flex align-items-center justify-content-center rounded-3 flex-shrink-0" style="width: 48px; height: 48px; background: rgba(139, 92, 246, 0.15); border: 1px solid rgba(139, 92, 246, 0.3); color: #a78bfa; font-size: 1.5rem;">
+            <i class="bi bi-file-earmark-text"></i>
+        </div>
+        <div>
+            <h3 class="fw-bold mb-0" style="color: var(--text-heading);">Faculty Applications</h3>
+            <p class="text-muted small mb-0">Review, approve, and manage faculty registration requests across institutions</p>
+        </div>
     </div>
+    <a href="<?= BASE_URL ?>admin/faculty-applications.php?export=csv" class="btn btn-primary rounded-3 px-3 py-2 shadow-sm small fw-semibold" style="background: #6366f1; border-color: #6366f1;">
+        <i class="bi bi-box-arrow-up-right me-1.5"></i> Export Applications
+    </a>
 </div>
 
 <?php if (!empty($error)): ?>
-    <div class="alert alert-danger py-2 px-3 small border-0 mb-4 shadow-xs"><?= $error ?></div>
+    <div class="alert alert-danger py-2.5 px-3 small border-0 rounded-3 mb-4 shadow-xs"><i class="bi bi-exclamation-triangle me-1"></i> <?= $error ?></div>
 <?php endif; ?>
 
 <?php if (!empty($success)): ?>
-    <div class="alert alert-success py-2 px-3 small border-0 mb-4 shadow-xs"><?= $success ?></div>
+    <div class="alert alert-success py-2.5 px-3 small border-0 rounded-3 mb-4 shadow-xs"><i class="bi bi-check-circle me-1"></i> <?= $success ?></div>
 <?php endif; ?>
 
-<!-- Summary Metrics Row -->
-<div class="row g-3 mb-4">
-    <div class="col-6 col-md-3">
-        <div class="card border-0 shadow-sm rounded-4 text-center p-3">
-            <span class="text-muted small d-block mb-1 fw-semibold">Total Applications</span>
-            <h3 class="fw-bold text-dark mb-0"><?= $totalApps ?></h3>
+<!-- Summary Metrics Row (SaaS Card Grid System) -->
+<div class="stats-grid-saas mb-4">
+    <!-- Card 1: Total Applications -->
+    <div class="saas-stat-card primary-card">
+        <div class="stat-card-header">
+            <span class="stat-card-title">Total Applications</span>
+            <div class="stat-icon-saas primary-gradient">
+                <i class="bi bi-people"></i>
+            </div>
+        </div>
+        <div class="stat-card-body">
+            <div class="stat-card-value"><?= $totalApps ?></div>
+        </div>
+        <div class="stat-card-footer">
+            <span class="badge rounded-pill" style="background: rgba(139, 92, 246, 0.15); color: #a78bfa; border: 1px solid rgba(139, 92, 246, 0.3); font-weight: 600; padding: 4px 10px; font-size: 0.75rem;">
+                <i class="bi bi-file-person me-1"></i> Submitted Requests
+            </span>
         </div>
     </div>
-    <div class="col-6 col-md-3">
-        <div class="card border-0 shadow-sm rounded-4 text-center p-3 border-start border-warning border-4">
-            <span class="text-muted small d-block mb-1 fw-semibold">Pending Review</span>
-            <h3 class="fw-bold text-warning mb-0"><?= $pendingApps ?></h3>
+
+    <!-- Card 2: Pending Review -->
+    <div class="saas-stat-card accent-card">
+        <div class="stat-card-header">
+            <span class="stat-card-title">Pending Review</span>
+            <div class="stat-icon-saas accent-gradient">
+                <i class="bi bi-clock-history"></i>
+            </div>
+        </div>
+        <div class="stat-card-body">
+            <div class="stat-card-value"><?= $pendingApps ?></div>
+        </div>
+        <div class="stat-card-footer">
+            <span class="badge rounded-pill" style="background: rgba(99, 102, 241, 0.15); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.3); font-weight: 600; padding: 4px 10px; font-size: 0.75rem;">
+                <i class="bi bi-hourglass-split me-1"></i> Awaiting Approval
+            </span>
         </div>
     </div>
-    <div class="col-6 col-md-3">
-        <div class="card border-0 shadow-sm rounded-4 text-center p-3 border-start border-success border-4">
-            <span class="text-muted small d-block mb-1 fw-semibold">Approved</span>
-            <h3 class="fw-bold text-success mb-0"><?= $approvedApps ?></h3>
+
+    <!-- Card 3: Approved -->
+    <div class="saas-stat-card success-card">
+        <div class="stat-card-header">
+            <span class="stat-card-title">Approved</span>
+            <div class="stat-icon-saas success-gradient">
+                <i class="bi bi-check-circle"></i>
+            </div>
+        </div>
+        <div class="stat-card-body">
+            <div class="stat-card-value"><?= $approvedApps ?></div>
+        </div>
+        <div class="stat-card-footer">
+            <span class="badge rounded-pill" style="background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3); font-weight: 600; padding: 4px 10px; font-size: 0.75rem;">
+                <i class="bi bi-person-check me-1"></i> Active Faculty
+            </span>
         </div>
     </div>
-    <div class="col-6 col-md-3">
-        <div class="card border-0 shadow-sm rounded-4 text-center p-3 border-start border-danger border-4">
-            <span class="text-muted small d-block mb-1 fw-semibold">Rejected</span>
-            <h3 class="fw-bold text-danger mb-0"><?= $rejectedApps ?></h3>
+
+    <!-- Card 4: Rejected -->
+    <div class="saas-stat-card danger-card">
+        <div class="stat-card-header">
+            <span class="stat-card-title">Rejected</span>
+            <div class="stat-icon-saas danger-gradient">
+                <i class="bi bi-x-circle"></i>
+            </div>
+        </div>
+        <div class="stat-card-body">
+            <div class="stat-card-value"><?= $rejectedApps ?></div>
+        </div>
+        <div class="stat-card-footer">
+            <span class="badge rounded-pill" style="background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); font-weight: 600; padding: 4px 10px; font-size: 0.75rem;">
+                <i class="bi bi-slash-circle me-1"></i> Declined Requests
+            </span>
         </div>
     </div>
 </div>
 
-<!-- Search & Filter Controls -->
-<div class="card border-0 shadow-sm rounded-4 mb-4">
+<!-- Search & Filter Controls Card -->
+<div class="saas-card overflow-hidden mb-4">
     <div class="card-body p-3.5">
-        <form action="<?= BASE_URL ?>admin/faculty-applications.php" method="GET" class="row g-3 align-items-center">
-            <div class="col-12 col-md-4">
-                <div class="input-group">
-                    <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
-                    <input type="text" name="search" class="form-control border-start-0" placeholder="Search by name, email, college..." value="<?= htmlspecialchars($searchKeyword) ?>">
+        <form action="<?= BASE_URL ?>admin/faculty-applications.php" method="GET" class="d-flex flex-column gap-3">
+            <div class="row g-3">
+                <div class="col-12 col-md-8">
+                    <div class="position-relative">
+                        <i class="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></i>
+                        <input type="text" name="search" class="saas-form-control ps-5 py-2 w-100" placeholder="Search by name, email, college, or employee code..." value="<?= htmlspecialchars($searchKeyword) ?>">
+                    </div>
+                </div>
+                <div class="col-12 col-md-4">
+                    <select name="status" class="saas-form-select py-2" onchange="this.form.submit()">
+                        <option value="all" <?= $statusFilter === 'all' ? 'selected' : '' ?>>All Statuses</option>
+                        <option value="pending" <?= $statusFilter === 'pending' ? 'selected' : '' ?>>Pending Only</option>
+                        <option value="approved" <?= $statusFilter === 'approved' ? 'selected' : '' ?>>Approved Only</option>
+                        <option value="rejected" <?= $statusFilter === 'rejected' ? 'selected' : '' ?>>Rejected Only</option>
+                    </select>
                 </div>
             </div>
-            <div class="col-6 col-md-2.5">
-                <select name="status" class="form-select">
-                    <option value="all" <?= $statusFilter === 'all' ? 'selected' : '' ?>>All Statuses</option>
-                    <option value="pending" <?= $statusFilter === 'pending' ? 'selected' : '' ?>>Pending Only</option>
-                    <option value="approved" <?= $statusFilter === 'approved' ? 'selected' : '' ?>>Approved Only</option>
-                    <option value="rejected" <?= $statusFilter === 'rejected' ? 'selected' : '' ?>>Rejected Only</option>
-                </select>
-            </div>
-            <div class="col-6 col-md-2.5">
-                <select name="department" class="form-select">
-                    <option value="all">All Departments</option>
-                    <?php foreach ($departmentsList as $d): ?>
-                        <option value="<?= htmlspecialchars($d) ?>" <?= $deptFilter === $d ? 'selected' : '' ?>><?= htmlspecialchars($d) ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-            <div class="col-6 col-md-2">
-                <select name="sort" class="form-select">
-                    <option value="newest" <?= $sortOrder === 'DESC' ? 'selected' : '' ?>>Newest First</option>
-                    <option value="oldest" <?= $sortOrder === 'ASC' ? 'selected' : '' ?>>Oldest First</option>
-                </select>
-            </div>
-            <div class="col-6 col-md-1 text-end">
-                <button type="submit" class="btn btn-primary w-100 rounded-3">Filter</button>
+            <div class="row g-3">
+                <div class="col-6 col-md-4">
+                    <select name="department" class="saas-form-select py-2" onchange="this.form.submit()">
+                        <option value="all">All Departments</option>
+                        <?php foreach ($departmentsList as $d): ?>
+                            <option value="<?= htmlspecialchars($d) ?>" <?= $deptFilter === $d ? 'selected' : '' ?>><?= htmlspecialchars($d) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="col-6 col-md-3">
+                    <select name="sort" class="saas-form-select py-2" onchange="this.form.submit()">
+                        <option value="newest" <?= $sortOrder === 'DESC' ? 'selected' : '' ?>>Newest First</option>
+                        <option value="oldest" <?= $sortOrder === 'ASC' ? 'selected' : '' ?>>Oldest First</option>
+                    </select>
+                </div>
             </div>
         </form>
     </div>
 </div>
 
 <!-- Applications Data Table -->
-<div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+<div class="saas-card overflow-hidden">
     <div class="card-body p-0">
         <?php if (empty($applications)): ?>
-            <div class="text-center py-5">
-                <i class="bi bi-inbox fs-1 text-muted d-block mb-2"></i>
-                <p class="text-secondary mb-0">No faculty applications matching the criteria.</p>
+            <div class="saas-empty-state py-5">
+                <div class="saas-empty-icon mb-3"><i class="bi bi-inbox"></i></div>
+                <h6 class="fw-bold mb-1" style="color: var(--text-heading);">No applications matching the criteria</h6>
+                <p class="text-muted small mb-0">Try clearing filters or adjusting your search keyword.</p>
             </div>
         <?php else: ?>
             <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0" style="font-size: 0.88rem;">
-                    <thead class="table-light">
+                <table class="saas-table align-middle mb-0">
+                    <thead>
                         <tr>
-                            <th class="ps-4">Faculty Name</th>
-                            <th>Email</th>
-                            <th>Mobile</th>
-                            <th>College Name</th>
-                            <th>Department & Title</th>
-                            <th>Employee ID</th>
-                            <th>Applied Date</th>
-                            <th>Status</th>
-                            <th class="text-end pe-4">Actions</th>
+                            <th class="ps-4">APPLICANT</th>
+                            <th>DEPARTMENT & DESIGNATION</th>
+                            <th>SUBMITTED ON</th>
+                            <th>STATUS</th>
+                            <th>COLLEGE & EMP CODE</th>
+                            <th class="text-end pe-4">ACTIONS</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -230,33 +284,44 @@ include __DIR__ . '/../includes/header.php';
                             <?php 
                                 $status = strtolower($app['approval_status']); 
                                 $statusBadge = match($status) {
-                                    'approved' => '<span class="badge bg-success-subtle text-success rounded-pill px-3 py-1"><i class="bi bi-check-circle me-1"></i> Approved</span>',
-                                    'rejected' => '<span class="badge bg-danger-subtle text-danger rounded-pill px-3 py-1"><i class="bi bi-x-circle me-1"></i> Rejected</span>',
-                                    default    => '<span class="badge bg-warning-subtle text-warning rounded-pill px-3 py-1"><i class="bi bi-clock-history me-1"></i> Pending Review</span>'
+                                    'approved' => '<span class="badge rounded-pill" style="background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.35); font-weight: 600; padding: 5px 14px; font-size: 0.78rem; display: inline-flex; align-items: center; gap: 4px;"><i class="bi bi-check-circle"></i> Approved</span>',
+                                    'rejected' => '<span class="badge rounded-pill" style="background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.35); font-weight: 600; padding: 5px 14px; font-size: 0.78rem; display: inline-flex; align-items: center; gap: 4px;"><i class="bi bi-x-circle"></i> Rejected</span>',
+                                    default    => '<span class="badge rounded-pill" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35); font-weight: 600; padding: 5px 14px; font-size: 0.78rem; display: inline-flex; align-items: center; gap: 4px;"><i class="bi bi-clock"></i> Pending</span>'
                                 };
                                 $fullName = trim($app['first_name'] . ' ' . $app['last_name']);
                                 if (empty($fullName)) $fullName = $app['username'];
+
+                                // Initials for Avatar
+                                $parts = explode(' ', $fullName);
+                                $initials = strtoupper(substr($parts[0] ?? 'A', 0, 1) . substr($parts[1] ?? ($parts[0] ?? 'B'), 0, 1));
                             ?>
                             <tr>
                                 <td class="ps-4">
-                                    <strong class="text-dark d-block"><?= htmlspecialchars($fullName) ?></strong>
-                                    <span class="text-muted small">@<?= htmlspecialchars($app['username']) ?></span>
+                                    <div class="d-flex align-items-center gap-2.5">
+                                        <div class="avatar-initials" style="width: 36px; height: 36px; border-radius: 50%; background: rgba(139, 92, 246, 0.2); color: #c084fc; border: 1px solid rgba(139, 92, 246, 0.35); font-weight: 700; display: flex; align-items: center; justify-content: center; font-size: 0.82rem; flex-shrink: 0;"><?= $initials ?></div>
+                                        <div>
+                                            <strong class="d-block" style="color: var(--text-heading); font-size: 0.9rem;"><?= htmlspecialchars($fullName) ?></strong>
+                                            <span class="text-muted small"><?= htmlspecialchars($app['email']) ?></span>
+                                        </div>
+                                    </div>
                                 </td>
-                                <td class="text-secondary"><?= htmlspecialchars($app['email']) ?></td>
-                                <td class="text-secondary"><?= htmlspecialchars($app['mobile_number'] ?? 'N/A') ?></td>
-                                <td class="fw-semibold text-dark"><?= htmlspecialchars($app['college_name'] ?? 'SkillBridge University') ?></td>
                                 <td>
-                                    <span class="d-block fw-semibold text-dark"><?= htmlspecialchars($app['department']) ?></span>
-                                    <span class="text-muted small"><?= htmlspecialchars($app['designation']) ?></span>
+                                    <span class="d-block fw-semibold" style="color: var(--text-heading);"><?= htmlspecialchars($app['department']) ?></span>
+                                    <span class="badge rounded-pill" style="font-size: 11px; padding: 4px 10px; background: rgba(139, 92, 246, 0.15); color: #c084fc; border: 1px solid rgba(139, 92, 246, 0.3);"><?= htmlspecialchars($app['designation']) ?></span>
                                 </td>
-                                <td><code class="text-primary"><?= htmlspecialchars($app['employee_code']) ?></code></td>
-                                <td class="text-muted small"><?= date('M d, Y', strtotime($app['created_at'])) ?></td>
+                                <td class="small text-muted">
+                                    <i class="bi bi-calendar-event me-1"></i><?= date('M d, Y h:i A', strtotime($app['created_at'])) ?>
+                                </td>
                                 <td><?= $statusBadge ?></td>
+                                <td>
+                                    <span class="d-block fw-semibold text-truncate" style="color: var(--text-heading); max-width: 220px;" title="<?= htmlspecialchars($app['college_name'] ?? 'SkillBridge Institution') ?>"><?= htmlspecialchars($app['college_name'] ?? 'SkillBridge Institution') ?></span>
+                                    <code class="text-primary small" style="color: #60a5fa !important;"><?= htmlspecialchars($app['employee_code']) ?></code>
+                                </td>
                                 <td class="text-end pe-4">
-                                    <div class="d-flex justify-content-end gap-1">
-                                        <button type="button" class="btn btn-outline-secondary btn-xs rounded-pill px-2.5 py-1" 
-                                                onclick='openDetailsModal(<?= json_encode($app) ?>)'>
-                                            <i class="bi bi-eye me-1"></i> Details
+                                    <div class="d-flex justify-content-end gap-1.5 align-items-center">
+                                        <button type="button" class="btn-action-square" 
+                                                onclick='openDetailsModal(<?= json_encode($app) ?>)' title="View Details">
+                                            <i class="bi bi-eye"></i>
                                         </button>
 
                                         <?php if ($status !== 'approved'): ?>
@@ -264,17 +329,21 @@ include __DIR__ . '/../includes/header.php';
                                                 <?= csrf_field() ?>
                                                 <input type="hidden" name="action" value="approve">
                                                 <input type="hidden" name="faculty_id" value="<?= $app['id'] ?>">
-                                                <button type="submit" class="btn btn-success btn-xs rounded-pill px-2.5 py-1">
-                                                    <i class="bi bi-check-lg me-1"></i> Approve
+                                                <button type="submit" class="btn-action-square btn-action-success" title="Approve Application">
+                                                    <i class="bi bi-check-lg"></i>
                                                 </button>
                                             </form>
+                                        <?php else: ?>
+                                            <span class="btn-action-square disabled opacity-50"><i class="bi bi-dash"></i></span>
                                         <?php endif; ?>
 
                                         <?php if ($status !== 'rejected'): ?>
-                                            <button type="button" class="btn btn-danger btn-xs rounded-pill px-2.5 py-1" 
-                                                    onclick="openRejectModal(<?= $app['id'] ?>, '<?= htmlspecialchars(addslashes($fullName)) ?>')">
-                                                <i class="bi bi-x-lg me-1"></i> Reject
+                                            <button type="button" class="btn-action-square btn-action-danger" 
+                                                    onclick="openRejectModal(<?= $app['id'] ?>, '<?= htmlspecialchars(addslashes($fullName)) ?>')" title="Reject Application">
+                                                <i class="bi bi-x-lg"></i>
                                             </button>
+                                        <?php else: ?>
+                                            <span class="btn-action-square disabled opacity-50"><i class="bi bi-dash"></i></span>
                                         <?php endif; ?>
                                     </div>
                                 </td>

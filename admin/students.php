@@ -89,9 +89,14 @@ include __DIR__ . '/../includes/header.php';
         <h3 class="fw-bold mb-1 text-dark"><i class="bi bi-people text-primary me-2"></i>Student Accounts Management</h3>
         <p class="text-muted small mb-0">Create, inspect, update, and manage student accounts</p>
     </div>
-    <button class="btn btn-primary rounded-pill px-4 shadow-sm fw-semibold" data-bs-toggle="modal" data-bs-target="#createStudentModal">
-        <i class="bi bi-person-plus me-1"></i> Add Student Account
-    </button>
+    <div class="d-flex gap-2">
+        <a href="<?= BASE_URL ?>admin/import-export.php?type=students" class="btn btn-outline-primary rounded-pill px-3.5 py-2 shadow-sm small fw-semibold">
+            <i class="bi bi-cloud-arrow-up me-1"></i> Bulk Import / Export
+        </a>
+        <button class="btn btn-primary rounded-pill px-4 shadow-sm fw-semibold" data-bs-toggle="modal" data-bs-target="#createStudentModal">
+            <i class="bi bi-person-plus me-1"></i> Add Student Account
+        </button>
+    </div>
 </div>
 
 <?php if (!empty($error)): ?>

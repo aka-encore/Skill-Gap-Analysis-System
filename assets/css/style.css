@@ -267,7 +267,7 @@ h1, h2, h3, h4, h5, h6, .brand-title {
     display: flex;
     width: 100%;
     min-height: 100vh;
-    overflow-x: hidden;
+    overflow-x: clip;
 }
 
 /* Sidebar Styling */
@@ -1205,7 +1205,7 @@ h1, h2, h3, h4, h5, h6, .brand-title {
 
 .leaderboard-item {
     display: grid;
-    grid-template-columns: 24px 36px 1fr auto auto;
+    grid-template-columns: 48px 36px 1fr auto auto;
     align-items: center;
     gap: 0.75rem;
     padding: 10px 14px;
@@ -1229,7 +1229,18 @@ h1, h2, h3, h4, h5, h6, .brand-title {
     box-shadow: 0 0 15px rgba(38, 101, 140, 0.15);
 }
 
-.lb-rank { font-weight: 700; font-size: 0.875rem; color: #64748B; text-align: center; }
+.lb-rank {
+    font-weight: 700;
+    font-size: 0.875rem;
+    color: #64748B;
+    text-align: center;
+    white-space: nowrap;
+    min-width: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
 .top-1 .lb-rank { color: #F59E0B; }
 .top-2 .lb-rank { color: #94A3B8; }
 .top-3 .lb-rank { color: #EA580C; }
@@ -1932,6 +1943,7 @@ body.dark-mode .role-selector {
 .saas-stat-card.success-card:hover::before { background: linear-gradient(90deg, #10B981, #059669); }
 .saas-stat-card.warning-card:hover::before { background: linear-gradient(90deg, #F59E0B, #D97706); }
 .saas-stat-card.accent-card:hover::before  { background: linear-gradient(90deg, #6366F1, #8B5CF6); }
+.saas-stat-card.danger-card:hover::before  { background: linear-gradient(90deg, #EF4444, #F43F5E); }
 
 .stat-card-header {
     display: flex;
@@ -1986,6 +1998,12 @@ body.dark-mode .role-selector {
     background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(139, 92, 246, 0.15));
     color: #6366F1;
     border: 1px solid rgba(99, 102, 241, 0.15);
+}
+
+.stat-icon-saas.danger-gradient {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.12), rgba(244, 63, 94, 0.15));
+    color: #EF4444;
+    border: 1px solid rgba(239, 68, 68, 0.15);
 }
 
 .stat-card-body {
@@ -2067,6 +2085,12 @@ body.dark-mode .role-selector {
     background: rgba(99, 102, 241, 0.08);
     color: #4F46E5;
     border: 1px solid rgba(99, 102, 241, 0.15);
+}
+
+.stat-card-trend.trend-danger {
+    background: rgba(239, 68, 68, 0.08);
+    color: #EF4444;
+    border: 1px solid rgba(239, 68, 68, 0.15);
 }
 
 /* ── Global Header Search Dropdown ── */
@@ -2884,4 +2908,830 @@ body.dark-mode .role-selector {
 [data-theme="dark"] .badge-lock-overlay {
     color: #E6E4DD !important;
 }
+
+/* ── Admin & System Notification Item Hover Animation ── */
+.notification-card-item {
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), 
+                box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), 
+                background-color 0.25s ease, 
+                border-color 0.25s ease;
+    cursor: pointer;
+    will-change: transform, box-shadow;
+}
+
+.notification-card-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04) !important;
+}
+
+.notification-card-item.notif-unread:hover {
+    background-color: rgba(99, 102, 241, 0.12) !important;
+    border-color: rgba(99, 102, 241, 0.35) !important;
+}
+
+.notification-card-item.notif-read:hover {
+    background-color: #F8FAFC !important;
+    border-color: #CBD5E1 !important;
+}
+
+/* Dark Mode Support for Notification Item Hover */
+[data-theme="dark"] .notification-card-item.notif-unread {
+    background-color: rgba(99, 102, 241, 0.18) !important;
+    border-color: rgba(99, 102, 241, 0.4) !important;
+}
+
+[data-theme="dark"] .notification-card-item.notif-unread:hover {
+    background-color: rgba(99, 102, 241, 0.28) !important;
+    border-color: rgba(99, 102, 241, 0.6) !important;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3) !important;
+}
+
+[data-theme="dark"] .notification-card-item.notif-read {
+    background-color: #1E1B2E !important;
+    border-color: #383347 !important;
+}
+
+[data-theme="dark"] .notification-card-item.notif-read:hover {
+    background-color: #2D293B !important;
+    border-color: #4C465E !important;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* ── Notification Checkbox Fixed Alignment System ── */
+.notif-checkbox-wrapper {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.notif-checkbox-wrapper .form-check-input,
+.notif-checkbox-wrapper input[type="checkbox"] {
+    margin: 0 !important;
+    width: 1.15rem !important;
+    height: 1.15rem !important;
+    cursor: pointer;
+    flex-shrink: 0;
+    vertical-align: middle;
+}
+
+/* ═════════════════════════════════════════════════════════════════════════
+   STUDENT SKILL GAP ANALYSIS - PREMIUM DESIGN SYSTEM MATCHING DASHBOARD
+   ═════════════════════════════════════════════════════════════════════════ */
+
+/* 1. Top Stat KPI Cards Hover & Aesthetics */
+.card-stat-clickable {
+    cursor: pointer;
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+                box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+                border-color 0.25s ease,
+                background-color 0.25s ease !important;
+    user-select: none;
+    border: 1px solid #E2E8F0 !important;
+    background: #FFFFFF;
+}
+
+.card-stat-clickable:hover {
+    transform: translateY(-4px) !important;
+    box-shadow: 0 14px 35px -5px rgba(99, 102, 241, 0.12), 0 8px 10px -6px rgba(15, 23, 42, 0.04) !important;
+    border-color: rgba(99, 102, 241, 0.35) !important;
+}
+
+/* 2. Priority & Missing Skill Clickable Items */
+.clickable-skill-item {
+    cursor: pointer;
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+                box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+                border-color 0.25s ease,
+                background-color 0.25s ease !important;
+    user-select: none;
+    border: 1px solid #E2E8F0;
+    border-radius: 12px;
+}
+
+.clickable-skill-item:hover {
+    transform: translateY(-2.5px) !important;
+    box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.08) !important;
+    border-color: rgba(99, 102, 241, 0.35) !important;
+    background-color: rgba(99, 102, 241, 0.04) !important;
+}
+
+/* 3. Skill Comparison Rows & Progress Bars */
+.skill-cmp-row {
+    padding: 8px 12px;
+    border-radius: 10px;
+    transition: background-color 0.2s ease;
+}
+
+.skill-cmp-row:hover {
+    background-color: #F8FAFC;
+}
+
+/* 4. Glassmorphic Modal Backdrop & Popup Container */
+.modal-backdrop-custom {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.72) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.modal-backdrop-custom.open {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.modal-container-custom {
+    background: #FFFFFF !important;
+    border: 1px solid #E2E8F0 !important;
+    border-radius: 20px !important;
+    max-width: 680px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25) !important;
+    padding: 1.75rem;
+    position: relative;
+    transform: scale(0.92);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.modal-backdrop-custom.open .modal-container-custom {
+    transform: scale(1);
+}
+
+.modal-close-btn-custom {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #F1F5F9;
+    border: 1px solid #E2E8F0;
+    color: #64748B;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+}
+
+.modal-close-btn-custom:hover {
+    background: #EF4444 !important;
+    color: #FFFFFF !important;
+    border-color: #EF4444 !important;
+    transform: rotate(90deg);
+}
+
+.modal-interactive-pill {
+    cursor: pointer;
+    padding: 0.75rem 1rem;
+    background: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    border-radius: 12px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.modal-interactive-pill:hover {
+    border-color: #6366F1 !important;
+    background: rgba(99, 102, 241, 0.08) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.12);
+}
+
+/* 5. Dark Mode Adjustments for Skill Gap Page */
+[data-theme="dark"] .card-stat-clickable {
+    background: #1E1B2E !important;
+    border-color: #383347 !important;
+}
+
+[data-theme="dark"] .card-stat-clickable:hover {
+    background: #252136 !important;
+    border-color: rgba(139, 92, 246, 0.5) !important;
+    box-shadow: 0 14px 35px -5px rgba(0, 0, 0, 0.35) !important;
+}
+
+[data-theme="dark"] .clickable-skill-item {
+    background: #1E1B2E !important;
+    border-color: #383347 !important;
+    color: #F5F5F0 !important;
+}
+
+[data-theme="dark"] .clickable-skill-item:hover {
+    background: #2D293B !important;
+    border-color: rgba(139, 92, 246, 0.5) !important;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3) !important;
+}
+
+[data-theme="dark"] .skill-cmp-row:hover {
+    background-color: #2D293B !important;
+}
+
+[data-theme="dark"] .modal-container-custom {
+    background: #181524 !important;
+    border-color: #383347 !important;
+    color: #F5F5F0 !important;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
+}
+
+[data-theme="dark"] .modal-close-btn-custom {
+    background: #2D293B;
+    border-color: #383347;
+    color: #E6E4DD;
+}
+
+[data-theme="dark"] .modal-interactive-pill {
+    background: #2D293B !important;
+    border-color: #383347 !important;
+}
+
+[data-theme="dark"] .modal-interactive-pill:hover {
+    background: #383347 !important;
+    border-color: #8B5CF6 !important;
+}
+
+/* 6. Custom Scrollbar for Skill Comparison Panel */
+.overflow-y-auto::-webkit-scrollbar {
+    width: 6px;
+}
+.overflow-y-auto::-webkit-scrollbar-track {
+    background: #F1F5F9;
+    border-radius: 10px;
+}
+.overflow-y-auto::-webkit-scrollbar-thumb {
+    background: #CBD5E1;
+    border-radius: 10px;
+}
+.overflow-y-auto::-webkit-scrollbar-thumb:hover {
+    background: #94A3B8;
+}
+
+[data-theme="dark"] .overflow-y-auto::-webkit-scrollbar-track {
+    background: #1E1B2E;
+}
+[data-theme="dark"] .overflow-y-auto::-webkit-scrollbar-thumb {
+    background: #383347;
+}
+[data-theme="dark"] .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+    background: #4C465E;
+}
+
+/* 7. Icon Container Micro-Animations & Progress Bar Pills */
+.card-stat-clickable .rounded-circle {
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.card-stat-clickable:hover .rounded-circle {
+    transform: scale(1.08);
+}
+
+.progress-bar {
+    transition: width 1s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.3s ease;
+    border-radius: 9999px !important;
+}
+
+/* 8. Page Load Entrance Animations */
+@keyframes skillGapFadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.card-stat-clickable, 
+.clickable-skill-item {
+    animation: skillGapFadeInUp 0.4s ease-out backwards;
+}
+
+/* ── Clickable Page Notifications Interaction Styles ── */
+.clickable-notif {
+    cursor: pointer !important;
+}
+
+.clickable-notif:hover {
+    background-color: #F8FAFC !important;
+    border-color: rgba(38, 101, 140, 0.35) !important;
+    transform: translateX(4px);
+    box-shadow: 0 8px 24px rgba(38, 101, 140, 0.08) !important;
+}
+
+[data-theme="dark"] .clickable-notif:hover {
+    background-color: #2D293B !important;
+    border-color: rgba(139, 92, 246, 0.35) !important;
+}
+
+/* ── System Audit Activity Trail UI (Dynamic Theme Variable Inheritance) ── */
+.audit-card {
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 1rem;
+    box-shadow: var(--shadow-sm, 0 4px 12px rgba(0, 0, 0, 0.05));
+    overflow: hidden;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.audit-card-header {
+    background: var(--bg-card) !important;
+    border-bottom: 1px solid var(--border) !important;
+    padding: 1rem 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.audit-table {
+    width: 100%;
+    margin-bottom: 0;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.audit-table th {
+    background: var(--bg-table-head, var(--bg-muted, #f8fafc)) !important;
+    color: var(--text-muted, #64748b) !important;
+    font-size: 0.75rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.05em !important;
+    text-transform: uppercase !important;
+    padding: 12px 16px !important;
+    border-bottom: 1px solid var(--border) !important;
+}
+
+.audit-table td {
+    padding: 14px 16px !important;
+    border-bottom: 1px solid var(--border-light, var(--border)) !important;
+    vertical-align: middle !important;
+    color: var(--text-body) !important;
+    font-size: 0.875rem;
+}
+
+.audit-table tbody tr {
+    transition: background-color 0.15s ease;
+}
+
+.audit-table tbody tr:hover {
+    background: var(--bg-table-row-hover, rgba(38, 101, 140, 0.03)) !important;
+}
+
+/* ── Role Badges (Soft & Dashboard-Consistent) ── */
+.badge-role-admin {
+    background: rgba(99, 102, 241, 0.12) !important;
+    color: #6366f1 !important;
+    border: 1px solid rgba(99, 102, 241, 0.25) !important;
+    border-radius: 9999px !important;
+    padding: 3px 10px !important;
+    font-size: 10.5px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.03em !important;
+    display: inline-block;
+}
+
+.badge-role-faculty {
+    background: rgba(6, 182, 212, 0.12) !important;
+    color: #0891b2 !important;
+    border: 1px solid rgba(6, 182, 212, 0.25) !important;
+    border-radius: 9999px !important;
+    padding: 3px 10px !important;
+    font-size: 10.5px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.03em !important;
+    display: inline-block;
+}
+
+.badge-role-student {
+    background: rgba(16, 185, 129, 0.12) !important;
+    color: #059669 !important;
+    border: 1px solid rgba(16, 185, 129, 0.25) !important;
+    border-radius: 9999px !important;
+    padding: 3px 10px !important;
+    font-size: 10.5px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.03em !important;
+    display: inline-block;
+}
+
+.badge-role-system {
+    background: rgba(148, 163, 184, 0.12) !important;
+    color: var(--text-muted, #64748b) !important;
+    border: 1px solid rgba(148, 163, 184, 0.25) !important;
+    border-radius: 9999px !important;
+    padding: 3px 10px !important;
+    font-size: 10.5px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.03em !important;
+    display: inline-block;
+}
+
+[data-theme="dark"] .badge-role-admin   { color: #818cf8 !important; }
+[data-theme="dark"] .badge-role-faculty { color: #22d3ee !important; }
+[data-theme="dark"] .badge-role-student { color: #34d399 !important; }
+[data-theme="dark"] .badge-role-system  { color: #94a3b8 !important; }
+
+/* ── Action Badges (Soft & Dashboard-Consistent) ── */
+.badge-action-login {
+    background: rgba(59, 130, 246, 0.12) !important;
+    color: #2563eb !important;
+    border: 1px solid rgba(59, 130, 246, 0.25) !important;
+    border-radius: 9999px !important;
+    padding: 3px 10px !important;
+    font-size: 10.5px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.03em !important;
+    display: inline-block;
+}
+
+.badge-action-logout {
+    background: rgba(239, 68, 68, 0.12) !important;
+    color: #dc2626 !important;
+    border: 1px solid rgba(239, 68, 68, 0.25) !important;
+    border-radius: 9999px !important;
+    padding: 3px 10px !important;
+    font-size: 10.5px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.03em !important;
+    display: inline-block;
+}
+
+.badge-action-announcement {
+    background: rgba(168, 85, 247, 0.12) !important;
+    color: #9333ea !important;
+    border: 1px solid rgba(168, 85, 247, 0.25) !important;
+    border-radius: 9999px !important;
+    padding: 3px 10px !important;
+    font-size: 10.5px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.03em !important;
+    display: inline-block;
+}
+
+.badge-action-assessment {
+    background: rgba(245, 158, 11, 0.12) !important;
+    color: #d97706 !important;
+    border: 1px solid rgba(245, 158, 11, 0.25) !important;
+    border-radius: 9999px !important;
+    padding: 3px 10px !important;
+    font-size: 10.5px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.03em !important;
+    display: inline-block;
+}
+
+.badge-action-default {
+    background: rgba(100, 116, 139, 0.12) !important;
+    color: var(--text-muted, #64748b) !important;
+    border: 1px solid rgba(100, 116, 139, 0.25) !important;
+    border-radius: 9999px !important;
+    padding: 3px 10px !important;
+    font-size: 10.5px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.03em !important;
+    display: inline-block;
+}
+
+[data-theme="dark"] .badge-action-login        { color: #60a5fa !important; }
+[data-theme="dark"] .badge-action-logout       { color: #f87171 !important; }
+[data-theme="dark"] .badge-action-announcement { color: #c084fc !important; }
+[data-theme="dark"] .badge-action-assessment   { color: #fbbf24 !important; }
+[data-theme="dark"] .badge-action-default      { color: #94a3b8 !important; }
+
+/* ── SaaS Application Management & Assessment Overview Spec UI ── */
+.app-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.25rem;
+}
+
+.app-stat-card {
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 14px;
+    padding: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 1.15rem;
+    box-shadow: var(--shadow-sm, 0 4px 12px rgba(0, 0, 0, 0.05));
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.app-stat-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(99, 102, 241, 0.35) !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
+}
+
+.app-stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+
+.app-stat-icon.purple {
+    background: rgba(139, 92, 246, 0.15);
+    color: #a78bfa;
+    border: 1px solid rgba(139, 92, 246, 0.35);
+}
+
+.app-stat-icon.blue {
+    background: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+    border: 1px solid rgba(59, 130, 246, 0.35);
+}
+
+.app-stat-icon.green {
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+.app-stat-icon.amber {
+    background: rgba(245, 158, 11, 0.15);
+    color: #fbbf24;
+    border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+.app-stat-icon.red {
+    background: rgba(244, 63, 94, 0.15);
+    color: #fb7185;
+    border: 1px solid rgba(244, 63, 94, 0.35);
+}
+
+.app-stat-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.app-stat-title {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-muted, #94a3b8);
+}
+
+.app-stat-value {
+    font-size: 1.65rem;
+    font-weight: 800;
+    color: var(--text-heading, #ffffff);
+    line-height: 1.15;
+    margin: 2px 0;
+}
+
+.app-stat-subtext {
+    font-size: 0.72rem;
+    color: var(--text-muted, #64748b);
+}
+
+/* ── Avatar Initials Circle ── */
+.avatar-initials {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: rgba(139, 92, 246, 0.18);
+    color: #a78bfa;
+    font-weight: 700;
+    font-size: 0.82rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    flex-shrink: 0;
+}
+
+/* ── Action Square Buttons ── */
+.btn-action-square {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    font-size: 0.9rem;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text-body);
+    transition: all 0.15s ease;
+}
+
+.btn-action-square:hover {
+    background: rgba(99, 102, 241, 0.15);
+    border-color: rgba(99, 102, 241, 0.35);
+    color: #818cf8;
+}
+
+.btn-action-square.btn-action-success {
+    background: rgba(16, 185, 129, 0.15);
+    border-color: rgba(16, 185, 129, 0.35);
+    color: #34d399;
+}
+
+.btn-action-square.btn-action-success:hover {
+    background: rgba(16, 185, 129, 0.3);
+    color: #10b981;
+}
+
+.btn-action-square.btn-action-danger {
+    background: rgba(244, 63, 94, 0.15);
+    border-color: rgba(244, 63, 94, 0.35);
+    color: #fb7185;
+}
+
+.btn-action-square.btn-action-danger:hover {
+    background: rgba(244, 63, 94, 0.3);
+    color: #f43f5e;
+}
+
+/* ================================================================
+   SKILLBRIDGE DARK THEME PRIMARY CTA BUTTON VISIBILITY ENHANCEMENTS
+   Ensures 100% WCAG AA contrast for text and icons on primary action buttons
+   ================================================================ */
+[data-theme="dark"] .btn-primary,
+[data-theme="dark"] .btn-success,
+[data-theme="dark"] .btn-info,
+[data-theme="dark"] .btn-danger,
+[data-theme="dark"] .btn-gradient,
+[data-theme="dark"] .btn-gradient-primary,
+[data-theme="dark"] .btn-gradient-success,
+[data-theme="dark"] .btn-gradient-info,
+[data-theme="dark"] .btn-gradient-dark,
+[data-theme="dark"] .btn.bg-gradient-primary,
+[data-theme="dark"] .btn.bg-gradient-success,
+[data-theme="dark"] .btn.bg-gradient-info,
+[data-theme="dark"] .btn.bg-gradient-dark,
+[data-theme="dark"] .btn-select-role,
+[data-theme="dark"] .btn-cta,
+[data-theme="dark"] a.btn-primary,
+[data-theme="dark"] a.btn-success,
+[data-theme="dark"] a.btn-info,
+[data-theme="dark"] a.btn-danger,
+[data-theme="dark"] button.btn-primary,
+[data-theme="dark"] button.btn-success,
+[data-theme="dark"] button.btn-info,
+[data-theme="dark"] button.btn-danger {
+    color: #FFFFFF !important;
+    font-weight: 650 !important;
+}
+
+[data-theme="dark"] .btn-primary *,
+[data-theme="dark"] .btn-success *,
+[data-theme="dark"] .btn-info *,
+[data-theme="dark"] .btn-danger *,
+[data-theme="dark"] .btn-gradient *,
+[data-theme="dark"] .btn-gradient-primary *,
+[data-theme="dark"] .btn-gradient-success *,
+[data-theme="dark"] .btn-gradient-info *,
+[data-theme="dark"] .btn-gradient-dark *,
+[data-theme="dark"] .btn.bg-gradient-primary *,
+[data-theme="dark"] .btn.bg-gradient-success *,
+[data-theme="dark"] .btn.bg-gradient-info *,
+[data-theme="dark"] .btn.bg-gradient-dark *,
+[data-theme="dark"] .btn-select-role *,
+[data-theme="dark"] .btn-cta * {
+    color: #FFFFFF !important;
+    opacity: 1 !important;
+}
+
+[data-theme="dark"] .btn-primary i,
+[data-theme="dark"] .btn-primary .fa-solid,
+[data-theme="dark"] .btn-primary .fa-regular,
+[data-theme="dark"] .btn-primary .fa-brands,
+[data-theme="dark"] .btn-primary .bi,
+[data-theme="dark"] .btn-success i,
+[data-theme="dark"] .btn-success .fa-solid,
+[data-theme="dark"] .btn-success .fa-regular,
+[data-theme="dark"] .btn-success .fa-brands,
+[data-theme="dark"] .btn-success .bi,
+[data-theme="dark"] .btn-info i,
+[data-theme="dark"] .btn-info .fa-solid,
+[data-theme="dark"] .btn-info .fa-regular,
+[data-theme="dark"] .btn-info .fa-brands,
+[data-theme="dark"] .btn-info .bi,
+[data-theme="dark"] .btn-danger i,
+[data-theme="dark"] .btn-danger .fa-solid,
+[data-theme="dark"] .btn-danger .fa-regular,
+[data-theme="dark"] .btn-danger .fa-brands,
+[data-theme="dark"] .btn-danger .bi,
+[data-theme="dark"] .btn.bg-gradient-primary i,
+[data-theme="dark"] .btn.bg-gradient-primary .fa-solid,
+[data-theme="dark"] .btn.bg-gradient-primary .fa-regular,
+[data-theme="dark"] .btn.bg-gradient-primary .bi,
+[data-theme="dark"] .btn.bg-gradient-success i,
+[data-theme="dark"] .btn.bg-gradient-success .fa-solid,
+[data-theme="dark"] .btn.bg-gradient-success .fa-regular,
+[data-theme="dark"] .btn.bg-gradient-success .bi,
+[data-theme="dark"] .btn-select-role i,
+[data-theme="dark"] .btn-cta i {
+    color: #FFFFFF !important;
+    opacity: 1 !important;
+}
+
+/* Hover, Focus, Active States in Dark Theme */
+[data-theme="dark"] .btn-primary:hover,
+[data-theme="dark"] .btn-primary:focus,
+[data-theme="dark"] .btn-primary:active,
+[data-theme="dark"] .btn-success:hover,
+[data-theme="dark"] .btn-success:focus,
+[data-theme="dark"] .btn-success:active,
+[data-theme="dark"] .btn-info:hover,
+[data-theme="dark"] .btn-info:focus,
+[data-theme="dark"] .btn-info:active,
+[data-theme="dark"] .btn-danger:hover,
+[data-theme="dark"] .btn-danger:focus,
+[data-theme="dark"] .btn-danger:active,
+[data-theme="dark"] .btn-gradient:hover,
+[data-theme="dark"] .btn-gradient:focus,
+[data-theme="dark"] .btn-gradient:active,
+[data-theme="dark"] .btn.bg-gradient-primary:hover,
+[data-theme="dark"] .btn.bg-gradient-primary:focus,
+[data-theme="dark"] .btn.bg-gradient-primary:active,
+[data-theme="dark"] .btn.bg-gradient-success:hover,
+[data-theme="dark"] .btn.bg-gradient-success:focus,
+[data-theme="dark"] .btn.bg-gradient-success:active,
+[data-theme="dark"] .btn-select-role:hover,
+[data-theme="dark"] .btn-cta:hover {
+    color: #FFFFFF !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+[data-theme="dark"] .btn-primary:hover *,
+[data-theme="dark"] .btn-primary:focus *,
+[data-theme="dark"] .btn-primary:active *,
+[data-theme="dark"] .btn-success:hover *,
+[data-theme="dark"] .btn-success:focus *,
+[data-theme="dark"] .btn-success:active *,
+[data-theme="dark"] .btn.bg-gradient-primary:hover *,
+[data-theme="dark"] .btn.bg-gradient-primary:focus *,
+[data-theme="dark"] .btn.bg-gradient-primary:active *,
+[data-theme="dark"] .btn.bg-gradient-success:hover *,
+[data-theme="dark"] .btn.bg-gradient-success:focus *,
+[data-theme="dark"] .btn.bg-gradient-success:active * {
+    color: #FFFFFF !important;
+    opacity: 1 !important;
+}
+
+/* Outline Buttons High Contrast on Hover in Dark Theme */
+[data-theme="dark"] .btn-outline-primary {
+    color: #A78BFA !important;
+    border-color: #8B5CF6 !important;
+    font-weight: 600;
+}
+[data-theme="dark"] .btn-outline-primary:hover,
+[data-theme="dark"] .btn-outline-primary:focus,
+[data-theme="dark"] .btn-outline-primary:active {
+    background-color: #8B5CF6 !important;
+    color: #FFFFFF !important;
+    border-color: #8B5CF6 !important;
+}
+[data-theme="dark"] .btn-outline-primary:hover *,
+[data-theme="dark"] .btn-outline-primary:focus *,
+[data-theme="dark"] .btn-outline-primary:active * {
+    color: #FFFFFF !important;
+    opacity: 1 !important;
+}
+
+[data-theme="dark"] .btn-outline-success {
+    color: #34D399 !important;
+    border-color: #10B981 !important;
+    font-weight: 600;
+}
+[data-theme="dark"] .btn-outline-success:hover,
+[data-theme="dark"] .btn-outline-success:focus,
+[data-theme="dark"] .btn-outline-success:active {
+    background-color: #10B981 !important;
+    color: #FFFFFF !important;
+    border-color: #10B981 !important;
+}
+[data-theme="dark"] .btn-outline-success:hover *,
+[data-theme="dark"] .btn-outline-success:focus *,
+[data-theme="dark"] .btn-outline-success:active * {
+    color: #FFFFFF !important;
+    opacity: 1 !important;
+}
+
+
+
+
+
+
+
+
 

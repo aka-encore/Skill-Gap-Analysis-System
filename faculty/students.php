@@ -48,6 +48,9 @@ include __DIR__ . '/../includes/header.php';
         <h3 class="fw-bold mb-1 text-dark"><i class="bi bi-people text-primary me-2"></i>Enrolled Students Roster</h3>
         <p class="text-muted small mb-0">View student profiles, evaluation metrics, and individual skill gap reports</p>
     </div>
+    <a href="<?= BASE_URL ?>faculty/import-export.php" class="btn btn-primary rounded-pill px-4 shadow-sm fw-semibold">
+        <i class="bi bi-cloud-arrow-up me-1"></i> Bulk Import / Export
+    </a>
 </div>
 
 <div class="saas-card mb-4">

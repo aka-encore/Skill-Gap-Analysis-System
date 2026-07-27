@@ -569,7 +569,7 @@ include __DIR__ . '/../includes/header.php';
   </div>
 
   <!-- Card 3: Courses Completed -->
-  <div class="saas-stat-card warning-card" style="cursor:pointer;" onclick="window.location.href='<?= BASE_URL ?>student/recommendations.php#recommended-courses'">
+  <div class="saas-stat-card warning-card" style="cursor:pointer;" onclick="window.location.href='<?= BASE_URL ?>student/courses.php?tab=completed'">
     <div class="stat-card-header">
       <span class="stat-card-title">Courses Completed</span>
       <div class="stat-icon-saas warning-gradient">
@@ -820,6 +820,11 @@ include __DIR__ . '/../includes/header.php';
       closeDashboardModal(modalId);
     }
   }
+
+  window.initDashboard = function() {
+    console.log("Dashboard initialized");
+  };
+  // Handled by app.js runPageSpecificInitializer()
 </script>
 
 <?php include __DIR__ . '/../includes/footer.php'; ?>

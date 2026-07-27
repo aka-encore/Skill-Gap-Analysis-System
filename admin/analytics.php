@@ -65,12 +65,16 @@ include __DIR__ . '/../includes/header.php';
     </div>
 </div>
 
-<script src="<?= BASE_URL ?>assets/js/charts-config.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    renderPassFailDoughnutChart('adminPassFailCanvas', <?= $passCount ?>, <?= $failCount ?>);
-    renderScoreBarChart('adminDeptBarCanvas', <?= json_encode($deptNames) ?>, <?= json_encode($deptScores) ?>);
-});
+window.initAdminAnalytics = function() {
+    if (typeof renderPassFailDoughnutChart === 'function') {
+        renderPassFailDoughnutChart('adminPassFailCanvas', <?= $passCount ?>, <?= $failCount ?>);
+    }
+    if (typeof renderScoreBarChart === 'function') {
+        renderScoreBarChart('adminDeptBarCanvas', <?= json_encode($deptNames) ?>, <?= json_encode($deptScores) ?>);
+    }
+};
+// Handled by app.js runPageSpecificInitializer()
 </script>
 
 <?php include __DIR__ . '/../includes/footer.php'; ?>

@@ -115,15 +115,17 @@ include __DIR__ . '/../includes/header.php';
     </div>
 </div>
 
-<script src="<?= BASE_URL ?>assets/js/charts-config.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    renderScoreBarChart(
-        'classSkillBarCanvas',
-        <?= json_encode($chartLabels) ?>,
-        <?= json_encode($chartAvgScores) ?>
-    );
-});
+window.initFacultySkillGap = function() {
+    if (typeof renderScoreBarChart === 'function') {
+        renderScoreBarChart(
+            'classSkillBarCanvas',
+            <?= json_encode($chartLabels) ?>,
+            <?= json_encode($chartAvgScores) ?>
+        );
+    }
+};
+// Handled by app.js runPageSpecificInitializer()
 </script>
 
 <?php include __DIR__ . '/../includes/footer.php'; ?>

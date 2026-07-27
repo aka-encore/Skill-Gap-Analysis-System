@@ -117,7 +117,23 @@ if (empty($answers)) {
 }
 
 $gapMetrics = calculate_skill_gap((float)$result['score_percentage']);
-$isEligibleForCertificate = ($result['score_percentage'] >= 75.0);
+
+// Check if student has completed the related course (if any active course is mapped to this assessment's skill)
+$relatedCourse = $db->fetch(
+    "SELECT sp.status, sp.progress_percentage 
+     FROM student_progress sp
+     JOIN course_skills cs ON sp.course_id = cs.course_id
+     JOIN assessments a ON cs.skill_id = a.skill_id
+     WHERE a.id = ? AND sp.student_id = ? AND cs.course_id IN (SELECT id FROM courses WHERE status = 'active')",
+    [$result['assessment_id'], $studentId]
+);
+
+$isCourseCompleted = true;
+if ($relatedCourse) {
+    $isCourseCompleted = ($relatedCourse['status'] === 'completed' && (int)$relatedCourse['progress_percentage'] >= 100);
+}
+
+$isEligibleForCertificate = ($result['score_percentage'] >= 75.0) && $isCourseCompleted;
 
 // Format time taken in Mins & Secs
 $timeTakenSeconds = (int)($result['time_taken_seconds'] ?? 0);

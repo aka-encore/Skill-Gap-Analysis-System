@@ -16,7 +16,7 @@ $db = Database::getInstance();
 
 // Fetch all notifications from database ordered newest to oldest
 $notifications = $db->fetchAll(
-    "SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC",
+    "SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC, id DESC",
     [$userId]
 );
 
@@ -111,7 +111,14 @@ include __DIR__ . '/../includes/header.php';
                 default => 'tag-reminder'
             };
         ?>
-            <div class="notif-card <?= $isRead ? '' : 'unread' ?>" id="notif-card-<?= $n['id'] ?>" data-read="<?= $isRead ? '1' : '0' ?>">
+            <?php 
+                $isAnnouncement = ($type === 'announcement');
+                $notifUrl = $isAnnouncement ? '#' : BASE_URL . "api/notifications_action.php?action=open&id={$n['id']}";
+            ?>
+            <div class="notif-card <?= $isRead ? '' : 'unread' ?> <?= !$isAnnouncement ? 'clickable-notif' : '' ?>" 
+                 id="notif-card-<?= $n['id'] ?>" 
+                 data-read="<?= $isRead ? '1' : '0' ?>"
+                 <?= !$isAnnouncement ? 'onclick="window.location.href=\'' . $notifUrl . '\'"' : '' ?>>
                 <div class="notif-card-icon <?= $typeColor ?>">
                     <i class="<?= $iconClass ?>"></i>
                 </div>
@@ -128,7 +135,7 @@ include __DIR__ . '/../includes/header.php';
                         <?php endif; ?>
                     </div>
                 </div>
-                <div class="notif-card-actions">
+                <div class="notif-card-actions" onclick="event.stopPropagation();">
                     <?php if (!$isRead): ?>
                         <button class="notif-action-btn text-success" title="Mark as Read" onclick="markSingleNotifRead(<?= $n['id'] ?>)">
                             <i class="fa-solid fa-check"></i>
@@ -277,6 +284,16 @@ function updateNotifBadgeCounts(unreadCount) {
 
     const unreadTabCount = document.getElementById('count-unread');
     if (unreadTabCount) unreadTabCount.textContent = unreadCount;
+}
+
+window.initNotifications = function() {
+    filterNotifTab('all');
+};
+
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    window.initNotifications();
+} else {
+    document.addEventListener('DOMContentLoaded', window.initNotifications);
 }
 </script>
 

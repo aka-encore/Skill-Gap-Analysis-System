@@ -1,6 +1,7 @@
 <?php
 /**
  * SkillBridge - Faculty Management Dashboard
+ * Shared Academic Repository Permission Model
  */
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../config/database.php';
@@ -14,34 +15,30 @@ $db = Database::getInstance();
 
 $faculty = $db->fetch("SELECT f.*, u.email FROM faculty f JOIN users u ON f.user_id = u.id WHERE f.id = ?", [$facultyId]);
 
-// Faculty Metrics
+// Faculty Metrics (Shared Academic Repository)
 $totalStudents = (int)($db->fetch("SELECT COUNT(*) as cnt FROM students")['cnt'] ?? 0);
-$myAssessmentsCount = (int)($db->fetch("SELECT COUNT(*) as cnt FROM assessments WHERE created_by_faculty_id = ?", [$facultyId])['cnt'] ?? 0);
-$totalSubmissions = (int)($db->fetch("SELECT COUNT(*) as cnt FROM assessment_results ar JOIN assessments a ON ar.assessment_id = a.id WHERE a.created_by_faculty_id = ?", [$facultyId])['cnt'] ?? 0);
+$myAssessmentsCount = (int)($db->fetch("SELECT COUNT(*) as cnt FROM assessments")['cnt'] ?? 0);
+$totalSubmissions = (int)($db->fetch("SELECT COUNT(*) as cnt FROM assessment_results")['cnt'] ?? 0);
 
-$classAvgRow = $db->fetch("SELECT AVG(ar.score_percentage) as avg_score FROM assessment_results ar JOIN assessments a ON ar.assessment_id = a.id WHERE a.created_by_faculty_id = ?", [$facultyId]);
+$classAvgRow = $db->fetch("SELECT AVG(score_percentage) as avg_score FROM assessment_results");
 $classAvgScore = round((float)($classAvgRow['avg_score'] ?? 0), 1);
 
-// Recent Student Submissions for this Faculty
+// Recent Student Submissions (Shared Repository)
 $recentSubmissions = $db->fetchAll(
     "SELECT ar.*, a.title as assessment_title, st.first_name, st.last_name, st.student_code, s.name as skill_name
      FROM assessment_results ar
      JOIN assessments a ON ar.assessment_id = a.id
      JOIN students st ON ar.student_id = st.id
      JOIN skills s ON a.skill_id = s.id
-     WHERE a.created_by_faculty_id = ?
-     ORDER BY ar.completed_at DESC LIMIT 5",
-    [$facultyId]
+     ORDER BY ar.completed_at DESC LIMIT 5"
 );
 
-// Assessment Performance Summary for Chart
+// Assessment Performance Summary for Chart (Shared Repository)
 $assessmentPerf = $db->fetchAll(
     "SELECT a.title, AVG(ar.score_percentage) as avg_score
      FROM assessments a
      LEFT JOIN assessment_results ar ON a.id = ar.assessment_id
-     WHERE a.created_by_faculty_id = ?
-     GROUP BY a.id, a.title LIMIT 6",
-    [$facultyId]
+     GROUP BY a.id, a.title ORDER BY a.created_at DESC LIMIT 6"
 );
 
 $chartTitles = [];
@@ -62,10 +59,10 @@ include __DIR__ . '/../includes/header.php';
             <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 position-relative z-1">
                 <div>
                     <span class="badge bg-white-subtle text-white border border-white-subtle rounded-pill px-3 py-1.5 mb-2 small fw-semibold">
-                        <i class="bi bi-mortarboard-fill me-1"></i> Employee Code: <?= htmlspecialchars($faculty['employee_code']) ?>
+                        <i class="bi bi-mortarboard-fill me-1"></i> Employee Code: <?= htmlspecialchars($faculty['employee_code'] ?? 'FAC-001') ?>
                     </span>
-                    <h2 class="fw-bold mb-1">Welcome back, Prof. <?= htmlspecialchars($faculty['last_name']) ?>! 👋</h2>
-                    <p class="mb-0 text-white-50"><?= htmlspecialchars($faculty['designation']) ?> &bull; Department of <?= htmlspecialchars($faculty['department']) ?></p>
+                    <h2 class="fw-bold mb-1">Welcome back, Prof. <?= htmlspecialchars($faculty['last_name'] ?? 'Faculty') ?>! 👋</h2>
+                    <p class="mb-0 text-white-50"><?= htmlspecialchars($faculty['designation'] ?? 'Faculty') ?> &bull; Department of <?= htmlspecialchars($faculty['department'] ?? 'Academic') ?></p>
                 </div>
                 <div class="d-flex gap-2 flex-wrap">
                     <a href="<?= BASE_URL ?>faculty/assessment-create.php" class="btn btn-light rounded-pill px-4 fw-semibold text-primary">
@@ -100,10 +97,10 @@ include __DIR__ . '/../includes/header.php';
         </div>
     </div>
 
-    <!-- Card 2: My Assessments -->
+    <!-- Card 2: Total Assessments -->
     <div class="saas-stat-card accent-card" style="cursor:pointer;" onclick="window.location.href='<?= BASE_URL ?>faculty/assessments.php'">
         <div class="stat-card-header">
-            <span class="stat-card-title">My Assessments</span>
+            <span class="stat-card-title">Total Assessments</span>
             <div class="stat-icon-saas accent-gradient">
                 <i class="bi bi-journal-plus"></i>
             </div>
@@ -113,7 +110,7 @@ include __DIR__ . '/../includes/header.php';
         </div>
         <div class="stat-card-footer">
             <span class="stat-card-trend trend-accent">
-                <i class="bi bi-clock-history"></i> Active Modules
+                <i class="bi bi-clock-history"></i> Institutional Repository
             </span>
         </div>
     </div>
@@ -165,7 +162,18 @@ include __DIR__ . '/../includes/header.php';
                 <a href="<?= BASE_URL ?>faculty/skill-gap.php" class="btn btn-light btn-sm rounded-pill text-primary">Full Analytics</a>
             </div>
             <div class="card-body p-4" style="min-height: 320px;">
-                <canvas id="facultyBarCanvas"></canvas>
+                <?php if (empty($chartTitles)): ?>
+                    <div class="d-flex flex-column align-items-center justify-content-center h-100 text-center py-4" style="min-height: 280px;">
+                        <div class="saas-empty-icon mb-3"><i class="bi bi-bar-chart"></i></div>
+                        <h6 class="fw-bold text-dark mb-1">No Assessment Data Yet</h6>
+                        <p class="text-muted small mb-3">Create assessments and students must complete them for chart data to appear.</p>
+                        <a href="<?= BASE_URL ?>faculty/assessment-create.php" class="btn btn-sm btn-primary rounded-pill px-3">
+                            <i class="bi bi-plus-circle me-1"></i> Create Assessment
+                        </a>
+                    </div>
+                <?php else: ?>
+                    <canvas id="facultyBarCanvas"></canvas>
+                <?php endif; ?>
             </div>
         </div>
     </div>
@@ -276,15 +284,15 @@ include __DIR__ . '/../includes/header.php';
     </div>
 </div>
 
-<script src="<?= BASE_URL ?>assets/js/charts-config.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    renderScoreBarChart(
-        'facultyBarCanvas',
-        <?= json_encode($chartTitles) ?>,
-        <?= json_encode($chartScores) ?>
-    );
-});
+window.initFacultyDashboard = function() {
+    if (typeof renderScoreBarChart === 'function') {
+        renderScoreBarChart(
+            'facultyBarCanvas',
+            <?= json_encode($chartTitles) ?>,
+            <?= json_encode($chartScores) ?>
+        );
+    }
+};
 </script>
-
 <?php include __DIR__ . '/../includes/footer.php'; ?>

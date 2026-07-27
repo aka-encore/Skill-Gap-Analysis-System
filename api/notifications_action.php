@@ -20,6 +20,25 @@ $action = $_POST['action'] ?? $_GET['action'] ?? '';
 $notifId = (int)($_POST['id'] ?? $_GET['id'] ?? 0);
 
 try {
+    if ($action === 'open' && $notifId > 0) {
+        $notif = $db->fetch("SELECT * FROM notifications WHERE id = ? AND user_id = ?", [$notifId, $userId]);
+        $userRole = strtolower(trim($_SESSION['user_role'] ?? 'student'));
+        if ($notif) {
+            $db->query("UPDATE notifications SET is_read = 1 WHERE id = ? AND user_id = ?", [$notifId, $userId]);
+            $targetUrl = get_notification_redirect_url($notif, $userRole);
+            header("Location: " . $targetUrl);
+            exit;
+        }
+        // Fallback redirection if not found
+        $fallback = match($userRole) {
+            'admin'   => BASE_URL . 'admin/dashboard.php',
+            'faculty' => BASE_URL . 'faculty/dashboard.php',
+            default   => BASE_URL . 'student/dashboard.php'
+        };
+        header("Location: " . $fallback);
+        exit;
+    }
+
     if ($action === 'mark_read' && $notifId > 0) {
         $db->query("UPDATE notifications SET is_read = 1 WHERE id = ? AND user_id = ?", [$notifId, $userId]);
     } elseif ($action === 'delete' && $notifId > 0) {

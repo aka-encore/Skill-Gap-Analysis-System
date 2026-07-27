@@ -85,29 +85,30 @@ $pageTitle = "SkillBridge – Skill Gap Analysis & Learning Management System";
       --card-border: #DCE8F5;
     }
 
-    /* Premium Dark Mode Override */
-    body.dark-mode {
-      --bg-primary: #0D1117;
-      --bg-secondary: #111827;
-      --bg-card: #111827;
-      --bg-card-hover: #1F2937;
-      --primary: #2E6CB7;
-      --primary-light: #5289D0;
-      --primary-dark: #021024;
-      --accent: #F2C14E;
-      --accent-light: rgba(242, 193, 78, 0.15);
-      --success: #22C55E;
-      --warning: #F2C14E;
-      --danger: #EF4444;
-      --info: #2E6CB7;
-      --text-primary: #DDE2E8;
-      --text-secondary: #DDE2E8;
-      --text-muted: #9CA3AF;
-      --border: rgba(221, 226, 232, 0.1);
-      --border-hover: #F2C14E;
-      --glass: rgba(17, 24, 39, 0.85);
-      --glass-strong: rgba(17, 24, 39, 0.98);
-      --card-border: rgba(221, 226, 232, 0.1);
+    /* Premium Dark Mode Override - Unified with Student Dashboard Dark Theme */
+    body.dark-mode,
+    html[data-theme="dark"] body {
+      --bg-primary: #111111;
+      --bg-secondary: #181523;
+      --bg-card: #23202E;
+      --bg-card-hover: #2D293B;
+      --primary: #8B5CF6;
+      --primary-light: rgba(139, 92, 246, 0.18);
+      --primary-dark: #7C3AED;
+      --accent: #10B981;
+      --accent-light: rgba(16, 185, 129, 0.16);
+      --success: #10B981;
+      --warning: #F59E0B;
+      --danger: #9F1239;
+      --info: #38BDF8;
+      --text-primary: #FFFFFF;
+      --text-secondary: #F5F5F0;
+      --text-muted: #E6E4DD;
+      --border: #383347;
+      --border-hover: #8B5CF6;
+      --glass: rgba(35, 32, 46, 0.85);
+      --glass-strong: rgba(35, 32, 46, 0.98);
+      --card-border: #383347;
     }
 
     body {
@@ -269,19 +270,21 @@ $pageTitle = "SkillBridge – Skill Gap Analysis & Learning Management System";
       transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
       text-decoration: none !important;
     }
-    body.dark-mode .btn-saas-primary {
-      background: linear-gradient(135deg, #2E6CB7 0%, #F2C14E 100%) !important;
-      color: #0D1117 !important;
-      box-shadow: 0 8px 20px -4px rgba(242, 193, 78, 0.35), 0 3px 8px rgba(46, 108, 183, 0.2) !important;
+    body.dark-mode .btn-saas-primary,
+    html[data-theme="dark"] .btn-saas-primary {
+      background: linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%) !important;
+      color: #FFFFFF !important;
+      box-shadow: 0 8px 20px -4px rgba(139, 92, 246, 0.4), 0 3px 8px rgba(124, 58, 237, 0.2) !important;
     }
     .btn-saas-primary:hover {
       transform: translateY(-2px) scale(1.01) !important;
       box-shadow: 0 12px 28px -4px rgba(20, 184, 166, 0.5), 0 4px 12px rgba(38, 101, 140, 0.25) !important;
       color: #FFFFFF !important;
     }
-    body.dark-mode .btn-saas-primary:hover {
-      color: #0D1117 !important;
-      box-shadow: 0 12px 28px -4px rgba(242, 193, 78, 0.55) !important;
+    body.dark-mode .btn-saas-primary:hover,
+    html[data-theme="dark"] .btn-saas-primary:hover {
+      color: #FFFFFF !important;
+      box-shadow: 0 12px 28px -4px rgba(139, 92, 246, 0.6) !important;
     }
     .btn-saas-primary:active {
       transform: translateY(0px) scale(0.99) !important;
@@ -307,11 +310,12 @@ $pageTitle = "SkillBridge – Skill Gap Analysis & Learning Management System";
       transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
       text-decoration: none !important;
     }
-    body.dark-mode .btn-saas-secondary {
-      background: rgba(17, 24, 39, 0.75) !important;
+    body.dark-mode .btn-saas-secondary,
+    html[data-theme="dark"] .btn-saas-secondary {
+      background: rgba(45, 41, 59, 0.85) !important;
       color: var(--text-primary) !important;
-      border-color: rgba(221, 226, 232, 0.15) !important;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+      border-color: #383347 !important;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
     }
     .btn-saas-secondary:hover {
       background: var(--bg-card-hover) !important;
@@ -320,10 +324,12 @@ $pageTitle = "SkillBridge – Skill Gap Analysis & Learning Management System";
       transform: translateY(-2px) scale(1.01) !important;
       box-shadow: 0 8px 20px -4px rgba(38, 101, 140, 0.12) !important;
     }
-    body.dark-mode .btn-saas-secondary:hover {
-      border-color: var(--accent) !important;
-      color: var(--accent) !important;
-      box-shadow: 0 8px 20px -4px rgba(242, 193, 78, 0.18) !important;
+    body.dark-mode .btn-saas-secondary:hover,
+    html[data-theme="dark"] .btn-saas-secondary:hover {
+      border-color: #8B5CF6 !important;
+      color: #A78BFA !important;
+      background: #2D293B !important;
+      box-shadow: 0 8px 20px -4px rgba(139, 92, 246, 0.25) !important;
     }
     .btn-saas-secondary:active {
       transform: translateY(0px) scale(0.99) !important;
@@ -376,9 +382,12 @@ $pageTitle = "SkillBridge – Skill Gap Analysis & Learning Management System";
     }
     body.dark-mode .feature-card:hover,
     body.dark-mode .step-card:hover,
-    body.dark-mode .review-card:hover {
-      border-color: var(--accent) !important;
-      box-shadow: 0 10px 30px rgba(242, 193, 78, 0.15) !important;
+    body.dark-mode .review-card:hover,
+    html[data-theme="dark"] .feature-card:hover,
+    html[data-theme="dark"] .step-card:hover,
+    html[data-theme="dark"] .review-card:hover {
+      border-color: #8B5CF6 !important;
+      box-shadow: 0 10px 30px rgba(139, 92, 246, 0.2) !important;
     }
 
     .feature-icon-wrap {
@@ -465,19 +474,21 @@ $pageTitle = "SkillBridge – Skill Gap Analysis & Learning Management System";
       display: inline-flex !important;
       align-items: center !important;
     }
-    body.dark-mode .nav-btn-getstarted {
-      background: linear-gradient(135deg, #2E6CB7 0%, #F2C14E 100%) !important;
-      color: #0D1117 !important;
-      box-shadow: 0 4px 14px rgba(242, 193, 78, 0.3) !important;
+    body.dark-mode .nav-btn-getstarted,
+    html[data-theme="dark"] .nav-btn-getstarted {
+      background: linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%) !important;
+      color: #FFFFFF !important;
+      box-shadow: 0 4px 14px rgba(139, 92, 246, 0.35) !important;
     }
     .nav-btn-getstarted:hover {
       transform: translateY(-2px) scale(1.02) !important;
       box-shadow: 0 6px 18px rgba(20, 184, 166, 0.45) !important;
       color: #FFFFFF !important;
     }
-    body.dark-mode .nav-btn-getstarted:hover {
-      color: #0D1117 !important;
-      box-shadow: 0 6px 18px rgba(242, 193, 78, 0.5) !important;
+    body.dark-mode .nav-btn-getstarted:hover,
+    html[data-theme="dark"] .nav-btn-getstarted:hover {
+      color: #FFFFFF !important;
+      box-shadow: 0 6px 18px rgba(139, 92, 246, 0.55) !important;
     }
 
     /* Footer */
@@ -487,10 +498,11 @@ $pageTitle = "SkillBridge – Skill Gap Analysis & Learning Management System";
       border-top: 1px solid rgba(255, 255, 255, 0.1);
       padding: 4.5rem 0 2.5rem;
     }
-    body.dark-mode .footer {
-      background: #0D1117 !important;
-      color: #CBD5E1 !important;
-      border-top: 1px solid rgba(221, 226, 232, 0.12);
+    body.dark-mode .footer,
+    html[data-theme="dark"] .footer {
+      background: #111111 !important;
+      color: #E6E4DD !important;
+      border-top: 1px solid #383347;
     }
     .footer h5 {
       color: #FFFFFF !important;
@@ -915,12 +927,13 @@ $pageTitle = "SkillBridge – Skill Gap Analysis & Learning Management System";
     });
   });
 
-  // Light / Dark Theme toggle logic with localStorage
+  // Light / Dark Theme toggle logic with localStorage (Unified with Student Dashboard)
   const themeToggleBtn = document.getElementById('themeToggle');
   const savedTheme = localStorage.getItem('skillbridge_theme');
 
   if (savedTheme === 'dark') {
     document.body.classList.add('dark-mode');
+    document.documentElement.setAttribute('data-theme', 'dark');
     if (themeToggleBtn) themeToggleBtn.innerHTML = '<i class="fa-solid fa-sun"></i>';
   }
 
@@ -928,6 +941,7 @@ $pageTitle = "SkillBridge – Skill Gap Analysis & Learning Management System";
     themeToggleBtn.addEventListener('click', function() {
       document.body.classList.toggle('dark-mode');
       const isDark = document.body.classList.contains('dark-mode');
+      document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
       localStorage.setItem('skillbridge_theme', isDark ? 'dark' : 'light');
       this.innerHTML = isDark ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
     });

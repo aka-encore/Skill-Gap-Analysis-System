@@ -106,7 +106,7 @@ $whereSql = "WHERE " . implode(" AND ", $whereClauses);
 $notifications = $db->fetchAll("
     SELECT * FROM notifications 
     {$whereSql} 
-    ORDER BY created_at DESC 
+    ORDER BY created_at DESC, id DESC 
     LIMIT 50
 ", $queryParams);
 

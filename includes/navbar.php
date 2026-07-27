@@ -67,8 +67,11 @@ if (!file_exists(__DIR__ . '/../uploads/avatars/' . $avatar) || empty($avatar)) 
                                 No notifications yet
                             </div>
                         <?php else: ?>
-                            <?php foreach ($notifications as $n): ?>
-                                <a href="<?= htmlspecialchars($n['link'] ?? '#') ?>" class="dropdown-item p-3 border-bottom notification-item <?= $n['is_read'] ? 'read' : 'unread bg-primary-subtle bg-opacity-10' ?>">
+                            <?php foreach ($notifications as $n): 
+                                $isAnnouncement = (($n['type'] ?? '') === 'announcement');
+                                $notifUrl = $isAnnouncement ? htmlspecialchars($n['link'] ?? '#') : (BASE_URL . 'api/notifications_action.php?action=open&id=' . $n['id']);
+                            ?>
+                                <a href="<?= $notifUrl ?>" class="dropdown-item p-3 border-bottom notification-item <?= $n['is_read'] ? 'read' : 'unread bg-primary-subtle bg-opacity-10' ?>">
                                     <div class="d-flex align-items-start gap-2">
                                         <div class="notif-icon rounded-circle bg-primary text-white p-2 d-flex align-items-center justify-content-center flex-shrink-0" style="width:28px; height:28px; font-size:12px;">
                                             <i class="bi bi-bell"></i>
@@ -136,6 +139,480 @@ if (!file_exists(__DIR__ . '/../uploads/avatars/' . $avatar) || empty($avatar)) 
     </div>
 </nav>
 
+<?php
+// ── Global Search: Step 1. Build Complete Master Searchable Page List First ──
+$allSearchablePages = [
+    // --- ADMIN PAGES ---
+    [
+        'title'    => 'Dashboard',
+        'desc'     => 'System administrator control center & metrics',
+        'url'      => BASE_URL . 'admin/dashboard.php',
+        'icon'     => 'fa-gauge-high',
+        'category' => 'Navigation & Modules',
+        'keywords' => 'dashboard admin main control overview metrics',
+        'roles'    => ['admin']
+    ],
+    [
+        'title'    => 'Students',
+        'desc'     => 'Manage student accounts, profiles & data',
+        'url'      => BASE_URL . 'admin/students.php',
+        'icon'     => 'fa-user-graduate',
+        'category' => 'User Management',
+        'keywords' => 'students student management users accounts profiles',
+        'roles'    => ['admin']
+    ],
+    [
+        'title'    => 'Faculty',
+        'desc'     => 'Manage faculty accounts & assignments',
+        'url'      => BASE_URL . 'admin/faculty.php',
+        'icon'     => 'fa-chalkboard-user',
+        'category' => 'User Management',
+        'keywords' => 'faculty teachers instructors management accounts',
+        'roles'    => ['admin']
+    ],
+    [
+        'title'    => 'Faculty Applications',
+        'desc'     => 'Review & approve pending faculty registrations',
+        'url'      => BASE_URL . 'admin/faculty-applications.php',
+        'icon'     => 'fa-user-clock',
+        'category' => 'User Management',
+        'keywords' => 'faculty applications approval registration pending requests',
+        'roles'    => ['admin']
+    ],
+    [
+        'title'    => 'Notifications',
+        'desc'     => 'System alerts, broadcast logs & activity updates',
+        'url'      => BASE_URL . 'admin/notifications.php',
+        'icon'     => 'fa-bell',
+        'category' => 'Communication',
+        'keywords' => 'notifications alerts system updates broadcast activity',
+        'roles'    => ['admin']
+    ],
+    [
+        'title'    => 'Announcements',
+        'desc'     => 'Create & manage global system announcements',
+        'url'      => BASE_URL . 'admin/announcements.php',
+        'icon'     => 'fa-bullhorn',
+        'category' => 'Communication',
+        'keywords' => 'announcements news broadcasts global notices management',
+        'roles'    => ['admin']
+    ],
+    [
+        'title'    => 'Courses',
+        'desc'     => 'Manage courses, subjects & curriculum catalog',
+        'url'      => BASE_URL . 'admin/courses.php',
+        'icon'     => 'fa-book',
+        'category' => 'Curriculum & Content',
+        'keywords' => 'courses course catalog subjects curriculum management',
+        'roles'    => ['admin']
+    ],
+    [
+        'title'    => 'Skills',
+        'desc'     => 'Define skill tags, categories & competencies',
+        'url'      => BASE_URL . 'admin/skills.php',
+        'icon'     => 'fa-lightbulb',
+        'category' => 'Curriculum & Content',
+        'keywords' => 'skills skill tags categories competencies management',
+        'roles'    => ['admin']
+    ],
+    [
+        'title'    => 'Assessments',
+        'desc'     => 'Overview of all skill tests & quiz configurations',
+        'url'      => BASE_URL . 'admin/assessments.php',
+        'icon'     => 'fa-clipboard-list',
+        'category' => 'Assessments',
+        'keywords' => 'assessments tests quizzes overview configurations',
+        'roles'    => ['admin']
+    ],
+    [
+        'title'    => 'Analytics',
+        'desc'     => 'Institutional skill analytics & cohort performance',
+        'url'      => BASE_URL . 'admin/analytics.php',
+        'icon'     => 'fa-chart-line',
+        'category' => 'Reports & System',
+        'keywords' => 'analytics metrics institutional performance cohort',
+        'roles'    => ['admin']
+    ],
+    [
+        'title'    => 'Reports',
+        'desc'     => 'Generate system reports, PDF & CSV exports',
+        'url'      => BASE_URL . 'admin/reports.php',
+        'icon'     => 'fa-file-earmark-pdf',
+        'category' => 'Reports & System',
+        'keywords' => 'reports pdf csv export system reports analytics',
+        'roles'    => ['admin']
+    ],
+    [
+        'title'    => 'Settings',
+        'desc'     => 'System configuration & admin preferences',
+        'url'      => BASE_URL . 'admin/settings.php',
+        'icon'     => 'fa-gear',
+        'category' => 'Reports & System',
+        'keywords' => 'settings configuration preferences admin settings',
+        'roles'    => ['admin']
+    ],
+    [
+        'title'    => 'Profile',
+        'desc'     => 'Administrator profile & account details',
+        'url'      => BASE_URL . 'admin/profile.php',
+        'icon'     => 'fa-user-circle',
+        'category' => 'Account',
+        'keywords' => 'profile account details administrator admin profile',
+        'roles'    => ['admin']
+    ],
+    [
+        'title'    => 'Activity Logs',
+        'desc'     => 'Audit logs & system action history',
+        'url'      => BASE_URL . 'admin/activity-logs.php',
+        'icon'     => 'fa-clock-history',
+        'category' => 'Reports & System',
+        'keywords' => 'activity logs audit history user actions',
+        'roles'    => ['admin']
+    ],
+    [
+        'title'    => 'Database Backup',
+        'desc'     => 'Export & backup database snapshots',
+        'url'      => BASE_URL . 'admin/backup.php',
+        'icon'     => 'fa-database',
+        'category' => 'Reports & System',
+        'keywords' => 'database backup export db snapshots',
+        'roles'    => ['admin']
+    ],
+
+    // --- FACULTY PAGES ---
+    [
+        'title'    => 'Dashboard',
+        'desc'     => 'Faculty overview, class metrics & quiz stats',
+        'url'      => BASE_URL . 'faculty/dashboard.php',
+        'icon'     => 'fa-gauge-high',
+        'category' => 'Navigation & Modules',
+        'keywords' => 'dashboard faculty main overview class metrics',
+        'roles'    => ['faculty']
+    ],
+    [
+        'title'    => 'Students',
+        'desc'     => 'View department students, progress & test scores',
+        'url'      => BASE_URL . 'faculty/students.php',
+        'icon'     => 'fa-users',
+        'category' => 'Student Management',
+        'keywords' => 'students class enrollees progress test scores',
+        'roles'    => ['faculty']
+    ],
+    [
+        'title'    => 'Courses',
+        'desc'     => 'Course assessments, syllabus & skill mapping',
+        'url'      => BASE_URL . 'faculty/assessments.php',
+        'icon'     => 'fa-book-open',
+        'category' => 'Curriculum & Quizzes',
+        'keywords' => 'courses syllabus subjects curriculum mapping',
+        'roles'    => ['faculty']
+    ],
+    [
+        'title'    => 'Lessons',
+        'desc'     => 'Question bank & quiz lesson materials',
+        'url'      => BASE_URL . 'faculty/question-bank.php',
+        'icon'     => 'fa-layer-group',
+        'category' => 'Curriculum & Quizzes',
+        'keywords' => 'lessons study materials questions topic modules',
+        'roles'    => ['faculty']
+    ],
+    [
+        'title'    => 'Assessments',
+        'desc'     => 'Create, edit & manage student skill quizzes',
+        'url'      => BASE_URL . 'faculty/assessments.php',
+        'icon'     => 'fa-clipboard-check',
+        'category' => 'Curriculum & Quizzes',
+        'keywords' => 'assessments tests quizzes create manage edit',
+        'roles'    => ['faculty']
+    ],
+    [
+        'title'    => 'Create Assessment',
+        'desc'     => 'Draft new quiz assessments & questions',
+        'url'      => BASE_URL . 'faculty/assessment-create.php',
+        'icon'     => 'fa-plus-circle',
+        'category' => 'Curriculum & Quizzes',
+        'keywords' => 'create assessment add quiz new test',
+        'roles'    => ['faculty']
+    ],
+    [
+        'title'    => 'Evaluate Submissions',
+        'desc'     => 'Review & evaluate student quiz attempts',
+        'url'      => BASE_URL . 'faculty/evaluate.php',
+        'icon'     => 'fa-check-double',
+        'category' => 'Curriculum & Quizzes',
+        'keywords' => 'evaluate submissions review quiz attempts grading',
+        'roles'    => ['faculty']
+    ],
+    [
+        'title'    => 'Question Bank',
+        'desc'     => 'Manage question repository by topic & skill',
+        'url'      => BASE_URL . 'faculty/question-bank.php',
+        'icon'     => 'fa-question-circle',
+        'category' => 'Curriculum & Quizzes',
+        'keywords' => 'question bank repository mcq questions',
+        'roles'    => ['faculty']
+    ],
+    [
+        'title'    => 'Skill Analytics',
+        'desc'     => 'Department skill gap breakdown & cohort analytics',
+        'url'      => BASE_URL . 'faculty/skill-gap.php',
+        'icon'     => 'fa-chart-pie',
+        'category' => 'Analytics',
+        'keywords' => 'skill analytics department gap breakdown cohort',
+        'roles'    => ['faculty']
+    ],
+    [
+        'title'    => 'Notifications',
+        'desc'     => 'Faculty alerts, system notifications & updates',
+        'url'      => BASE_URL . 'faculty/notifications.php',
+        'icon'     => 'fa-bell',
+        'category' => 'Communication',
+        'keywords' => 'notifications alerts class updates faculty notifications',
+        'roles'    => ['faculty']
+    ],
+    [
+        'title'    => 'Announcements',
+        'desc'     => 'Post class announcements & student notices',
+        'url'      => BASE_URL . 'faculty/announcements.php',
+        'icon'     => 'fa-bullhorn',
+        'category' => 'Communication',
+        'keywords' => 'announcements class notices post announcements',
+        'roles'    => ['faculty']
+    ],
+    [
+        'title'    => 'Feedback',
+        'desc'     => 'Submit feedback & system improvement suggestions',
+        'url'      => BASE_URL . 'faculty/feedback.php',
+        'icon'     => 'fa-comments',
+        'category' => 'Communication',
+        'keywords' => 'feedback suggestions comments support',
+        'roles'    => ['faculty']
+    ],
+    [
+        'title'    => 'Profile',
+        'desc'     => 'Faculty profile, bio & contact information',
+        'url'      => BASE_URL . 'faculty/profile.php',
+        'icon'     => 'fa-user-circle',
+        'category' => 'Account',
+        'keywords' => 'profile account details faculty profile bio',
+        'roles'    => ['faculty']
+    ],
+    [
+        'title'    => 'Settings',
+        'desc'     => 'Account preferences & security settings',
+        'url'      => BASE_URL . 'faculty/profile.php#settings',
+        'icon'     => 'fa-gear',
+        'category' => 'Account',
+        'keywords' => 'settings preferences account faculty settings',
+        'roles'    => ['faculty']
+    ],
+
+    // --- STUDENT PAGES ---
+    [
+        'title'    => 'Dashboard',
+        'desc'     => 'Student overview, skill score, streak & activity',
+        'url'      => BASE_URL . 'student/dashboard.php',
+        'icon'     => 'fa-gauge-high',
+        'category' => 'Navigation & Modules',
+        'keywords' => 'dashboard student main overview score streak',
+        'roles'    => ['student']
+    ],
+    [
+        'title'    => 'Profile',
+        'desc'     => 'Personal profile, email, department & avatar',
+        'url'      => BASE_URL . 'student/profile.php',
+        'icon'     => 'fa-user-circle',
+        'category' => 'Account',
+        'keywords' => 'profile my profile account details student profile',
+        'roles'    => ['student']
+    ],
+    [
+        'title'    => 'My Profile',
+        'desc'     => 'Personal profile, email, department & avatar',
+        'url'      => BASE_URL . 'student/profile.php',
+        'icon'     => 'fa-user-circle',
+        'category' => 'Account',
+        'keywords' => 'my profile account details student profile',
+        'roles'    => ['student']
+    ],
+    [
+        'title'    => 'Courses',
+        'desc'     => 'Course catalog & recommended learning',
+        'url'      => BASE_URL . 'student/courses.php',
+        'icon'     => 'fa-graduation-cap',
+        'category' => 'Learning & Skill Development',
+        'keywords' => 'courses course catalog recommended learning',
+        'roles'    => ['student']
+    ],
+    [
+        'title'    => 'Enrolled Courses',
+        'desc'     => 'View active courses currently enrolled',
+        'url'      => BASE_URL . 'student/courses.php#enrolled-courses',
+        'icon'     => 'fa-book-open',
+        'category' => 'Learning & Skill Development',
+        'keywords' => 'enrolled courses active learning enrolled',
+        'roles'    => ['student']
+    ],
+    [
+        'title'    => 'Completed Courses',
+        'desc'     => 'Courses successfully completed & badges',
+        'url'      => BASE_URL . 'student/courses.php#completed-courses',
+        'icon'     => 'fa-circle-check',
+        'category' => 'Learning & Skill Development',
+        'keywords' => 'completed courses finished passed badges',
+        'roles'    => ['student']
+    ],
+    [
+        'title'    => 'Lessons',
+        'desc'     => 'Interactive lessons, topics & study materials',
+        'url'      => BASE_URL . 'student/courses.php',
+        'icon'     => 'fa-chalkboard-user',
+        'category' => 'Learning & Skill Development',
+        'keywords' => 'lessons topics study materials course lessons',
+        'roles'    => ['student']
+    ],
+    [
+        'title'    => 'Assessments',
+        'desc'     => 'Take skill tests, pending & completed quizzes',
+        'url'      => BASE_URL . 'student/assessments.php',
+        'icon'     => 'fa-clipboard-check',
+        'category' => 'Assessments',
+        'keywords' => 'assessments tests quizzes take tests pending',
+        'roles'    => ['student']
+    ],
+    [
+        'title'    => 'Completed Assessments',
+        'desc'     => 'Score history, passed quizzes & breakdown',
+        'url'      => BASE_URL . 'student/assessments.php#completed-assessments',
+        'icon'     => 'fa-history',
+        'category' => 'Assessments',
+        'keywords' => 'completed assessments test history scores passed',
+        'roles'    => ['student']
+    ],
+    [
+        'title'    => 'Progress',
+        'desc'     => 'Skill growth progress & cohort leaderboard',
+        'url'      => BASE_URL . 'student/progress.php',
+        'icon'     => 'fa-chart-line',
+        'category' => 'Analytics & Pathways',
+        'keywords' => 'progress learning progress leaderboard growth',
+        'roles'    => ['student']
+    ],
+    [
+        'title'    => 'Skill Gap Analysis',
+        'desc'     => 'Radar breakdown, target skill gaps & priorities',
+        'url'      => BASE_URL . 'student/skill-gap.php',
+        'icon'     => 'fa-magnifying-glass-chart',
+        'category' => 'Analytics & Pathways',
+        'keywords' => 'skill gap analysis radar priorities targets',
+        'roles'    => ['student']
+    ],
+    [
+        'title'    => 'Roadmap',
+        'desc'     => 'Step-by-step career pathway & skill milestones',
+        'url'      => BASE_URL . 'student/roadmap.php',
+        'icon'     => 'fa-road',
+        'category' => 'Analytics & Pathways',
+        'keywords' => 'roadmap career pathway milestones learning plan',
+        'roles'    => ['student']
+    ],
+    [
+        'title'    => 'Skill Roadmap',
+        'desc'     => 'Step-by-step career pathway & skill milestones',
+        'url'      => BASE_URL . 'student/roadmap.php',
+        'icon'     => 'fa-road',
+        'category' => 'Analytics & Pathways',
+        'keywords' => 'skill roadmap pathway milestones career',
+        'roles'    => ['student']
+    ],
+    [
+        'title'    => 'Notifications',
+        'desc'     => 'Personal alerts & system notifications',
+        'url'      => BASE_URL . 'student/notification.php',
+        'icon'     => 'fa-bell',
+        'category' => 'Communication',
+        'keywords' => 'notifications alerts personal updates',
+        'roles'    => ['student']
+    ],
+    [
+        'title'    => 'Feedback',
+        'desc'     => 'Submit feedback & platform suggestions',
+        'url'      => BASE_URL . 'student/feedback.php',
+        'icon'     => 'fa-comments',
+        'category' => 'Communication',
+        'keywords' => 'feedback suggestions comments support',
+        'roles'    => ['student']
+    ],
+    [
+        'title'    => 'Settings',
+        'desc'     => 'Change password & notification preferences',
+        'url'      => BASE_URL . 'student/settings.php',
+        'icon'     => 'fa-gear',
+        'category' => 'Account',
+        'keywords' => 'settings password preferences student settings',
+        'roles'    => ['student']
+    ],
+
+    // --- SHARED SYSTEM PAGES (ALL ROLES) ---
+    [
+        'title'    => 'Help & Support',
+        'desc'     => 'Searchable FAQs, guides & platform help',
+        'url'      => BASE_URL . (($_SESSION['user_role'] ?? 'student') === 'faculty' ? 'faculty/help.php' : (($_SESSION['user_role'] ?? 'student') === 'admin' ? 'help.php' : 'student/help.php')),
+        'icon'     => 'fa-life-ring',
+        'category' => 'Support',
+        'keywords' => 'help support documentation guides faqs',
+        'roles'    => ['admin', 'faculty', 'student']
+    ],
+    [
+        'title'    => 'About Us',
+        'desc'     => 'Platform mission & technology details',
+        'url'      => BASE_URL . 'about.php',
+        'icon'     => 'fa-circle-info',
+        'category' => 'Information',
+        'keywords' => 'about us mission info platform details',
+        'roles'    => ['admin', 'faculty', 'student']
+    ],
+    [
+        'title'    => 'Privacy Policy',
+        'desc'     => 'Data security & privacy rights',
+        'url'      => BASE_URL . 'privacy-policy.php',
+        'icon'     => 'fa-shield-lock',
+        'category' => 'Information',
+        'keywords' => 'privacy policy data security protection rights',
+        'roles'    => ['admin', 'faculty', 'student']
+    ],
+    [
+        'title'    => 'Terms of Service',
+        'desc'     => 'Platform terms & acceptable use',
+        'url'      => BASE_URL . 'terms-of-service.php',
+        'icon'     => 'fa-file-text',
+        'category' => 'Information',
+        'keywords' => 'terms of service rules acceptable use legal',
+        'roles'    => ['admin', 'faculty', 'student']
+    ],
+    [
+        'title'    => 'Logout',
+        'desc'     => 'Sign out of your SkillBridge account',
+        'url'      => BASE_URL . 'logout.php',
+        'icon'     => 'fa-box-arrow-right',
+        'category' => 'Account',
+        'keywords' => 'logout sign out exit logoff',
+        'roles'    => ['admin', 'faculty', 'student']
+    ]
+];
+
+// ── Global Search: Step 2. Detect Logged-In User Role ──
+$detectedUserRole = strtolower(trim($_SESSION['user_role'] ?? $_SESSION['role'] ?? 'student'));
+
+// ── Global Search: Step 3. Filter Page List According to Role (Post-Generation) ──
+$authorizedPages = array_values(array_filter($allSearchablePages, function($page) use ($detectedUserRole) {
+    return in_array($detectedUserRole, $page['roles'], true);
+}));
+
+$totalBeforeFilter = count($allSearchablePages);
+$totalAfterFilter  = count($authorizedPages);
+?>
+
 <script>
 function markAllNotificationsRead() {
     fetch('<?= BASE_URL ?>api/mark_notifications_read.php', {
@@ -168,66 +645,13 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!searchInput || !resultsContainer) return;
 
     const baseUrl = '<?= BASE_URL ?>';
+    const userRole = '<?= $detectedUserRole ?>';
+    const totalBefore = <?= $totalBeforeFilter ?>;
+    const totalAfter = <?= $totalAfterFilter ?>;
+    const modulesIndex = <?= json_encode($authorizedPages) ?>;
+    let selectedIndex = -1;
 
-    const userRole = '<?= $_SESSION['user_role'] ?? 'student' ?>';
-    const roleDir = (userRole === 'admin') ? 'admin' : ((userRole === 'faculty') ? 'faculty' : 'student');
-
-    // 1. Full Navigation & Sidebar Modules Index
-    const modulesIndex = [
-        { title: 'Dashboard', desc: 'Overview, skill scores, streak & activity', url: baseUrl + roleDir + '/dashboard.php', icon: 'fa-gauge-high', category: 'Sidebar Modules' },
-        { title: 'My Profile', desc: 'Personal details, email, department & password', url: baseUrl + roleDir + '/profile.php#profile-information', icon: 'fa-user-circle', category: 'Sidebar Modules' },
-        { title: 'Profile', desc: 'Personal details, email, department & password', url: baseUrl + roleDir + '/profile.php#profile-information', icon: 'fa-user-circle', category: 'Sidebar Modules' },
-        { title: 'Assessments', desc: 'Take skill tests, view active & completed quizzes', url: baseUrl + (userRole === 'student' ? 'student/assessments.php' : (userRole === 'faculty' ? 'faculty/assessments.php' : 'admin/assessments.php')), icon: 'fa-clipboard-check', category: 'Sidebar Modules' },
-        { title: 'Completed Assessments', desc: 'View score history and passed quizzes', url: baseUrl + 'student/assessments.php#completed-assessments', icon: 'fa-clipboard-check', category: 'Sidebar Modules' },
-        { title: 'Pending Assessments', desc: 'Active quizzes and skill wizard', url: baseUrl + 'student/assessments.php#pending-assessments', icon: 'fa-clipboard-list', category: 'Sidebar Modules' },
-        { title: 'Assessment History', desc: 'Historical quiz attempts and scores', url: baseUrl + 'student/assessments.php#completed-assessments', icon: 'fa-history', category: 'Sidebar Modules' },
-        { title: 'Notifications', desc: 'Alerts, announcements & activity updates', url: baseUrl + (userRole === 'admin' ? 'admin/notifications.php' : 'student/notification.php#notifications-section'), icon: 'fa-bell', category: 'Sidebar Modules' },
-        { title: 'Skill Gap Analysis', desc: 'Radar charts, target skill gaps & priorities', url: baseUrl + (userRole === 'faculty' ? 'faculty/skill-gap.php' : 'student/skill-gap.php'), icon: 'fa-magnifying-glass-chart', category: 'Sidebar Modules' },
-        { title: 'Courses & Recommendations', desc: 'Tailored learning courses & progress tracking', url: baseUrl + (userRole === 'admin' ? 'admin/courses.php' : 'student/recommendations.php#recommended-courses'), icon: 'fa-graduation-cap', category: 'Sidebar Modules' },
-        { title: 'Courses', desc: 'Tailored learning courses catalog', url: baseUrl + (userRole === 'admin' ? 'admin/courses.php' : 'student/recommendations.php#recommended-courses'), icon: 'fa-book-open', category: 'Sidebar Modules' },
-        { title: 'Skill Roadmap', desc: 'Step-by-step career skill pathway', url: baseUrl + 'student/roadmap.php', icon: 'fa-road', category: 'Sidebar Modules' },
-        { title: 'Learning Progress', desc: 'Completed courses, analytics & leaderboard', url: baseUrl + 'student/progress.php#skill-progress', icon: 'fa-chart-line', category: 'Sidebar Modules' },
-        { title: 'Skill Progress', desc: 'Real-time skill levels & progress tracking', url: baseUrl + 'student/progress.php#skill-progress', icon: 'fa-chart-line', category: 'Sidebar Modules' },
-        { title: 'Achievement', desc: 'View badges, awards, and completed goals', url: baseUrl + 'student/dashboard.php#achievements-section', icon: 'fa-trophy', category: 'Sidebar Modules' },
-        { title: 'Feedback', desc: 'Submit system feedback & feature requests', url: baseUrl + (userRole === 'faculty' ? 'faculty/feedback.php' : 'student/feedback.php#feedback-section'), icon: 'fa-comments', category: 'Sidebar Modules' },
-        { title: 'Reports', desc: 'Institutional analytics & PDF/CSV exports', url: baseUrl + 'admin/reports.php', icon: 'fa-file-earmark-pdf', category: 'Sidebar Modules' },
-        { title: 'Faculty Dashboard', desc: 'Faculty management overview and metrics', url: baseUrl + 'faculty/dashboard.php', icon: 'fa-chalkboard-user', category: 'Sidebar Modules' },
-        { title: 'Admin Dashboard', desc: 'System administrator control center', url: baseUrl + 'admin/dashboard.php', icon: 'fa-shield-lock', category: 'Sidebar Modules' },
-        { title: 'About Us', desc: 'Platform mission, technology stack & details', url: baseUrl + 'about.php', icon: 'fa-circle-info', category: 'Sidebar Modules' },
-        { title: 'Help & Support', desc: 'Searchable FAQs, guides & documentation', url: baseUrl + (userRole === 'faculty' ? 'faculty/help.php' : (userRole === 'admin' ? 'help.php' : 'student/help.php')), icon: 'fa-life-ring', category: 'Sidebar Modules' },
-        { title: 'Settings', desc: 'Account preferences & notification settings', url: baseUrl + (userRole === 'admin' ? 'admin/settings.php' : 'student/settings.php#change-password'), icon: 'fa-gear', category: 'Sidebar Modules' },
-        { title: 'Privacy Policy', desc: 'Data security, protection & user rights', url: baseUrl + 'privacy-policy.php', icon: 'fa-shield-lock', category: 'Sidebar Modules' },
-        { title: 'Terms of Service', desc: 'Platform terms, rules & acceptable use', url: baseUrl + 'terms-of-service.php', icon: 'fa-file-text', category: 'Sidebar Modules' }
-    ];
-
-    // 2. Curated Feature Search Items
-    function getPageDynamicItems() {
-        return [];
-    }
-
-    // 3. Search Engine Filter & UI Rendering
-    function performSearch(query) {
-        const term = query.trim().toLowerCase();
-        if (!term) {
-            resultsContainer.classList.remove('active');
-            resultsContainer.innerHTML = '';
-            return;
-        }
-
-        const dynamicItems = getPageDynamicItems();
-        const allItems = [...modulesIndex, ...dynamicItems];
-        const matches = [];
-        const seen = new Set();
-
-        allItems.forEach(item => {
-            const titleMatch = item.title.toLowerCase().includes(term);
-            const descMatch = item.desc ? item.desc.toLowerCase().includes(term) : false;
-            if ((titleMatch || descMatch) && !seen.has(item.title.toLowerCase())) {
-                seen.add(item.title.toLowerCase());
-                matches.push(item);
-            }
-        });
-
+    function renderResults(matches) {
         if (matches.length === 0) {
             resultsContainer.innerHTML = '<div class="search-no-results"><i class="bi bi-search me-2"></i>No matching results found.</div>';
         } else {
@@ -238,33 +662,67 @@ document.addEventListener('DOMContentLoaded', function() {
                     currentCat = item.category;
                     html += `<div class="search-category-header">${currentCat}</div>`;
                 }
-                const iconClass = item.icon.startsWith('fa-') ? item.icon : ('fa-solid ' + item.icon);
+                const rawIcon = item.icon || 'fa-magnifying-glass';
+                const iconClass = rawIcon.startsWith('fa-') ? rawIcon : ('fa-solid ' + rawIcon);
+                const descText = item.desc || item.subtitle || '';
                 html += `
                     <a href="${item.url}" class="search-result-item" data-index="${index}">
                         <div class="search-result-icon"><i class="${iconClass}"></i></div>
                         <div class="overflow-hidden">
                             <div class="text-truncate fw-semibold">${item.title}</div>
-                            <div class="search-result-meta text-truncate">${item.desc}</div>
+                            <div class="search-result-meta text-truncate">${descText}</div>
                         </div>
                     </a>
                 `;
             });
             resultsContainer.innerHTML = html;
+        }
+        resultsContainer.classList.add('active');
+    }
 
-            resultsContainer.querySelectorAll('.search-result-item').forEach((el, idx) => {
-                const matchItem = matches[idx];
-                el.addEventListener('click', function(e) {
-                    if (matchItem && matchItem.action) {
-                        e.preventDefault();
-                        matchItem.action();
-                        resultsContainer.classList.remove('active');
-                        searchInput.value = '';
-                    }
-                });
-            });
+    // ── Step 4 & 5: Perform Search on Filtered Authorized List ──
+    function performSearch(query) {
+        const term = query.trim().toLowerCase();
+        selectedIndex = -1;
+        if (!term) {
+            resultsContainer.classList.remove('active');
+            resultsContainer.innerHTML = '';
+            return;
         }
 
-        resultsContainer.classList.add('active');
+        const matches = [];
+        const seen = new Set();
+
+        // Search authorized page index by title, description, and keywords
+        modulesIndex.forEach(item => {
+            const titleMatch   = item.title.toLowerCase().includes(term);
+            const descMatch    = item.desc ? item.desc.toLowerCase().includes(term) : false;
+            const keywordMatch = item.keywords ? item.keywords.toLowerCase().includes(term) : false;
+            const uniqueKey    = item.title.toLowerCase() + '_' + item.url;
+            if ((titleMatch || descMatch || keywordMatch) && !seen.has(uniqueKey)) {
+                seen.add(uniqueKey);
+                matches.push(item);
+            }
+        });
+
+        renderResults(matches);
+
+        // Fetch dynamic backend search entities
+        fetch(`${baseUrl}api/search.php?q=${encodeURIComponent(term)}`)
+            .then(res => res.ok ? res.json() : [])
+            .then(apiResults => {
+                if (Array.isArray(apiResults) && apiResults.length > 0) {
+                    apiResults.forEach(item => {
+                        const uniqueKey = item.title.toLowerCase() + '_' + item.url;
+                        if (!seen.has(uniqueKey)) {
+                            seen.add(uniqueKey);
+                            matches.push(item);
+                        }
+                    });
+                    renderResults(matches);
+                }
+            })
+            .catch(() => {});
     }
 
     searchInput.addEventListener('input', function() {
@@ -277,7 +735,40 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // 4. Shortcut Ctrl+K / Cmd+K
+    // Keyboard navigation (Arrow keys, Enter, Escape, Ctrl+K)
+    searchInput.addEventListener('keydown', function(e) {
+        const items = resultsContainer.querySelectorAll('.search-result-item');
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            if (items.length > 0) {
+                selectedIndex = (selectedIndex + 1) % items.length;
+                updateKeyboardHighlight(items);
+            }
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            if (items.length > 0) {
+                selectedIndex = (selectedIndex - 1 + items.length) % items.length;
+                updateKeyboardHighlight(items);
+            }
+        } else if (e.key === 'Enter') {
+            if (selectedIndex >= 0 && items[selectedIndex]) {
+                e.preventDefault();
+                items[selectedIndex].click();
+            }
+        }
+    });
+
+    function updateKeyboardHighlight(items) {
+        items.forEach((item, idx) => {
+            if (idx === selectedIndex) {
+                item.style.backgroundColor = 'var(--bg-hover, rgba(99, 102, 241, 0.08))';
+                item.scrollIntoView({ block: 'nearest' });
+            } else {
+                item.style.backgroundColor = '';
+            }
+        });
+    }
+
     document.addEventListener('keydown', function(e) {
         if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) {
             e.preventDefault();
@@ -288,7 +779,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // 5. Click Outside Handler
     document.addEventListener('click', function(e) {
         if (!searchInput.contains(e.target) && !resultsContainer.contains(e.target)) {
             resultsContainer.classList.remove('active');

@@ -205,7 +205,92 @@ function get_unread_notifications_count(int $userId): int {
  */
 function get_user_notifications(int $userId, int $limit = 5): array {
     $db = Database::getInstance();
-    return $db->fetchAll("SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT $limit", [$userId]);
+    return $db->fetchAll("SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC, id DESC LIMIT $limit", [$userId]);
+}
+
+/**
+ * Centralized routing/mapping for page-related notifications based on user role
+ */
+function get_notification_redirect_url(array $notif, string $userRole): string {
+    // If it's an announcement notification, respect the existing announcement behavior
+    if (($notif['type'] ?? '') === 'announcement') {
+        $link = trim($notif['link'] ?? '');
+        if (!empty($link) && $link !== '#') {
+            return $link;
+        }
+        return match($userRole) {
+            'admin'   => BASE_URL . 'admin/announcements.php',
+            'faculty' => BASE_URL . 'faculty/announcements.php',
+            default   => BASE_URL . 'student/notification.php'
+        };
+    }
+
+    $type = strtolower($notif['type'] ?? '');
+    $title = strtolower($notif['title'] ?? '');
+    
+    // Default fallback based on role
+    $fallbackUrl = match($userRole) {
+        'admin'   => BASE_URL . 'admin/dashboard.php',
+        'faculty' => BASE_URL . 'faculty/dashboard.php',
+        default   => BASE_URL . 'student/dashboard.php'
+    };
+
+    $link = trim($notif['link'] ?? '');
+    if (!empty($link) && $link !== '#') {
+        // Enforce strict role-based prefix check to prevent unauthorized redirection
+        if ($userRole === 'admin') {
+            if (str_contains($link, '/faculty/') || str_contains($link, '/student/')) {
+                return $fallbackUrl;
+            }
+        } elseif ($userRole === 'faculty') {
+            if (str_contains($link, '/admin/') || str_contains($link, '/student/')) {
+                return $fallbackUrl;
+            }
+        } else {
+            if (str_contains($link, '/admin/') || str_contains($link, '/faculty/')) {
+                return $fallbackUrl;
+            }
+        }
+        return $link;
+    }
+
+    // Role-restricted centralized navigation mapping based on notification type/title
+    if ($userRole === 'admin') {
+        return match (true) {
+            str_contains($title, 'faculty application') || str_contains($title, 'faculty registration application') || $type === 'faculty_application' || $type === 'system' => BASE_URL . 'admin/faculty-applications.php',
+            str_contains($title, 'student') || $type === 'student' => BASE_URL . 'admin/students.php',
+            str_contains($title, 'faculty') || $type === 'faculty' => BASE_URL . 'admin/faculty.php',
+            str_contains($title, 'course') || $type === 'course' => BASE_URL . 'admin/courses.php',
+            str_contains($title, 'assessment') || $type === 'assessment' => BASE_URL . 'admin/assessments.php',
+            str_contains($title, 'skill') || $type === 'skill' => BASE_URL . 'admin/skills.php',
+            str_contains($title, 'report') || $type === 'report' => BASE_URL . 'admin/reports.php',
+            str_contains($title, 'analytics') || $type === 'analytics' => BASE_URL . 'admin/analytics.php',
+            str_contains($title, 'settings') || $type === 'settings' => BASE_URL . 'admin/settings.php',
+            str_contains($title, 'profile') || $type === 'profile' => BASE_URL . 'admin/profile.php',
+            default => BASE_URL . 'admin/dashboard.php'
+        };
+    } elseif ($userRole === 'faculty') {
+        return match (true) {
+            str_contains($title, 'submission') || str_contains($title, 'quiz') || $type === 'assessment' => BASE_URL . 'faculty/evaluate.php',
+            str_contains($title, 'student') || $type === 'student' => BASE_URL . 'faculty/students.php',
+            str_contains($title, 'course') || $type === 'course' => BASE_URL . 'faculty/assessments.php',
+            str_contains($title, 'lesson') || $type === 'lesson' || $type === 'question' => BASE_URL . 'faculty/question-bank.php',
+            str_contains($title, 'settings') || $type === 'settings' => BASE_URL . 'faculty/profile.php#settings',
+            str_contains($title, 'profile') || $type === 'profile' => BASE_URL . 'faculty/profile.php',
+            default => BASE_URL . 'faculty/dashboard.php'
+        };
+    } else { // student
+        return match (true) {
+            str_contains($title, 'recommendation') || $type === 'recommendation' => BASE_URL . 'student/recommendations.php',
+            str_contains($title, 'assessment') || str_contains($title, 'quiz') || $type === 'assessment' => BASE_URL . 'student/assessments.php',
+            str_contains($title, 'course') || $type === 'course' => BASE_URL . 'student/courses.php',
+            str_contains($title, 'settings') || $type === 'settings' => BASE_URL . 'student/settings.php',
+            str_contains($title, 'profile') || $type === 'profile' => BASE_URL . 'student/profile.php',
+            str_contains($title, 'progress') || $type === 'progress' => BASE_URL . 'student/progress.php',
+            str_contains($title, 'roadmap') || $type === 'roadmap' => BASE_URL . 'student/roadmap.php',
+            default => BASE_URL . 'student/dashboard.php'
+        };
+    }
 }
 
 /**
@@ -229,6 +314,30 @@ function get_user_profile_data(int $userId, string $role): ?array {
 function format_date(?string $datetime, string $format = 'M d, Y h:i A'): string {
     if (!$datetime) return 'N/A';
     return date($format, strtotime($datetime));
+}
+
+/**
+ * Get CSS badge class for audit trail activity actions
+ */
+function get_action_badge_class(string $action): string {
+    $act = strtoupper($action);
+    if ($act === 'LOGIN') return 'badge-action-login';
+    if ($act === 'LOGOUT') return 'badge-action-logout';
+    if (str_contains($act, 'ANNOUNCEMENT')) return 'badge-action-announcement';
+    if (str_contains($act, 'ASSESSMENT')) return 'badge-action-assessment';
+    if (str_contains($act, 'COURSE')) return 'badge-action-announcement';
+    return 'badge-action-default';
+}
+
+/**
+ * Get CSS badge class for audit trail user roles
+ */
+function get_role_badge_class(?string $role): string {
+    $r = strtoupper($role ?? 'SYSTEM');
+    if ($r === 'ADMIN') return 'badge-role-admin';
+    if ($r === 'FACULTY') return 'badge-role-faculty';
+    if ($r === 'STUDENT') return 'badge-role-student';
+    return 'badge-role-system';
 }
 
 /**

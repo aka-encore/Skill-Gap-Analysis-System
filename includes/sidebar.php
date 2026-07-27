@@ -176,6 +176,10 @@ if (!empty($_SESSION['department'])) {
         <div class="nav-icon"><i class="fa-solid fa-comments"></i></div>
         <span>Feedback</span>
       </a>
+      <a href="<?= BASE_URL ?>faculty/import-export.php" class="sidebar-nav-item <?= isActive('import-export.php', 'faculty') ?>" title="Student Import & Export">
+        <div class="nav-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+        <span>Import / Export</span>
+      </a>
       <a href="<?= BASE_URL ?>faculty/help.php" class="sidebar-nav-item <?= isActive('help.php', 'faculty') ?>" title="Faculty Help & Support">
         <div class="nav-icon"><i class="fa-solid fa-life-ring"></i></div>
         <span>Help</span>
@@ -194,6 +198,10 @@ if (!empty($_SESSION['department'])) {
       <a href="<?= BASE_URL ?>admin/faculty.php" class="sidebar-nav-item <?= isActive('faculty.php', 'admin') ?>" title="Manage Faculty">
         <div class="nav-icon"><i class="fa-solid fa-chalkboard-user"></i></div>
         <span>Faculty</span>
+      </a>
+      <a href="<?= BASE_URL ?>admin/import-export.php" class="sidebar-nav-item <?= isActive('import-export.php', 'admin') ?>" title="Bulk Import & Export">
+        <div class="nav-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+        <span>Bulk Import / Export</span>
       </a>
       <a href="<?= BASE_URL ?>admin/faculty-applications.php" class="sidebar-nav-item <?= isActive('faculty-applications.php', 'admin') ?>" title="Faculty Applications">
         <div class="nav-icon"><i class="fa-solid fa-user-clock"></i></div>
@@ -227,6 +235,10 @@ if (!empty($_SESSION['department'])) {
       <a href="<?= BASE_URL ?>admin/assessments.php" class="sidebar-nav-item <?= isActive('assessments.php', 'admin') ?>" title="Assessments Overview">
         <div class="nav-icon"><i class="fa-solid fa-clipboard-list"></i></div>
         <span>Assessments</span>
+      </a>
+      <a href="<?= BASE_URL ?>admin/proctoring-reports.php" class="sidebar-nav-item <?= isActive(['proctoring-reports.php', 'proctoring-report.php'], 'admin') ?>" title="Proctoring Audits">
+        <div class="nav-icon"><i class="fa-solid fa-shield-halved"></i></div>
+        <span>Proctoring Audits</span>
       </a>
       <a href="<?= BASE_URL ?>admin/analytics.php" class="sidebar-nav-item <?= isActive('analytics.php', 'admin') ?>" title="System Analytics">
         <div class="nav-icon"><i class="fa-solid fa-chart-line"></i></div>

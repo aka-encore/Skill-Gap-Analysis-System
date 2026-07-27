@@ -104,13 +104,13 @@ if ($statusFilter === 'unread') {
 
 $whereSql = "WHERE " . implode(" AND ", $whereClauses);
 
-// Query filtered notifications for admin overview
+// Query filtered notifications for admin overview (Newest -> Oldest, tiebreak by ID DESC)
 $allNotifications = $db->fetchAll("
     SELECT n.*, u.username, u.email, u.role 
     FROM notifications n
     LEFT JOIN users u ON n.user_id = u.id
     {$whereSql}
-    ORDER BY n.created_at DESC
+    ORDER BY n.created_at DESC, n.id DESC
     LIMIT 50
 ", $queryParams);
 
@@ -174,9 +174,11 @@ include __DIR__ . '/../includes/header.php';
     <div class="card border-0 shadow-sm rounded-4 max-w-5xl mx-auto my-4">
         <div class="card-header bg-white border-0 pt-4 px-4 px-md-5 pb-2 d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3">
             <div class="d-flex align-items-center gap-2">
-                <input type="checkbox" id="selectAllCheckbox" class="form-check-input" onclick="toggleSelectAll(this)">
+                <div class="notif-checkbox-wrapper">
+                    <input type="checkbox" id="selectAllCheckbox" class="form-check-input" onclick="toggleSelectAll(this)">
+                </div>
                 <label for="selectAllCheckbox" class="form-check-label small fw-semibold text-dark mb-0 cursor-pointer">Select All</label>
-                <span class="text-muted small ms-2">(<?= count($allNotifications) ?> displayed)</span>
+                <span class="text-muted small ms-1">(<?= count($allNotifications) ?> displayed)</span>
             </div>
 
             <!-- Clear & Action Buttons -->
@@ -223,11 +225,11 @@ include __DIR__ . '/../includes/header.php';
                             // Dynamic Clickable Link
                             $clickUrl = BASE_URL . "admin/notifications.php?action=open&id={$n['id']}";
                         ?>
-                        <div class="p-3.5 rounded-4 border d-flex align-items-center gap-3 transition-all cursor-pointer <?= $isRead ? 'bg-white border-secondary-subtle' : 'bg-primary-subtle border-primary-subtle' ?>" 
+                        <div class="p-3.5 rounded-4 border d-flex align-items-center gap-3 notification-card-item <?= $isRead ? 'notif-read bg-white border-secondary-subtle' : 'notif-unread bg-primary-subtle border-primary-subtle' ?>" 
                              style="<?= $isRead ? '' : 'border-left: 4px solid #0d6efd !important;' ?>">
                             
                             <!-- Checkbox for Batch Selection (Stop Propagation on click) -->
-                            <div onclick="event.stopPropagation();">
+                            <div class="notif-checkbox-wrapper" onclick="event.stopPropagation();">
                                 <input type="checkbox" name="selected_ids[]" value="<?= $n['id'] ?>" class="form-check-input notif-checkbox">
                             </div>
 

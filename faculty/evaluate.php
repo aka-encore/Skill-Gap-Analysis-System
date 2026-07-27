@@ -27,10 +27,12 @@ if ($studentId > 0) {
 $results = [];
 if ($studentId > 0) {
     $results = $db->fetchAll(
-        "SELECT ar.*, a.title as assessment_title, s.name as skill_name, s.category as skill_category
+        "SELECT ar.*, a.title as assessment_title, s.name as skill_name, s.category as skill_category,
+                ps.risk_level, ps.total_violations
          FROM assessment_results ar
          JOIN assessments a ON ar.assessment_id = a.id
          JOIN skills s ON a.skill_id = s.id
+         LEFT JOIN assessment_proctoring_summaries ps ON ar.id = ps.result_id
          WHERE ar.student_id = ?
          ORDER BY ar.completed_at DESC",
         [$studentId]
@@ -106,13 +108,14 @@ include __DIR__ . '/../includes/header.php';
                             <th>Percentage</th>
                             <th>Status</th>
                             <th>Gap Status</th>
+                            <th>Proctoring</th>
                             <th class="pe-4 text-end">Date</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php if (empty($results)): ?>
                             <tr>
-                                <td colspan="7" class="text-center py-4 text-muted">No assessment results recorded for this student yet.</td>
+                                <td colspan="8" class="text-center py-4 text-muted">No assessment results recorded for this student yet.</td>
                             </tr>
                         <?php else: ?>
                             <?php foreach ($results as $r): 
@@ -129,6 +132,22 @@ include __DIR__ . '/../includes/header.php';
                                             <span class="badge bg-danger"><i class="bi bi-exclamation-circle me-1"></i> Deficit (<?= number_format($gap['gap_percentage'], 1) ?>%)</span>
                                         <?php else: ?>
                                             <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i> Proficient</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
+                                        <?php if (!empty($r['risk_level'])): 
+                                            $riskBadge = 'bg-success';
+                                            if ($r['risk_level'] === 'High Risk') {
+                                                $riskBadge = 'bg-danger';
+                                            } elseif ($r['risk_level'] === 'Medium Risk') {
+                                                $riskBadge = 'bg-warning text-dark';
+                                            }
+                                        ?>
+                                            <a href="<?= BASE_URL ?>faculty/proctoring-report.php?result_id=<?= $r['id'] ?>" class="badge <?= $riskBadge ?> text-decoration-none shadow-xs d-inline-flex align-items-center gap-1">
+                                                <i class="fa-solid fa-shield-halved"></i> <?= htmlspecialchars($r['risk_level']) ?>
+                                            </a>
+                                        <?php else: ?>
+                                            <span class="text-muted small">Not Proctored</span>
                                         <?php endif; ?>
                                     </td>
                                     <td class="pe-4 text-end small text-muted"><?= format_date($r['completed_at']) ?></td>
