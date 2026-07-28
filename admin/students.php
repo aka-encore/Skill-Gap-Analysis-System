@@ -21,11 +21,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type'])) {
         $action = $_POST['action_type'];
         $stuId = (int)($_POST['student_id'] ?? 0);
 
-        if ($action === 'delete') {
-            $st = $db->fetch("SELECT user_id FROM students WHERE id = ?", [$stuId]);
+        if ($action === 'suspend') {
+            $st = $db->fetch("SELECT user_id, first_name, last_name FROM students WHERE id = ?", [$stuId]);
             if ($st) {
-                $db->delete('users', 'id = ?', [$st['user_id']]);
-                $success = 'Student account deleted.';
+                $db->update('users', ['status' => 'suspended'], 'id = ?', [$st['user_id']]);
+                $adminName = $_SESSION['full_name'] ?? $_SESSION['username'] ?? 'Admin';
+                log_activity($_SESSION['user_id'], 'SUSPEND_ACCOUNT', "Admin {$adminName} suspended Student account for {$st['first_name']} {$st['last_name']} (User ID: {$st['user_id']}).");
+                $success = 'Student account has been suspended.';
+            }
+        } elseif ($action === 'unsuspend') {
+            $st = $db->fetch("SELECT user_id, first_name, last_name FROM students WHERE id = ?", [$stuId]);
+            if ($st) {
+                $db->update('users', ['status' => 'active'], 'id = ?', [$st['user_id']]);
+                $adminName = $_SESSION['full_name'] ?? $_SESSION['username'] ?? 'Admin';
+                log_activity($_SESSION['user_id'], 'UNSUSPEND_ACCOUNT', "Admin {$adminName} reactivated Student account for {$st['first_name']} {$st['last_name']} (User ID: {$st['user_id']}).");
+                $success = 'Student account has been reactivated.';
             }
         } elseif ($action === 'create') {
             $firstName = trim($_POST['first_name'] ?? '');
@@ -73,12 +83,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type'])) {
     }
 }
 
-$students = $db->fetchAll(
-    "SELECT s.*, u.username, u.email, u.created_at as user_created 
-     FROM students s 
-     JOIN users u ON s.user_id = u.id 
-     ORDER BY s.student_code ASC"
-);
+$filter = $_GET['status'] ?? 'all';
+if (!in_array($filter, ['all', 'active', 'suspended'])) {
+    $filter = 'all';
+}
+
+$query = "SELECT s.*, u.username, u.email, u.status as user_status, u.created_at as user_created 
+          FROM students s 
+          JOIN users u ON s.user_id = u.id";
+
+if ($filter === 'active') {
+    $query .= " WHERE u.status = 'active'";
+} elseif ($filter === 'suspended') {
+    $query .= " WHERE u.status = 'suspended'";
+}
+
+$query .= " ORDER BY s.student_code ASC";
+$students = $db->fetchAll($query);
 
 $pageTitle = "Manage Students - Admin Portal";
 include __DIR__ . '/../includes/header.php';
@@ -108,12 +129,17 @@ include __DIR__ . '/../includes/header.php';
 <?php endif; ?>
 
 <div class="saas-card overflow-hidden">
-    <div class="saas-card-header flex-wrap gap-2">
+    <div class="saas-card-header flex-wrap gap-3">
         <div class="position-relative" style="min-width: 250px;">
             <i class="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></i>
             <input type="text" class="saas-form-control ps-5 py-2 w-100" placeholder="Search students..." data-search-table="adminStudentTable">
         </div>
-        <span class="badge saas-badge-primary">Total Enrolled: <?= count($students) ?></span>
+        <div class="d-flex align-items-center gap-1 bg-light p-1 rounded-pill border">
+            <a href="?status=all" class="btn btn-xs rounded-pill px-3 py-1 fw-semibold small text-decoration-none <?= $filter === 'all' ? 'btn-primary bg-gradient-primary text-white border-0' : 'text-secondary' ?>" style="font-size: 11px;">All</a>
+            <a href="?status=active" class="btn btn-xs rounded-pill px-3 py-1 fw-semibold small text-decoration-none <?= $filter === 'active' ? 'btn-primary bg-gradient-primary text-white border-0' : 'text-secondary' ?>" style="font-size: 11px;">Active</a>
+            <a href="?status=suspended" class="btn btn-xs rounded-pill px-3 py-1 fw-semibold small text-decoration-none <?= $filter === 'suspended' ? 'btn-primary bg-gradient-primary text-white border-0' : 'text-secondary' ?>" style="font-size: 11px;">Suspended</a>
+        </div>
+        <span class="badge saas-badge-primary ms-auto">Total Enrolled: <?= count($students) ?></span>
     </div>
     <div class="card-body p-0">
         <div class="table-responsive">
@@ -126,6 +152,7 @@ include __DIR__ . '/../includes/header.php';
                         <th>Email</th>
                         <th>Department</th>
                         <th>Sem</th>
+                        <th>Status</th>
                         <th>Joined</th>
                         <th class="pe-4 text-end">Action</th>
                     </tr>
@@ -133,7 +160,7 @@ include __DIR__ . '/../includes/header.php';
                 <tbody>
                     <?php if (empty($students)): ?>
                         <tr>
-                            <td colspan="8">
+                            <td colspan="9">
                                 <div class="saas-empty-state">
                                     <div class="saas-empty-icon"><i class="bi bi-people"></i></div>
                                     <h6 class="fw-bold text-dark mb-1">No student accounts found</h6>
@@ -150,16 +177,57 @@ include __DIR__ . '/../includes/header.php';
                                 <td><span class="small text-muted"><?= htmlspecialchars($st['email']) ?></span></td>
                                 <td><?= htmlspecialchars($st['department']) ?></td>
                                 <td><span class="badge saas-badge-info">Sem <?= $st['current_semester'] ?></span></td>
+                                <td>
+                                    <?php if (($st['user_status'] ?? 'active') === 'suspended'): ?>
+                                        <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 rounded-pill"><i class="bi bi-x-circle me-1"></i>Suspended</span>
+                                    <?php else: ?>
+                                        <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 rounded-pill"><i class="bi bi-check-circle me-1"></i>Active</span>
+                                    <?php endif; ?>
+                                </td>
                                 <td><span class="small text-muted"><?= date('M d, Y', strtotime($st['created_at'])) ?></span></td>
                                 <td class="pe-4 text-end">
-                                    <form action="<?= BASE_URL ?>admin/students.php" method="POST" class="d-inline" onsubmit="return confirm('Delete this student account completely?')">
-                                        <?= csrf_field() ?>
-                                        <input type="hidden" name="action_type" value="delete">
-                                        <input type="hidden" name="student_id" value="<?= $st['id'] ?>">
-                                        <button type="submit" class="saas-btn-action danger" title="Delete Account">
-                                            <i class="bi bi-trash"></i>
+                                    <?php if (($st['user_status'] ?? 'active') === 'suspended'): ?>
+                                        <form action="<?= BASE_URL ?>admin/students.php" method="POST" class="d-inline" onsubmit="return confirm('Reactivate this student account?')">
+                                            <?= csrf_field() ?>
+                                            <input type="hidden" name="action_type" value="unsuspend">
+                                            <input type="hidden" name="student_id" value="<?= $st['id'] ?>">
+                                            <button type="submit" class="btn btn-sm btn-outline-success rounded-pill px-3.5 py-1 fw-bold" style="font-size: 11px;">
+                                                <i class="bi bi-unlock-fill me-1"></i> Reactivate
+                                            </button>
+                                        </form>
+                                    <?php else: ?>
+                                        <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3.5 py-1 fw-bold" data-bs-toggle="modal" data-bs-target="#suspendModal<?= $st['id'] ?>" style="font-size: 11px;">
+                                            <i class="bi bi-shield-slash-fill me-1"></i> Suspend
                                         </button>
-                                    </form>
+                                        
+                                        <!-- Suspend Confirmation Modal -->
+                                        <div class="modal fade text-start" id="suspendModal<?= $st['id'] ?>" tabindex="-1" aria-hidden="true">
+                                            <div class="modal-dialog modal-dialog-centered">
+                                                <div class="modal-content border-0 shadow-lg rounded-4">
+                                                    <div class="modal-header border-bottom-0 pb-0">
+                                                        <h5 class="modal-title fw-bold text-dark"><i class="bi bi-shield-slash-fill text-danger me-2"></i>Suspend Account</h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                    </div>
+                                                    <form action="<?= BASE_URL ?>admin/students.php" method="POST">
+                                                        <?= csrf_field() ?>
+                                                        <input type="hidden" name="action_type" value="suspend">
+                                                        <input type="hidden" name="student_id" value="<?= $st['id'] ?>">
+                                                        <div class="modal-body py-3">
+                                                            <p class="text-secondary small mb-0">
+                                                                Are you sure you want to suspend the account of <strong><?= htmlspecialchars($st['first_name'] . ' ' . $st['last_name']) ?></strong>?
+                                                                <br><br>
+                                                                This user will no longer be able to access learning features until their account is reactivated.
+                                                            </p>
+                                                        </div>
+                                                        <div class="modal-footer border-top-0 pt-0">
+                                                            <button type="button" class="btn btn-light rounded-pill px-3.5 py-1.5 small fw-semibold" data-bs-dismiss="modal">Cancel</button>
+                                                            <button type="submit" class="btn btn-danger rounded-pill px-4 py-1.5 small fw-semibold">Suspend Account</button>
+                                                        </div>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    <?php endif; ?>
                                 </td>
                             </tr>
                         <?php endforeach; ?>

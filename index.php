@@ -610,11 +610,6 @@ $pageTitle = "SkillBridge – Skill Gap Analysis & Learning Management System";
 
     <!-- Right Actions -->
     <div class="d-flex align-items-center gap-2">
-      <!-- Light / Dark Theme Toggle Button -->
-      <button id="themeToggle" class="theme-toggle-btn" aria-label="Toggle Theme">
-        <i class="fa-solid fa-moon"></i>
-      </button>
-
       <a href="<?= BASE_URL ?>login.php" class="nav-btn-signin d-none d-sm-inline-block">Sign In</a>
       <a href="<?= BASE_URL ?>register.php" class="nav-btn-getstarted">
         <i class="fa-solid fa-rocket me-1"></i> Get Started
@@ -927,25 +922,7 @@ $pageTitle = "SkillBridge – Skill Gap Analysis & Learning Management System";
     });
   });
 
-  // Light / Dark Theme toggle logic with localStorage (Unified with Student Dashboard)
-  const themeToggleBtn = document.getElementById('themeToggle');
-  const savedTheme = localStorage.getItem('skillbridge_theme');
-
-  if (savedTheme === 'dark') {
-    document.body.classList.add('dark-mode');
-    document.documentElement.setAttribute('data-theme', 'dark');
-    if (themeToggleBtn) themeToggleBtn.innerHTML = '<i class="fa-solid fa-sun"></i>';
-  }
-
-  if (themeToggleBtn) {
-    themeToggleBtn.addEventListener('click', function() {
-      document.body.classList.toggle('dark-mode');
-      const isDark = document.body.classList.contains('dark-mode');
-      document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
-      localStorage.setItem('skillbridge_theme', isDark ? 'dark' : 'light');
-      this.innerHTML = isDark ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
-    });
-  }
+  // Anchors are handled above
 </script>
 
 </body>

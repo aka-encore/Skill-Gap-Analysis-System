@@ -601,3 +601,557 @@ function download_import_error_report(array $validatedRows, string $entityType =
     fclose($output);
     exit;
 }
+
+/**
+ * Parse uploaded Excel (.xlsx) file using ZipArchive and SimpleXML
+ */
+function parse_xlsx_file(string $filepath): array {
+    if (!class_exists('ZipArchive')) {
+        return ['success' => false, 'error' => 'ZipArchive PHP extension is not enabled.'];
+    }
+
+    $zip = new ZipArchive();
+    if ($zip->open($filepath) !== true) {
+        return ['success' => false, 'error' => 'Unable to open Excel (.xlsx) file.'];
+    }
+
+    // 1. Read shared strings
+    $sharedStrings = [];
+    $sstEntry = $zip->getFromName('xl/sharedStrings.xml');
+    if ($sstEntry !== false) {
+        $xml = simplexml_load_string($sstEntry);
+        if ($xml) {
+            foreach ($xml->si as $si) {
+                if (isset($si->t)) {
+                    $sharedStrings[] = (string)$si->t;
+                } elseif (isset($si->r)) {
+                    $text = '';
+                    foreach ($si->r as $r) {
+                        $text .= (string)$r->t;
+                    }
+                    $sharedStrings[] = $text;
+                } else {
+                    $sharedStrings[] = '';
+                }
+            }
+        }
+    }
+
+    // 2. Read Sheet1
+    $sheetEntry = $zip->getFromName('xl/worksheets/sheet1.xml');
+    if ($sheetEntry === false) {
+        $sheetEntry = $zip->getFromName('xl/worksheets/Sheet1.xml');
+    }
+    if ($sheetEntry === false) {
+        $zip->close();
+        return ['success' => false, 'error' => 'Sheet1 not found in Excel file.'];
+    }
+
+    $xml = simplexml_load_string($sheetEntry);
+    $zip->close();
+    if (!$xml) {
+        return ['success' => false, 'error' => 'Failed to parse sheet data.'];
+    }
+
+    $rows = [];
+    
+    // Column letter to index helper (e.g. A -> 0, B -> 1, Z -> 25, AA -> 26)
+    $colLetterToIndex = function(string $col): int {
+        $len = strlen($col);
+        $idx = 0;
+        for ($i = 0; $i < $len; $i++) {
+            $idx = $idx * 26 + (ord($col[$i]) - 64);
+        }
+        return $idx - 1;
+    };
+
+    foreach ($xml->sheetData->row as $row) {
+        $rowNum = (int)$row['r'];
+        $rowData = [];
+
+        foreach ($row->c as $cell) {
+            $rRef = (string)$cell['r'];
+            preg_match('/^[A-Z]+/', $rRef, $matches);
+            $colLetter = $matches[0] ?? '';
+            $colIdx = $colLetter ? $colLetterToIndex($colLetter) : count($rowData);
+
+            $val = '';
+            if (isset($cell->v)) {
+                $val = (string)$cell->v;
+                $type = (string)$cell['t'];
+                if ($type === 's') {
+                    $val = $sharedStrings[(int)$val] ?? '';
+                }
+            } elseif (isset($cell->is->t)) {
+                $val = (string)$cell->is->t;
+            }
+            $rowData[$colIdx] = $val;
+        }
+
+        $maxIdx = !empty($rowData) ? max(array_keys($rowData)) : -1;
+        $rowCells = [];
+        for ($i = 0; $i <= $maxIdx; $i++) {
+            $rowCells[] = trim($rowData[$i] ?? '');
+        }
+
+        if (!empty(array_filter($rowCells, fn($v) => trim((string)$v) !== ''))) {
+            $rows[$rowNum] = $rowCells;
+        }
+    }
+
+    if (empty($rows)) {
+        return ['success' => false, 'error' => 'No rows found in Excel sheet.'];
+    }
+
+    ksort($rows);
+
+    $headers = [];
+    $dataRows = [];
+    
+    $firstRowKey = array_key_first($rows);
+    $rawHeaders = $rows[$firstRowKey];
+    
+    $headers = array_map(function($h) {
+        return strtolower(trim(preg_replace('/[^a-zA-Z0-9_]/', '_', trim((string)$h))));
+    }, $rawHeaders);
+
+    unset($rows[$firstRowKey]);
+
+    foreach ($rows as $rowNum => $cells) {
+        $rowMap = [];
+        foreach ($headers as $i => $colName) {
+            $rowMap[$colName] = trim((string)($cells[$i] ?? ''));
+        }
+        $rowMap['_row_num'] = $rowNum;
+        $dataRows[] = $rowMap;
+    }
+
+    return [
+        'success' => true,
+        'headers' => $headers,
+        'rows'    => $dataRows
+    ];
+}
+
+/**
+ * Download CSV Template for Question Import
+ */
+function download_question_import_template(): void {
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename="SkillBridge_Question_Import_Template.csv"');
+    
+    $output = fopen('php://output', 'w');
+    fputs($output, "\xEF\xBB\xBF");
+    
+    fputcsv($output, [
+        'Assessment Title',
+        'Category',
+        'Skill',
+        'Difficulty Level',
+        'Question Type',
+        'Question Text',
+        'Option A',
+        'Option B',
+        'Option C',
+        'Option D',
+        'Correct Answer',
+        'Explanation',
+        'Marks',
+        'Status'
+    ]);
+
+    // Sample Row 1
+    fputcsv($output, [
+        'Mastering Pure PHP 8 Development',
+        'Backend',
+        'PHP 8 Web Development',
+        'intermediate',
+        'MCQ',
+        'Which symbol is used to declare variables in PHP?',
+        '#',
+        '$',
+        '@',
+        '%',
+        'B',
+        'PHP variables always begin with the $ symbol.',
+        '2',
+        'active'
+    ]);
+    
+    // Sample Row 2
+    fputcsv($output, [
+        'Relational Database Masterclass: MySQL',
+        'Database',
+        'MySQL Database Design',
+        'intermediate',
+        'MCQ',
+        'Which JOIN returns all records from the left table and matched records from the right table?',
+        'INNER JOIN',
+        'RIGHT JOIN',
+        'LEFT JOIN',
+        'FULL OUTER JOIN',
+        'C',
+        'LEFT JOIN returns all rows from the left table and matched rows from the right table.',
+        '2',
+        'active'
+    ]);
+
+    fclose($output);
+    exit;
+}
+
+/**
+ * Validate Question Import Rows
+ */
+function validate_question_import_rows(array $rows, Database $db, ?int $facultyProfileId = null): array {
+    // Pre-cache assessments
+    $assessmentsList = $db->fetchAll("SELECT id, title, skill_id, created_by_faculty_id, difficulty_level, status FROM assessments");
+    $dbAssessments = [];
+    foreach ($assessmentsList as $a) {
+        $dbAssessments[strtolower(trim($a['title']))] = $a;
+    }
+
+    // Pre-cache skills
+    $skillsList = $db->fetchAll("SELECT id, name, category FROM skills");
+    $dbSkills = [];
+    $skillCategories = [];
+    foreach ($skillsList as $s) {
+        $dbSkills[strtolower(trim($s['name']))] = $s;
+        $skillCategories[strtolower(trim($s['category']))] = true;
+    }
+
+    // Cache existing questions to detect database duplicates
+    $existingQList = $db->fetchAll("SELECT assessment_id, LOWER(TRIM(question_text)) as q_text FROM assessment_questions");
+    $dbQuestions = [];
+    foreach ($existingQList as $eq) {
+        $dbQuestions[$eq['assessment_id']][] = $eq['q_text'];
+    }
+
+    $seenInFile = [];
+    $validatedRows = [];
+    $validCount = 0;
+    $invalidCount = 0;
+    $duplicateCount = 0;
+
+    foreach ($rows as $row) {
+        $rowNum = $row['_row_num'] ?? 0;
+        
+        // Clean values
+        $assessTitle = trim($row['assessment_title'] ?? $row['assessment'] ?? '');
+        $category = trim($row['category'] ?? '');
+        $skill = trim($row['skill'] ?? '');
+        $diffLevel = strtolower(trim($row['difficulty_level'] ?? $row['difficulty'] ?? ''));
+        $qType = trim($row['question_type'] ?? 'MCQ');
+        $qText = trim($row['question_text'] ?? $row['question'] ?? '');
+        $optA = trim($row['option_a'] ?? '');
+        $optB = trim($row['option_b'] ?? '');
+        $optC = trim($row['option_c'] ?? '');
+        $optD = trim($row['option_d'] ?? '');
+        $correctAns = strtoupper(trim($row['correct_answer'] ?? $row['correct_option'] ?? ''));
+        $explanation = trim($row['explanation'] ?? '');
+        $marks = trim($row['marks'] ?? '1');
+        $status = strtolower(trim($row['status'] ?? 'active'));
+
+        $errors = [];
+        $isDuplicate = false;
+
+        // 1. Validate Assessment Title
+        $assessmentId = null;
+        if (empty($assessTitle)) {
+            $errors[] = 'Assessment Title is empty.';
+        } else {
+            $lowerTitle = strtolower($assessTitle);
+            if (!isset($dbAssessments[$lowerTitle])) {
+                $errors[] = "Assessment '{$assessTitle}' does not exist in the system.";
+            } else {
+                $assessRec = $dbAssessments[$lowerTitle];
+                $assessmentId = (int)$assessRec['id'];
+                
+                // Faculty permissions enforcement
+                if ($facultyProfileId !== null && (int)$assessRec['created_by_faculty_id'] !== $facultyProfileId) {
+                    $errors[] = "Unauthorized: You did not create assessment '{$assessTitle}'.";
+                }
+            }
+        }
+
+        // 2. Validate Category
+        if (empty($category)) {
+            $errors[] = 'Category is empty.';
+        } else {
+            $lowerCat = strtolower($category);
+            // Allow common variations like "Backend Development" -> "Backend"
+            $matchedCategory = false;
+            foreach (array_keys($skillCategories) as $dbCat) {
+                if ($dbCat === $lowerCat || strpos($lowerCat, $dbCat) !== false || strpos($dbCat, $lowerCat) !== false) {
+                    $matchedCategory = true;
+                    break;
+                }
+            }
+            if (!$matchedCategory) {
+                $errors[] = "Category '{$category}' is not a valid skill category.";
+            }
+        }
+
+        // 3. Validate Skill
+        if (empty($skill)) {
+            $errors[] = 'Skill is empty.';
+        } else {
+            $lowerSkill = strtolower($skill);
+            $matchedSkill = false;
+            foreach ($dbSkills as $dbName => $sRec) {
+                if ($dbName === $lowerSkill || strpos($dbName, $lowerSkill) !== false || strpos($lowerSkill, $dbName) !== false) {
+                    $matchedSkill = true;
+                    break;
+                }
+            }
+            if (!$matchedSkill) {
+                $errors[] = "Skill '{$skill}' is not registered in the system.";
+            }
+        }
+
+        // 4. Validate Difficulty Level
+        $validDiffs = ['beginner', 'easy', 'intermediate', 'advanced', 'expert'];
+        if (empty($diffLevel)) {
+            $errors[] = 'Difficulty Level is empty.';
+        } elseif (!in_array($diffLevel, $validDiffs)) {
+            $errors[] = "Invalid Difficulty Level '{$diffLevel}'. Must be one of: " . implode(', ', $validDiffs);
+        }
+
+        // 5. Validate Question Text
+        if (empty($qText)) {
+            $errors[] = 'Question Text is required.';
+        }
+
+        // 6. Validate Options
+        if (empty($optA) || empty($optB) || empty($optC) || empty($optD)) {
+            $errors[] = 'All four options (Option A, B, C, D) must be provided.';
+        }
+
+        // 7. Validate Correct Answer
+        if (empty($correctAns)) {
+            $errors[] = 'Correct Answer is required.';
+        } elseif (!in_array($correctAns, ['A', 'B', 'C', 'D'])) {
+            $errors[] = "Invalid Correct Answer '{$correctAns}'. Must be A, B, C, or D.";
+        }
+
+        // 8. Validate Marks
+        if (!is_numeric($marks) || (float)$marks <= 0) {
+            $errors[] = 'Marks must be a positive number.';
+        }
+
+        // 9. Check Duplicates inside File
+        if (!empty($qText) && $assessmentId !== null) {
+            $fileKey = $assessmentId . '||' . strtolower($qText);
+            if (isset($seenInFile[$fileKey])) {
+                $errors[] = 'Duplicate question text within this import file.';
+                $isDuplicate = true;
+            } else {
+                $seenInFile[$fileKey] = true;
+            }
+        }
+
+        // 10. Check Duplicates already in Database
+        if (!empty($qText) && $assessmentId !== null && !$isDuplicate) {
+            $normText = strtolower($qText);
+            if (isset($dbQuestions[$assessmentId]) && in_array($normText, $dbQuestions[$assessmentId])) {
+                $errors[] = 'Duplicate question: already exists in database for this assessment.';
+                $isDuplicate = true;
+            }
+        }
+
+        $isValid = empty($errors);
+        if ($isValid) {
+            $validCount++;
+        } else {
+            $invalidCount++;
+            if ($isDuplicate) $duplicateCount++;
+        }
+
+        $validatedRows[] = [
+            'row_num'          => $rowNum,
+            'assessment_title' => $assessTitle,
+            'assessment_id'    => $assessmentId,
+            'category'         => $category,
+            'skill'            => $skill,
+            'difficulty'       => $diffLevel,
+            'question_type'    => $qType,
+            'question_text'    => $qText,
+            'option_a'         => $optA,
+            'option_b'         => $optB,
+            'option_c'         => $optC,
+            'option_d'         => $optD,
+            'correct_answer'   => $correctAns,
+            'explanation'      => $explanation,
+            'marks'            => (int)$marks,
+            'status'           => $status,
+            'is_valid'         => $isValid,
+            'errors'           => $errors,
+            'error_text'       => implode(' | ', $errors)
+        ];
+    }
+
+    return [
+        'total_rows'      => count($rows),
+        'valid_count'     => $validCount,
+        'invalid_count'   => $invalidCount,
+        'duplicate_count' => $duplicateCount,
+        'rows'            => $validatedRows
+    ];
+}
+
+/**
+ * Execute Question Bulk Import inside Database Transaction
+ */
+function execute_question_import(array $validRows, Database $db, int $actorUserId): int {
+    if (empty($validRows)) return 0;
+
+    $importedCount = 0;
+    $db->beginTransaction();
+
+    try {
+        foreach ($validRows as $r) {
+            if (!$r['is_valid']) continue;
+
+            $db->insert('assessment_questions', [
+                'assessment_id'   => $r['assessment_id'],
+                'question_text'   => $r['question_text'],
+                'option_a'        => $r['option_a'],
+                'option_b'        => $r['option_b'],
+                'option_c'        => $r['option_c'],
+                'option_d'        => $r['option_d'],
+                'correct_option'  => $r['correct_answer'],
+                'marks'           => $r['marks'],
+                'category'        => !empty($r['category']) ? $r['category'] : 'Core Concepts'
+            ]);
+
+            $importedCount++;
+        }
+
+        $db->commit();
+
+        log_activity($actorUserId, 'BULK_IMPORT_QUESTIONS', "Bulk imported {$importedCount} questions successfully.");
+        return $importedCount;
+    } catch (Throwable $e) {
+        $db->rollBack();
+        throw $e;
+    }
+}
+
+/**
+ * Export Questions to CSV
+ */
+function export_questions_to_csv(Database $db, array $filters = [], array $selectedIds = [], int $actorUserId = 0, ?int $facultyProfileId = null): void {
+    $where = [];
+    $params = [];
+
+    if (!empty($selectedIds)) {
+        $inClause = implode(',', array_fill(0, count($selectedIds), '?'));
+        $where[] = "q.id IN ($inClause)";
+        $params = array_merge($params, $selectedIds);
+    } else {
+        if (!empty($filters['assessment_id']) && $filters['assessment_id'] !== 'all') {
+            $where[] = "q.assessment_id = ?";
+            $params[] = (int)$filters['assessment_id'];
+        }
+        if (!empty($filters['difficulty']) && $filters['difficulty'] !== 'all') {
+            $where[] = "a.difficulty_level = ?";
+            $params[] = $filters['difficulty'];
+        }
+        if (!empty($filters['search'])) {
+            $where[] = "(q.question_text LIKE ? OR q.category LIKE ? OR a.title LIKE ?)";
+            $term = '%' . $filters['search'] . '%';
+            $params[] = $term; $params[] = $term; $params[] = $term;
+        }
+    }
+
+    // Role restrictions for Faculty: can only export questions they authored
+    if ($facultyProfileId !== null) {
+        $where[] = "a.created_by_faculty_id = ?";
+        $params[] = $facultyProfileId;
+    }
+
+    $whereSql = !empty($where) ? 'WHERE ' . implode(' AND ', $where) : '';
+    $questions = $db->fetchAll(
+        "SELECT q.*, a.title as assessment_title, a.difficulty_level as difficulty, s.name as skill_name, s.category as skill_cat 
+         FROM assessment_questions q
+         JOIN assessments a ON q.assessment_id = a.id
+         JOIN skills s ON a.skill_id = s.id
+         {$whereSql} 
+         ORDER BY a.title ASC, q.id ASC",
+        $params
+    );
+
+    log_activity($actorUserId, 'BULK_EXPORT_QUESTIONS', "Exported " . count($questions) . " question records.");
+
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename="SkillBridge_Questions_Export_' . date('Y-m-d_His') . '.csv"');
+
+    $output = fopen('php://output', 'w');
+    fputs($output, "\xEF\xBB\xBF");
+
+    fputcsv($output, [
+        'Assessment Title',
+        'Category',
+        'Skill',
+        'Difficulty Level',
+        'Question Type',
+        'Question Text',
+        'Option A',
+        'Option B',
+        'Option C',
+        'Option D',
+        'Correct Answer',
+        'Explanation',
+        'Marks',
+        'Status'
+    ]);
+
+    foreach ($questions as $q) {
+        fputcsv($output, [
+            $q['assessment_title'],
+            $q['skill_cat'],
+            $q['skill_name'],
+            $q['difficulty'],
+            'MCQ',
+            $q['question_text'],
+            $q['option_a'],
+            $q['option_b'],
+            $q['option_c'],
+            $q['option_d'],
+            $q['correct_option'],
+            'PHP variables and core structures.', // Default explanation if none in DB
+            $q['marks'],
+            'active'
+        ]);
+    }
+
+    fclose($output);
+    exit;
+}
+
+/**
+ * Export Downloadable CSV Error Report for Invalid Questions
+ */
+function download_question_error_report(array $validatedRows): void {
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename="SkillBridge_Question_Import_Error_Report_' . date('Y-m-d_His') . '.csv"');
+
+    $output = fopen('php://output', 'w');
+    fputs($output, "\xEF\xBB\xBF");
+
+    fputcsv($output, ['Row #', 'Assessment Title', 'Question Text', 'Validation Errors']);
+
+    foreach ($validatedRows as $r) {
+        if ($r['is_valid']) continue;
+        fputcsv($output, [
+            $r['row_num'],
+            $r['assessment_title'] ?? '',
+            $r['question_text'] ?? '',
+            $r['error_text'] ?? 'Invalid Record'
+        ]);
+    }
+
+    fclose($output);
+    exit;
+}
+

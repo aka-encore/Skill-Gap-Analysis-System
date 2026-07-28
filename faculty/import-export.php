@@ -13,6 +13,7 @@ require_once __DIR__ . '/../includes/validators.php';
 require_once __DIR__ . '/../includes/import_export_helper.php';
 
 require_role('faculty');
+check_suspended_status();
 
 $db = Database::getInstance();
 $facultyUserId = $_SESSION['user_id'];
@@ -121,6 +122,24 @@ include __DIR__ . '/../includes/header.php';
 <?php if (!empty($success)): ?>
     <div class="alert alert-success py-2.5 px-3 small border-0 rounded-3 mb-4 shadow-xs"><i class="bi bi-check-circle me-1"></i> <?= htmlspecialchars($success) ?></div>
 <?php endif; ?>
+
+<!-- Type Selection Tabs -->
+<div class="card border-0 shadow-sm rounded-4 mb-4">
+    <div class="card-header bg-white border-bottom-0 p-3">
+        <ul class="nav nav-pills nav-fill gap-2" id="importExportTabs">
+            <li class="nav-item">
+                <a class="nav-link rounded-pill py-2.5 fw-semibold active" href="<?= BASE_URL ?>faculty/import-export.php">
+                    <i class="bi bi-mortarboard me-1.5"></i> Students Import & Export
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link rounded-pill py-2.5 fw-semibold" href="<?= BASE_URL ?>faculty/questions-import-export.php">
+                    <i class="bi bi-question-circle me-1.5"></i> Questions Import & Export
+                </a>
+            </li>
+        </ul>
+    </div>
+</div>
 
 <?php if ($previewData): ?>
     <!-- Preview & Validation Card -->

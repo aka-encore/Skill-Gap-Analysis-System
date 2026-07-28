@@ -9,6 +9,7 @@ require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../includes/validators.php';
 
 require_role('faculty');
+check_suspended_status();
 
 $facultyId = $_SESSION['profile_id'];
 $db = Database::getInstance();
@@ -118,17 +119,16 @@ include __DIR__ . '/../includes/header.php';
         <h3 class="fw-bold mb-1 text-dark"><i class="bi bi-question-circle text-primary me-2"></i>Question Bank Builder</h3>
         <p class="text-muted small mb-0">Shared Question Repository — Browse all questions; edit items for your created assessments</p>
     </div>
-    <?php if ($currentAssessment): ?>
-        <?php if ($isAssessmentOwner): ?>
+    <div class="d-flex gap-2">
+        <a href="<?= BASE_URL ?>faculty/questions-import-export.php" class="btn btn-outline-primary rounded-pill px-4 shadow-sm fw-semibold">
+            <i class="bi bi-cloud-arrow-up me-1"></i> Bulk Import/Export
+        </a>
+        <?php if ($currentAssessment && $isAssessmentOwner): ?>
             <button class="btn btn-primary rounded-pill px-4 shadow-sm fw-semibold" data-bs-toggle="modal" data-bs-target="#questionModal" onclick="resetQuestionForm()">
                 <i class="bi bi-plus-circle me-1"></i> Add Question
             </button>
-        <?php else: ?>
-            <span class="badge bg-light text-secondary border px-3 py-2 fs-6">
-                <i class="bi bi-lock me-1 text-warning"></i> Read-Only (Prof. <?= htmlspecialchars(trim(($currentAssessment['creator_first'] ?? '') . ' ' . ($currentAssessment['creator_last'] ?? '')) ?: 'Faculty') ?>)
-            </span>
         <?php endif; ?>
-    <?php endif; ?>
+    </div>
 </div>
 
 <?php if (!empty($error)): ?>

@@ -133,7 +133,7 @@ if ($relatedCourse) {
     $isCourseCompleted = ($relatedCourse['status'] === 'completed' && (int)$relatedCourse['progress_percentage'] >= 100);
 }
 
-$isEligibleForCertificate = ($result['score_percentage'] >= 75.0) && $isCourseCompleted;
+$isEligibleForCertificate = ($result['score_percentage'] >= 75.0) && $isCourseCompleted && !is_suspended();
 
 // Format time taken in Mins & Secs
 $timeTakenSeconds = (int)($result['time_taken_seconds'] ?? 0);
@@ -263,6 +263,15 @@ include __DIR__ . '/../includes/header.php';
         <button onclick="window.print()" class="btn btn-outline-warning text-dark rounded-pill px-4 fw-semibold">
             <i class="fa-solid fa-print me-1"></i> Print Competency Certificate
         </button>
+    </div>
+</div>
+<?php elseif (is_suspended() && ($result['score_percentage'] >= 75.0) && $isCourseCompleted): ?>
+<div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 mb-4 bg-white text-center">
+    <div class="border border-danger border-3 p-4 p-md-5 rounded-4 bg-light">
+        <div class="text-danger text-uppercase fw-bold tracking-wider mb-2" style="letter-spacing: 2px;">
+            <i class="fa-solid fa-lock me-1"></i> Certificate Locked
+        </div>
+        <div class="text-muted small">Your competency certificate is temporarily locked because your account has been suspended. Please contact the administrator for further assistance.</div>
     </div>
 </div>
 <?php endif; ?>

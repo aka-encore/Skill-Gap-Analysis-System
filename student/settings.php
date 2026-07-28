@@ -300,7 +300,7 @@ function checkPwStrength(val) {
 
 // Appearance Theme — synced with SkillBridgeTheme engine
 (function() {
-    var saved = localStorage.getItem('skillbridge_theme') || 'system';
+    var saved = (window.SkillBridgeTheme ? window.SkillBridgeTheme.get() : null) || localStorage.getItem('skillbridge_theme') || 'system';
     var options = document.querySelectorAll('.appearance-theme-option');
     function highlightSelected(selectedVal) {
         options.forEach(function(l) {

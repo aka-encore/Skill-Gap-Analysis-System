@@ -10,6 +10,7 @@ require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/functions.php';
 
 require_role('student');
+check_suspended_status();
 
 $studentId = $_SESSION['profile_id'];
 $userId = $_SESSION['user_id'];
@@ -188,11 +189,12 @@ $dbWeeklyLabels = array_column($daysMap, 'label');
 $dbWeeklyScores = array_column($daysMap, 'avg_score');
 $dbWeeklyHours  = array_column($daysMap, 'hours');
 
-// 7. Leaderboard Calculation across all students (STRICTLY FROM DATABASE)
+// 7. Leaderboard Calculation across all students (STRICTLY FROM DATABASE, EXCLUDING SUSPENDED)
 $allStudents = $db->fetchAll(
     "SELECT s.id, s.first_name, s.last_name, s.department, u.username 
      FROM students s 
-     JOIN users u ON s.user_id = u.id"
+     JOIN users u ON s.user_id = u.id
+     WHERE u.status != 'suspended'"
 );
 
 $leaderboard = [];

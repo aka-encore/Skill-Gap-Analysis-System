@@ -9,6 +9,7 @@ require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../includes/validators.php';
 
 require_role('faculty');
+check_suspended_status();
 
 $db = Database::getInstance();
 

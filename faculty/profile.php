@@ -160,7 +160,85 @@ include __DIR__ . '/../includes/header.php';
       </div>
     </div>
   </div>
+
+  <!-- ACCOUNT SETTINGS & APPEARANCE -->
+  <div class="row g-4 mt-2 mb-4">
+    <div class="col-lg-8">
+      <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100">
+        <h5 class="fw-bold mb-3 text-dark"><i class="fa-solid fa-user-gear text-teal me-2" style="color: #14B8A6;"></i>Account Information</h5>
+        <div class="row g-3 small">
+          <div class="col-md-6">
+            <span class="text-muted d-block mb-1">Username</span>
+            <strong class="text-dark"><?= htmlspecialchars($faculty['username']) ?></strong>
+          </div>
+          <div class="col-md-6">
+            <span class="text-muted d-block mb-1">Email Address</span>
+            <strong class="text-dark"><?= htmlspecialchars($faculty['email']) ?></strong>
+          </div>
+          <div class="col-md-6">
+            <span class="text-muted d-block mb-1">Employee Code</span>
+            <strong class="text-dark"><?= htmlspecialchars($faculty['employee_code'] ?? 'N/A') ?></strong>
+          </div>
+          <div class="col-md-6">
+            <span class="text-muted d-block mb-1">Designation</span>
+            <strong class="text-dark"><?= htmlspecialchars($faculty['designation'] ?? 'N/A') ?></strong>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100">
+        <h5 class="fw-bold mb-1 text-dark"><i class="bi bi-palette me-2 text-primary"></i>Appearance</h5>
+        <p class="small text-muted mb-3">Choose your preferred display mode across all pages.</p>
+
+        <div class="d-flex flex-column gap-2" id="appearanceOptionsList">
+          <label class="appearance-theme-option d-flex align-items-center gap-3 p-3 rounded-3" style="border: 1px solid var(--border); background: var(--bg-alt); cursor: pointer; transition: all 0.2s ease;" data-val="light">
+            <i class="bi bi-sun-fill text-warning fs-5"></i>
+            <span class="small fw-semibold text-dark">Light</span>
+          </label>
+          <label class="appearance-theme-option d-flex align-items-center gap-3 p-3 rounded-3" style="border: 1px solid var(--border); background: var(--bg-alt); cursor: pointer; transition: all 0.2s ease;" data-val="dark">
+            <i class="bi bi-moon-stars-fill text-primary fs-5"></i>
+            <span class="small fw-semibold text-dark">Dark</span>
+          </label>
+          <label class="appearance-theme-option d-flex align-items-center gap-3 p-3 rounded-3" style="border: 1px solid var(--border); background: var(--bg-alt); cursor: pointer; transition: all 0.2s ease;" data-val="system">
+            <i class="bi bi-circle-half text-secondary fs-5"></i>
+            <span class="small fw-semibold text-dark">System (Auto)</span>
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
+
+<script>
+// Appearance Theme — synced with SkillBridgeTheme engine
+(function() {
+    var saved = (window.SkillBridgeTheme ? window.SkillBridgeTheme.get() : null) || localStorage.getItem('skillbridge_theme') || 'system';
+    var options = document.querySelectorAll('.appearance-theme-option');
+    function highlightSelected(selectedVal) {
+        options.forEach(function(l) {
+            var isSelected = l.getAttribute('data-val') === selectedVal;
+            l.style.borderColor = isSelected ? 'var(--primary)' : 'var(--border)';
+            l.style.background = isSelected ? 'var(--primary-light)' : 'var(--bg-alt)';
+        });
+    }
+    highlightSelected(saved);
+    options.forEach(function(label) {
+        label.addEventListener('click', function() {
+            var val = label.getAttribute('data-val');
+            highlightSelected(val);
+            if (window.SkillBridgeTheme) {
+                window.SkillBridgeTheme.set(val);
+            } else {
+                localStorage.setItem('skillbridge_theme', val);
+                var resolved = val === 'system' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : val;
+                document.documentElement.setAttribute('data-theme', resolved);
+            }
+        });
+    });
+})();
+</script>
 
 <!-- EDIT FACULTY MODAL -->
 <div class="modal fade" id="editFacultyModal" tabindex="-1" aria-hidden="true">

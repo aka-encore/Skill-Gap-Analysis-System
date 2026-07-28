@@ -9,6 +9,7 @@ require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/functions.php';
 
 require_role('faculty');
+check_suspended_status();
 
 $facultyId = $_SESSION['profile_id'];
 $db = Database::getInstance();

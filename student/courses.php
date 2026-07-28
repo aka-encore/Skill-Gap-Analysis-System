@@ -9,6 +9,7 @@ require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/functions.php';
 
 require_role('student');
+check_suspended_status();
 
 $studentId = $_SESSION['profile_id'];
 $userId    = $_SESSION['user_id'];

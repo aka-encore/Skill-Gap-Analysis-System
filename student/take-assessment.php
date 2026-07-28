@@ -10,6 +10,7 @@ require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../includes/validators.php';
 
 require_role('student');
+check_suspended_status();
 
 $studentId = $_SESSION['profile_id'];
 $assessmentId = (int)($_GET['id'] ?? $_POST['assessment_id'] ?? 0);

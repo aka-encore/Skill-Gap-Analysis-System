@@ -33,8 +33,16 @@ $currentUser = get_logged_in_user();
     <!-- Early FOUC Prevention Theme Engine & Base URL -->
     <script>
     window.BASE_URL = '<?= BASE_URL ?>';
+    window.SkillBridgeSessionTheme = '<?= is_logged_in() ? ($_SESSION['user_theme'] ?? "system") : "" ?>';
     (function() {
-        var savedTheme = localStorage.getItem('skillbridge_theme') || 'system';
+        <?php if (is_logged_in()): ?>
+            var savedTheme = '<?= $_SESSION['user_theme'] ?? $_COOKIE['skillbridge_theme'] ?? 'system' ?>';
+            if (savedTheme === 'system') {
+                savedTheme = localStorage.getItem('skillbridge_theme') || 'system';
+            }
+        <?php else: ?>
+            var savedTheme = 'light';
+        <?php endif; ?>
         var resolvedTheme = savedTheme;
         if (savedTheme === 'system') {
             resolvedTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';

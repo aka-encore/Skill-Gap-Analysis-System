@@ -215,12 +215,15 @@ if (!empty($activeDates)) {
     }
 }
 
-// Dynamic Cohort Leaderboard Rank Calculation
+// Dynamic Cohort Leaderboard Rank Calculation (EXCLUDING SUSPENDED)
 $cohortRank = 1;
 $rankRows = $db->fetchAll(
-    "SELECT student_id, ROUND(AVG(score_percentage), 1) as avg_p 
-     FROM assessment_results 
-     GROUP BY student_id 
+    "SELECT ar.student_id, ROUND(AVG(ar.score_percentage), 1) as avg_p 
+     FROM assessment_results ar
+     JOIN students s ON ar.student_id = s.id
+     JOIN users u ON s.user_id = u.id
+     WHERE u.status != 'suspended'
+     GROUP BY ar.student_id 
      ORDER BY avg_p DESC"
 );
 foreach ($rankRows as $rIdx => $rRow) {

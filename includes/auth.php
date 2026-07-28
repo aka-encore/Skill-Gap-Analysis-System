@@ -82,6 +82,7 @@ function login_user(array $user, bool $remember = false): void {
     $_SESSION['username'] = $user['username'];
     $_SESSION['user_email'] = $user['email'];
     $_SESSION['user_role'] = $user['role'];
+    $_SESSION['user_theme'] = $user['theme'] ?? 'system';
     $_SESSION['last_activity'] = time();
 
     // Fetch entity specific profile ID
@@ -161,4 +162,79 @@ function check_remember_token(): bool {
         }
     }
     return false;
+}
+
+/**
+ * Check if the currently logged in user is suspended
+ */
+function is_suspended(): bool {
+    if (session_status() === PHP_SESSION_NONE) {
+        @session_start();
+    }
+    if (!isset($_SESSION['user_id'])) {
+        return false;
+    }
+    
+    // Admins are never suspended
+    if (($_SESSION['user_role'] ?? '') === 'admin') {
+        return false;
+    }
+    
+    $db = Database::getInstance();
+    $user = $db->fetch("SELECT status FROM users WHERE id = ?", [$_SESSION['user_id']]);
+    return ($user && strtolower($user['status'] ?? '') === 'suspended');
+}
+
+/**
+ * Block execution and show suspension warning if user is suspended
+ */
+function check_suspended_status(): void {
+    if (is_suspended()) {
+        // Detect if AJAX or API action
+        $isAjax = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') 
+                  || isset($_GET['action']) 
+                  || isset($_POST['action']) 
+                  || (isset($_GET['action_type']) || isset($_POST['action_type']))
+                  || (isset($_SERVER['CONTENT_TYPE']) && strpos(strtolower($_SERVER['CONTENT_TYPE']), 'application/json') !== false);
+                  
+        if ($isAjax) {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'error' => 'Your account has been temporarily suspended by the administrator. Learning activities are currently unavailable.']);
+            exit;
+        }
+
+        $pageTitle = "Account Suspended - SkillBridge";
+        include __DIR__ . '/header.php';
+        ?>
+        <div class="container py-5 my-5">
+            <div class="row justify-content-center">
+                <div class="col-lg-6 text-center">
+                    <div class="card border-0 shadow-sm rounded-4 p-5 bg-white">
+                        <div class="text-danger mb-4">
+                            <i class="bi bi-shield-slash-fill" style="font-size: 5rem;"></i>
+                        </div>
+                        <h2 class="fw-bold text-dark mb-2">Account Suspended</h2>
+                        <p class="text-secondary mb-4">
+                            Your account has been temporarily suspended by the administrator.
+                            <br>
+                            Learning activities are currently unavailable.
+                            <br><br>
+                            Please contact your administrator for further assistance.
+                        </p>
+                        <div class="d-flex justify-content-center gap-3">
+                            <a href="<?= BASE_URL ?>student/dashboard.php" class="btn btn-primary bg-gradient-primary border-0 rounded-pill px-4 py-2 fw-semibold shadow-xs text-white text-decoration-none">
+                                Back to Dashboard
+                            </a>
+                            <a href="mailto:admin@skillbridge.edu" class="btn btn-outline-secondary rounded-pill px-4 py-2 fw-semibold text-decoration-none">
+                                Contact Administrator
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <?php
+        include __DIR__ . '/footer.php';
+        exit;
+    }
 }

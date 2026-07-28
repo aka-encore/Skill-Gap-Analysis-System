@@ -40,10 +40,6 @@ if (!file_exists(__DIR__ . '/../uploads/avatars/' . $avatar) || empty($avatar)) 
 
         <!-- Right Controls -->
         <div class="ms-auto d-flex align-items-center gap-2">
-            <!-- Theme Toggle Button -->
-            <button class="btn-header-action theme-toggle-btn" type="button" id="navbarThemeToggle" title="Toggle Theme" aria-label="Toggle Theme">
-                <i class="bi bi-sun-fill fs-6"></i>
-            </button>
 
             <!-- Notification Dropdown -->
             <div class="dropdown">

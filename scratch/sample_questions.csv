@@ -1,0 +1,5 @@
+Assessment Title,Category,Skill,Difficulty Level,Question Type,Question Text,Option A,Option B,Option C,Option D,Correct Answer,Explanation,Marks,Status
+PHP 8 Core Concepts & PDO Mastery,Backend,PHP 8 Web Development,intermediate,MCQ,Which operator is used for spaceship comparison in PHP 8?,<,>,<=>,==,C,Spaceship comparison operator is <=>,2,active
+MySQL Relational Schema & SQL Querying,Database,MySQL Database Design,intermediate,MCQ,What does DDL stand for in SQL?,Data Definition Language,Data Design Language,Data Dual Language,Dynamic Data Link,A,DDL stands for Data Definition Language.,2,active
+PHP 8 Core Concepts & PDO Mastery,Backend,PHP 8 Web Development,intermediate,MCQ,Which operator is used for spaceship comparison in PHP 8?,<,>,<=>,==,C,Spaceship comparison operator is <=>,2,active
+Bootstrap 5 Responsive Grid & UI Components,Frontend,Bootstrap 5 Framework,easy,MCQ,Which class is used for container fluid?,container,container-fluid,row,col,X,Invalid Correct Option,1,active

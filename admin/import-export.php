@@ -160,6 +160,11 @@ include __DIR__ . '/../includes/header.php';
                     <i class="bi bi-person-badge me-1.5"></i> Faculty Members Import & Export
                 </a>
             </li>
+            <li class="nav-item">
+                <a class="nav-link rounded-pill py-2.5 fw-semibold" href="<?= BASE_URL ?>admin/questions-import-export.php">
+                    <i class="bi bi-question-circle me-1.5"></i> Questions Import & Export
+                </a>
+            </li>
         </ul>
     </div>
 </div>
