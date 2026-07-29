@@ -45,7 +45,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && isset($_POST['submit_fee
 
         // Build mailto URL for user's default email client
         $subject = "SkillBridge Feedback - " . $category;
-        $stars = str_repeat('★', $rating);
+        $stars = str_repeat('*', $rating);
         $dateTime = date('Y-m-d H:i:s');
         $userEmailAddr = $faculty['email'] ?? '';
 

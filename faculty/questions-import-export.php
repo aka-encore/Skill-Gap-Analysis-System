@@ -390,11 +390,11 @@ include __DIR__ . '/../includes/header.php';
                             <label class="form-label fw-semibold small text-secondary">Difficulty Level</label>
                             <select name="difficulty" class="saas-form-select w-100">
                                 <option value="all">All Difficulties</option>
-                                <option value="beginner">Beginner</option>
-                                <option value="easy">Easy</option>
-                                <option value="intermediate">Intermediate</option>
-                                <option value="advanced">Advanced</option>
-                                <option value="expert">Expert</option>
+                                <option value="beginner">Beginner (Level 1)</option>
+                                <option value="easy">Elementary (Level 2)</option>
+                                <option value="intermediate">Intermediate (Level 3)</option>
+                                <option value="advanced">Advanced (Level 4)</option>
+                                <option value="expert">Expert (Level 5)</option>
                             </select>
                         </div>
 

@@ -322,13 +322,13 @@ include __DIR__ . '/../includes/header.php';
                                         <strong class="me-1"><?= $optKey ?>.</strong> <?= htmlspecialchars($optVal) ?>
                                     </div>
                                     <div>
-                                        <?php if ($isUserChoice && $isCorrectChoice): ?>
-                                            <span class="badge bg-white text-success ms-2">Your Answer ✓</span>
-                                        <?php elseif ($isUserChoice && !$isCorrectChoice): ?>
-                                            <span class="badge bg-white text-danger ms-2">Your Choice ✗</span>
-                                        <?php elseif ($isCorrectChoice): ?>
-                                            <span class="badge bg-white text-success ms-2">Correct Answer ✓</span>
-                                        <?php endif; ?>
+                                         <?php if ($isUserChoice && $isCorrectChoice): ?>
+                                             <span class="badge bg-white text-success ms-2">Your Answer <i class="fa-solid fa-circle-check ms-1"></i></span>
+                                         <?php elseif ($isUserChoice && !$isCorrectChoice): ?>
+                                             <span class="badge bg-white text-danger ms-2">Your Choice <i class="fa-solid fa-circle-xmark ms-1"></i></span>
+                                         <?php elseif ($isCorrectChoice): ?>
+                                             <span class="badge bg-white text-success ms-2">Correct Answer <i class="fa-solid fa-circle-check ms-1"></i></span>
+                                         <?php endif; ?>
                                     </div>
                                 </div>
                             </div>

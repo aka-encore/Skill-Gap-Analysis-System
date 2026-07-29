@@ -256,7 +256,7 @@ $pageTitle = "Verify Email – SkillBridge";
           <!-- Buttons: Verify OTP & Resend OTP -->
           <div class="d-grid gap-2">
             <button type="submit" id="verifyBtn" class="btn btn-saas-primary py-2.5">
-              <i class="fa-solid fa-shield-check me-1.5"></i> Verify OTP
+              <i class="fa-solid fa-circle-check me-1.5"></i> Verify OTP
             </button>
           </div>
         </form>

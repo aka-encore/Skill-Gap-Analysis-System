@@ -35,9 +35,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $title = trim($_POST['title'] ?? '');
         $description = trim($_POST['description'] ?? '');
         $skillId = (int)($_POST['skill_id'] ?? 0);
-        $duration = (int)($_POST['duration_minutes'] ?? 20);
-        $passingMarks = (int)($_POST['passing_marks'] ?? 6);
-        $totalMarks = (int)($_POST['total_marks'] ?? 10);
+        $duration = (int)($_POST['duration_minutes'] ?? 25);
+        $passingMarks = 20;
+        $totalMarks = 25;
         $difficulty = trim($_POST['difficulty_level'] ?? 'intermediate');
         $status = trim($_POST['status'] ?? 'active');
 
@@ -101,11 +101,20 @@ include __DIR__ . '/../includes/header.php';
                     </select>
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label fw-semibold small text-secondary">Difficulty Level</label>
-                    <select name="difficulty_level" class="saas-form-select w-100">
-                        <option value="beginner" <?= $assessment['difficulty_level'] === 'beginner' ? 'selected' : '' ?>>Beginner</option>
-                        <option value="intermediate" <?= $assessment['difficulty_level'] === 'intermediate' ? 'selected' : '' ?>>Intermediate</option>
-                        <option value="advanced" <?= $assessment['difficulty_level'] === 'advanced' ? 'selected' : '' ?>>Advanced</option>
+                    <label class="form-label fw-semibold small text-secondary">Difficulty Level *</label>
+                    <select name="difficulty_level" class="saas-form-select w-100" required>
+                        <?php
+                        $diffs = [
+                            'beginner' => 'Beginner (Level 1)',
+                            'easy' => 'Elementary (Level 2)',
+                            'intermediate' => 'Intermediate (Level 3)',
+                            'advanced' => 'Advanced (Level 4)',
+                            'expert' => 'Expert (Level 5)'
+                        ];
+                        foreach ($diffs as $val => $label):
+                        ?>
+                            <option value="<?= $val ?>" <?= $assessment['difficulty_level'] === $val ? 'selected' : '' ?>><?= htmlspecialchars($label) ?></option>
+                        <?php endforeach; ?>
                     </select>
                 </div>
             </div>
@@ -116,12 +125,14 @@ include __DIR__ . '/../includes/header.php';
                     <input type="number" name="duration_minutes" class="saas-form-control w-100" min="5" max="180" value="<?= $assessment['duration_minutes'] ?>" required>
                 </div>
                 <div class="col-md-4">
-                    <label class="form-label fw-semibold small text-secondary">Passing Marks</label>
-                    <input type="number" name="passing_marks" class="saas-form-control w-100" min="1" max="100" value="<?= $assessment['passing_marks'] ?>" required>
+                    <label class="form-label fw-semibold small text-secondary">Passing Marks (Read-only)</label>
+                    <input type="number" name="passing_marks" class="saas-form-control w-100 bg-light text-muted" value="20" readonly required>
+                    <div class="text-muted" style="font-size: 10px; margin-top: 4px;">Fixed at 80% passing threshold.</div>
                 </div>
                 <div class="col-md-4">
-                    <label class="form-label fw-semibold small text-secondary">Total Marks</label>
-                    <input type="number" name="total_marks" class="saas-form-control w-100" min="1" max="100" value="<?= $assessment['total_marks'] ?>" required>
+                    <label class="form-label fw-semibold small text-secondary">Total Marks (Read-only)</label>
+                    <input type="number" name="total_marks" class="saas-form-control w-100 bg-light text-muted" value="25" readonly required>
+                    <div class="text-muted" style="font-size: 10px; margin-top: 4px;">Fixed to match 25 questions count.</div>
                 </div>
             </div>
 

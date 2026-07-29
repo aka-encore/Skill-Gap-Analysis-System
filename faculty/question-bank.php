@@ -18,11 +18,14 @@ $assessmentId = (int)($_GET['assessment_id'] ?? $_POST['assessment_id'] ?? 0);
 
 // Fetch ALL assessments for dropdown (Shared Academic Repository)
 $assessmentsList = $db->fetchAll(
-    "SELECT a.*, f.first_name as creator_first, f.last_name as creator_last 
+    "SELECT a.*, f.first_name as creator_first, f.last_name as creator_last, s.name as skill_name, s.category as skill_category
      FROM assessments a 
      LEFT JOIN faculty f ON a.created_by_faculty_id = f.id 
+     LEFT JOIN skills s ON a.skill_id = s.id
      ORDER BY a.title ASC"
 );
+
+$skillsList = $db->fetchAll("SELECT * FROM skills ORDER BY name ASC");
 
 // Default to first assessment if not specified
 if ($assessmentId === 0 && !empty($assessmentsList)) {
@@ -33,7 +36,7 @@ $currentAssessment = null;
 $isAssessmentOwner = false;
 if ($assessmentId > 0) {
     $currentAssessment = $db->fetch(
-        "SELECT a.*, s.name as skill_name, f.first_name as creator_first, f.last_name as creator_last 
+        "SELECT a.*, s.name as skill_name, s.category as skill_category, f.first_name as creator_first, f.last_name as creator_last 
          FROM assessments a 
          JOIN skills s ON a.skill_id = s.id 
          LEFT JOIN faculty f ON a.created_by_faculty_id = f.id 
@@ -48,18 +51,27 @@ if ($assessmentId > 0) {
 $error = '';
 $success = '';
 
-// Question Actions: Add / Edit / Delete (Ownership Enforced)
+// Question Actions: Add / Edit / Delete (Ownership Enforced per-question assessment)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type'])) {
     if (!verify_csrf_token()) {
         $error = 'Invalid security token.';
-    } elseif (!$isAssessmentOwner) {
-        $error = 'Unauthorized: You can only add, edit, or delete questions for assessments that you created.';
     } else {
+        // Re-resolve ownership from the posted assessment_id (supports cross-assessment actions)
+        $postedAssessmentId = (int)($_POST['assessment_id'] ?? $assessmentId);
+        $postedAssessment = $db->fetch(
+            "SELECT * FROM assessments WHERE id = ?",
+            [$postedAssessmentId]
+        );
+        $canActOnPosted = ($postedAssessment && (int)$postedAssessment['created_by_faculty_id'] === (int)$facultyId);
+
+        if (!$canActOnPosted) {
+            $error = 'Unauthorized: You can only modify questions for assessments that you created.';
+        } else {
         $action = $_POST['action_type'];
         $qId = (int)($_POST['question_id'] ?? 0);
 
         if ($action === 'delete') {
-            $db->delete('assessment_questions', 'id = ? AND assessment_id = ?', [$qId, $assessmentId]);
+            $db->delete('assessment_questions', 'id = ? AND assessment_id = ?', [$qId, $postedAssessmentId]);
             $success = 'Question deleted successfully.';
         } elseif (in_array($action, ['create', 'update'])) {
             $questionText = trim($_POST['question_text'] ?? '');
@@ -68,51 +80,164 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type'])) {
             $optC = trim($_POST['option_c'] ?? '');
             $optD = trim($_POST['option_d'] ?? '');
             $correctOpt = strtoupper(trim($_POST['correct_option'] ?? 'A'));
-            $marks = (int)($_POST['marks'] ?? 1);
+            $marks = 1; // 1 mark per question to remain consistent with Student Assessments
             $category = trim($_POST['category'] ?? 'Core Concepts');
 
-            if (empty($questionText) || empty($optA) || empty($optB) || empty($optC) || empty($optD)) {
-                $error = 'Question text and all four options (A, B, C, D) are required.';
+            // Validate that the active assessment conforms to the category/skill/difficulty rules
+            if ($assessmentId <= 0 || !$currentAssessment) {
+                $error = 'Assessment is required and must be valid.';
             } else {
-                if ($action === 'create') {
-                    $db->insert('assessment_questions', [
-                        'assessment_id' => $assessmentId,
-                        'question_text' => $questionText,
-                        'option_a' => $optA,
-                        'option_b' => $optB,
-                        'option_c' => $optC,
-                        'option_d' => $optD,
-                        'correct_option' => $correctOpt,
-                        'marks' => $marks,
-                        'category' => $category
-                    ]);
-                    $success = 'Question added to bank.';
+                $skillCategory = trim($currentAssessment['skill_category'] ?? '');
+                $skillId = (int)($currentAssessment['skill_id'] ?? 0);
+                $diffLevel = trim($currentAssessment['difficulty_level'] ?? '');
+
+                if (empty($skillCategory)) {
+                    $error = 'Category is required.';
+                } elseif ($skillId <= 0) {
+                    $error = 'Skill is required.';
+                } elseif (empty($diffLevel)) {
+                    $error = 'Difficulty Level is required.';
+                }
+            }
+
+            if (empty($error)) {
+                if (empty($questionText) || empty($optA) || empty($optB) || empty($optC) || empty($optD)) {
+                    $error = 'Question text and all four options (A, B, C, D) are required.';
                 } else {
-                    $db->update('assessment_questions', [
-                        'question_text' => $questionText,
-                        'option_a' => $optA,
-                        'option_b' => $optB,
-                        'option_c' => $optC,
-                        'option_d' => $optD,
-                        'correct_option' => $correctOpt,
-                        'marks' => $marks,
-                        'category' => $category
-                    ], 'id = ? AND assessment_id = ?', [$qId, $assessmentId]);
-                    $success = 'Question updated.';
+                    if ($action === 'create') {
+                        $db->insert('assessment_questions', [
+                            'assessment_id' => $assessmentId,
+                            'question_text' => $questionText,
+                            'option_a' => $optA,
+                            'option_b' => $optB,
+                            'option_c' => $optC,
+                            'option_d' => $optD,
+                            'correct_option' => $correctOpt,
+                            'marks' => $marks,
+                            'category' => $category
+                        ]);
+                        $success = 'Question added to bank.';
+                    } else {
+                        $db->update('assessment_questions', [
+                            'question_text' => $questionText,
+                            'option_a' => $optA,
+                            'option_b' => $optB,
+                            'option_c' => $optC,
+                            'option_d' => $optD,
+                            'correct_option' => $correctOpt,
+                            'marks' => $marks,
+                            'category' => $category
+                        ], 'id = ? AND assessment_id = ?', [$qId, $assessmentId]);
+                        $success = 'Question updated.';
+                    }
                 }
             }
         }
+        } // end canActOnPosted
     }
 }
 
-$questions = [];
-if ($assessmentId > 0) {
-    $questions = $db->fetchAll("SELECT * FROM assessment_questions WHERE assessment_id = ? ORDER BY id ASC", [$assessmentId]);
-}
+$questions = $db->fetchAll(
+    "SELECT q.*,
+            a.title              AS assessment_title,
+            a.difficulty_level   AS assessment_difficulty,
+            a.created_by_faculty_id,
+            a.skill_id,
+            s.name               AS skill_name,
+            s.category           AS skill_category
+     FROM assessment_questions q
+     JOIN assessments a ON q.assessment_id = a.id
+     JOIN skills s ON a.skill_id = s.id
+     ORDER BY q.id ASC"
+);
+
+$categoriesList = $db->fetchAll("SELECT DISTINCT category FROM skills ORDER BY category ASC");
 
 $pageTitle = "Question Bank - Faculty Portal";
 include __DIR__ . '/../includes/header.php';
 ?>
+<style>
+  .questions-filter-toolbar {
+    background: var(--bg-card, #FFFFFF);
+    border: 1px solid var(--border, #E2E8F0);
+    border-radius: 16px;
+    padding: 16px 20px;
+    margin-bottom: 1.5rem;
+  }
+  [data-theme="dark"] .questions-filter-toolbar {
+    background: var(--bg-card, #23202E);
+    border-color: var(--border, #383347);
+  }
+  .filter-toolbar-search {
+    position: relative;
+    flex: 1 1 200px;
+  }
+  .filter-toolbar-search .search-icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-placeholder, #94A3B8);
+    font-size: 0.82rem;
+    pointer-events: none;
+  }
+  .filter-toolbar-search input {
+    padding-left: 36px;
+    border-radius: 10px;
+    border: 1.5px solid var(--border, #E2E8F0);
+    background: var(--bg-input, #F8FAFC);
+    color: var(--text-heading, #021024);
+    height: 38px;
+    font-size: 0.87rem;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    width: 100%;
+  }
+  .filter-toolbar-search input:focus {
+    outline: none;
+    border-color: var(--primary, #26658C);
+    box-shadow: 0 0 0 3px rgba(38,101,140,0.12);
+    background: var(--bg-card, #FFFFFF);
+  }
+  [data-theme="dark"] .filter-toolbar-search input {
+    background: var(--bg-muted, #2D293B);
+    border-color: var(--border, #383347);
+    color: var(--text-heading, #FFFFFF);
+  }
+  [data-theme="dark"] .filter-toolbar-search input:focus {
+    background: var(--bg-card, #23202E);
+  }
+  .filter-select {
+    height: 38px;
+    border-radius: 10px;
+    border: 1.5px solid var(--border, #E2E8F0);
+    background: var(--bg-input, #F8FAFC);
+    color: var(--text-heading, #021024);
+    font-size: 0.87rem;
+    font-weight: 500;
+    padding: 0 32px 0 12px;
+    min-width: 130px;
+    cursor: pointer;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24'%3E%3Cpath fill='%2394A3B8' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+  }
+  .filter-select:focus {
+    outline: none;
+    border-color: var(--primary, #26658C);
+    box-shadow: 0 0 0 3px rgba(38,101,140,0.12);
+  }
+  .filter-select:hover {
+    border-color: var(--primary, #26658C);
+  }
+  [data-theme="dark"] .filter-select {
+    background-color: var(--bg-muted, #2D293B);
+    border-color: var(--border, #383347);
+    color: var(--text-heading, #FFFFFF);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24'%3E%3Cpath fill='%23E6E4DD' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+  }
+</style>
 
 <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
     <div>
@@ -139,54 +264,62 @@ include __DIR__ . '/../includes/header.php';
     <div class="alert alert-success py-2.5 px-3 small border-0 rounded-3 mb-4"><i class="bi bi-check-circle me-1"></i> <?= htmlspecialchars($success) ?></div>
 <?php endif; ?>
 
-<!-- Assessment Selector Dropdown -->
-<div class="saas-card mb-4">
-    <div class="card-body p-3">
-        <form action="<?= BASE_URL ?>faculty/question-bank.php" method="GET" class="row g-2 align-items-center">
-            <div class="col-md-9">
-                <label class="form-label small text-muted mb-1 fw-semibold">Active Assessment Context</label>
-                <select name="assessment_id" class="saas-form-select w-100" onchange="this.form.submit()">
-                    <?php if (empty($assessmentsList)): ?>
-                        <option value="">-- No Assessments Created Yet --</option>
-                    <?php else: ?>
-                        <?php foreach ($assessmentsList as $a): 
-                            $isOwner = ((int)$a['created_by_faculty_id'] === (int)$facultyId);
-                            $creatorName = trim(($a['creator_first'] ?? '') . ' ' . ($a['creator_last'] ?? ''));
-                            if (empty($creatorName)) $creatorName = 'Faculty';
-                        ?>
-                            <option value="<?= $a['id'] ?>" <?= $assessmentId == $a['id'] ? 'selected' : '' ?>>
-                                <?= htmlspecialchars($a['title']) ?> <?= $isOwner ? ' (Mine)' : ' (Prof. ' . htmlspecialchars($creatorName) . ')' ?>
-                            </option>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
-                </select>
-            </div>
-            <div class="col-md-3 d-flex align-items-end">
-                <a href="<?= BASE_URL ?>faculty/assessment-create.php" class="btn btn-outline-primary btn-sm w-100 rounded-pill py-2">Create New Test</a>
-            </div>
-        </form>
+<!-- Questions Filter Toolbar -->
+<div class="questions-filter-toolbar">
+    <div class="d-flex flex-wrap align-items-center gap-2">
+
+        <!-- Search -->
+        <div class="filter-toolbar-search flex-grow-1" style="min-width: 200px;">
+            <i class="bi bi-search search-icon"></i>
+            <input type="text" id="questionSearchInput" placeholder="Search questions..." oninput="applyQuestionFilters()" autocomplete="off">
+        </div>
+
+        <!-- Category -->
+        <select class="filter-select" id="categoryFilterSelect" onchange="applyQuestionFilters()">
+            <option value="all">All Categories</option>
+            <option value="frontend development">Frontend Development</option>
+            <option value="backend development">Backend Development</option>
+            <option value="full stack development">Full Stack Development</option>
+        </select>
+
+        <!-- Skill -->
+        <select class="filter-select" id="skillFilterSelect" onchange="applyQuestionFilters()">
+            <option value="all">All Skills</option>
+            <?php foreach ($skillsList as $sk): ?>
+                <option value="<?= $sk['id'] ?>"><?= htmlspecialchars($sk['name']) ?></option>
+            <?php endforeach; ?>
+        </select>
+
+        <!-- Difficulty -->
+        <select class="filter-select" id="difficultyFilterSelect" onchange="applyQuestionFilters()">
+            <option value="all">All Difficulties</option>
+            <option value="beginner">Beginner (Level 1)</option>
+            <option value="easy">Elementary (Level 2)</option>
+            <option value="intermediate">Intermediate (Level 3)</option>
+            <option value="advanced">Advanced (Level 4)</option>
+            <option value="expert">Expert (Level 5)</option>
+        </select>
+
     </div>
 </div>
 
-<?php if (!$currentAssessment): ?>
+
+<?php if (empty($questions)): ?>
     <div class="saas-card py-5">
         <div class="saas-empty-state">
             <div class="saas-empty-icon"><i class="bi bi-journal-x"></i></div>
-            <h5 class="fw-bold text-dark mb-1">No Assessment Selected</h5>
-            <p class="text-muted small mb-0">Please select an assessment or create a new one to add questions.</p>
+            <h5 class="fw-bold text-dark mb-1">No Questions Yet</h5>
+            <p class="text-muted small mb-0">Create your first assessment and add questions to build the bank.</p>
         </div>
     </div>
 <?php else: ?>
+
     <!-- Questions List Table -->
     <div class="saas-card overflow-hidden">
         <div class="saas-card-header flex-wrap gap-2">
             <div>
-                <h5 class="fw-bold text-dark mb-0"><?= htmlspecialchars($currentAssessment['title']) ?></h5>
-                <span class="small text-muted">Skill: <?= htmlspecialchars($currentAssessment['skill_name']) ?> &bull; Questions: <?= count($questions) ?></span>
-            </div>
-            <div class="position-relative" style="min-width: 220px;">
-                <i class="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></i>
-                <input type="text" class="saas-form-control ps-5 py-1.5 w-100" placeholder="Search questions..." data-search-table="questionsTable">
+                <h5 class="fw-bold text-dark mb-0"><i class="bi bi-table me-2 text-primary"></i>Shared Question Repository</h5>
+                <span class="small text-muted">Total in Bank: <?= count($questions) ?> questions &nbsp;|&nbsp; <span id="qbResultCount" class="fw-semibold text-muted"><?= count($questions) ?> questions</span> shown</span>
             </div>
         </div>
         <div class="card-body p-0">
@@ -217,12 +350,22 @@ include __DIR__ . '/../includes/header.php';
                                 </td>
                             </tr>
                         <?php else: ?>
-                            <?php foreach ($questions as $idx => $q): ?>
-                                <tr>
-                                    <td class="ps-4 fw-bold text-muted"><?= $idx + 1 ?></td>
+                            <?php foreach ($questions as $idx => $q):
+                                $qOwner = ((int)$q['created_by_faculty_id'] === (int)$facultyId);
+                            ?>
+                                <tr class="question-row"
+                                    data-category="<?= htmlspecialchars(strtolower($q['skill_category'])) ?>"
+                                    data-skill-id="<?= (int)$q['skill_id'] ?>"
+                                    data-difficulty="<?= htmlspecialchars($q['assessment_difficulty']) ?>"
+                                    data-assessment-id="<?= (int)$q['assessment_id'] ?>"
+                                    data-text="<?= htmlspecialchars(strtolower($q['question_text'] . ' ' . $q['option_a'] . ' ' . $q['option_b'] . ' ' . $q['option_c'] . ' ' . $q['option_d'] . ' ' . $q['category'] . ' ' . $q['assessment_title'])) ?>">
+                                    <td class="ps-4 fw-bold text-muted row-index"><?= $idx + 1 ?></td>
                                     <td>
                                         <strong class="text-dark d-block mb-1"><?= htmlspecialchars($q['question_text']) ?></strong>
-                                        <span class="badge bg-light text-dark border" style="font-size: 10px;"><?= htmlspecialchars($q['category']) ?></span>
+                                        <div class="d-flex flex-wrap gap-1 align-items-center mt-1">
+                                            <span class="badge bg-light text-dark border" style="font-size: 10px;"><?= htmlspecialchars($q['category']) ?></span>
+                                            <span class="badge bg-secondary-subtle text-secondary border" style="font-size: 10px;"><i class="bi bi-journal-text me-1"></i><?= htmlspecialchars($q['assessment_title']) ?></span>
+                                        </div>
                                     </td>
                                     <td class="small">
                                         <div class="text-muted">A: <?= htmlspecialchars($q['option_a']) ?></div>
@@ -235,13 +378,13 @@ include __DIR__ . '/../includes/header.php';
                                     </td>
                                     <td><span class="fw-bold text-dark"><?= $q['marks'] ?></span></td>
                                     <td class="pe-4 text-end">
-                                        <?php if ($isAssessmentOwner): ?>
+                                        <?php if ($qOwner): ?>
                                             <button class="btn btn-outline-warning btn-sm rounded-circle me-1" title="Edit Question" onclick='editQuestion(<?= json_encode($q) ?>)'>
                                                 <i class="bi bi-pencil"></i>
                                             </button>
                                             <form action="<?= BASE_URL ?>faculty/question-bank.php" method="POST" class="d-inline" onsubmit="return confirm('Delete this question?')">
                                                 <?= csrf_field() ?>
-                                                <input type="hidden" name="assessment_id" value="<?= $assessmentId ?>">
+                                                <input type="hidden" name="assessment_id" value="<?= (int)$q['assessment_id'] ?>">
                                                 <input type="hidden" name="action_type" value="delete">
                                                 <input type="hidden" name="question_id" value="<?= $q['id'] ?>">
                                                 <button type="submit" class="btn btn-outline-danger btn-sm rounded-circle" title="Delete Question">
@@ -314,8 +457,8 @@ include __DIR__ . '/../includes/header.php';
                             </select>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label fw-semibold small text-secondary">Marks</label>
-                            <input type="number" name="marks" id="qMarks" class="form-control" min="1" value="1" required>
+                            <label class="form-label fw-semibold small text-secondary">Marks (Read-only)</label>
+                            <input type="number" name="marks" id="qMarks" class="form-control bg-light text-muted" value="1" readonly required>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-semibold small text-secondary">Topic Category</label>
@@ -334,6 +477,7 @@ include __DIR__ . '/../includes/header.php';
 </div>
 
 <script>
+
 function resetQuestionForm() {
     document.getElementById('modalTitle').textContent = 'Add Question';
     document.getElementById('qActionType').value = 'create';
@@ -366,6 +510,60 @@ function editQuestion(q) {
     const modal = new bootstrap.Modal(document.getElementById('questionModal'));
     modal.show();
 }
+
+/* =========================================================
+   Question Bank — Client-Side Filter Engine
+   ========================================================= */
+function applyQuestionFilters() {
+    const searchVal = (document.getElementById('questionSearchInput')?.value  || '').toLowerCase().trim();
+    const catVal    = (document.getElementById('categoryFilterSelect')?.value  || 'all').toLowerCase();
+    const skillVal  = (document.getElementById('skillFilterSelect')?.value     || 'all');
+    const diffVal   = (document.getElementById('difficultyFilterSelect')?.value || 'all').toLowerCase();
+
+    const tbody = document.querySelector('table tbody');
+    if (!tbody) return;
+
+    const rows = Array.from(tbody.querySelectorAll('tr.question-row'));
+
+    // ---- Filter visibility ----
+    let visibleRows = [];
+    rows.forEach(row => {
+        const rowCat   = (row.dataset.category   || '').toLowerCase();
+        const rowSkill = (row.dataset.skillId    || '');
+        const rowDiff  = (row.dataset.difficulty || '').toLowerCase();
+        const rowText  = (row.dataset.text       || '').toLowerCase();
+
+        const matchSearch = !searchVal || rowText.includes(searchVal);
+        const matchCat    = catVal   === 'all' || rowCat   === catVal;
+        const matchSkill  = skillVal === 'all' || rowSkill === skillVal;
+        const matchDiff   = diffVal  === 'all' || rowDiff  === diffVal;
+
+        const visible = matchSearch && matchCat && matchSkill && matchDiff;
+        row.style.display = visible ? '' : 'none';
+        if (visible) visibleRows.push(row);
+    });
+
+    // ---- Re-number visible rows & update counter ----
+    visibleRows.forEach((row, idx) => {
+        const indexCell = row.querySelector('.row-index');
+        if (indexCell) indexCell.textContent = idx + 1;
+    });
+
+    // Update result counter badge if present
+    const counter = document.getElementById('qbResultCount');
+    if (counter) {
+        const total = rows.length;
+        const shown = visibleRows.length;
+        counter.textContent = shown === total ? `${total} questions` : `${shown} of ${total} questions`;
+        counter.classList.toggle('text-warning', shown < total);
+        counter.classList.toggle('text-muted',   shown === total);
+    }
+}
+
+// Auto-run on page load to handle pre-selected assessment filter
+document.addEventListener('DOMContentLoaded', function () {
+    applyQuestionFilters();
+});
 </script>
 
 <?php include __DIR__ . '/../includes/footer.php'; ?>

@@ -62,7 +62,7 @@ include __DIR__ . '/../includes/header.php';
                     <span class="badge bg-white-subtle text-white border border-white-subtle rounded-pill px-3 py-1.5 mb-2 small fw-semibold">
                         <i class="bi bi-mortarboard-fill me-1"></i> Employee Code: <?= htmlspecialchars($faculty['employee_code'] ?? 'FAC-001') ?>
                     </span>
-                    <h2 class="fw-bold mb-1">Welcome back, Prof. <?= htmlspecialchars($faculty['last_name'] ?? 'Faculty') ?>! 👋</h2>
+                    <h2 class="fw-bold mb-1">Welcome back, Prof. <?= htmlspecialchars($faculty['last_name'] ?? 'Faculty') ?>! <i class="fa-solid fa-hand text-warning ms-1"></i></h2>
                     <p class="mb-0 text-white-50"><?= htmlspecialchars($faculty['designation'] ?? 'Faculty') ?> &bull; Department of <?= htmlspecialchars($faculty['department'] ?? 'Academic') ?></p>
                 </div>
                 <div class="d-flex gap-2 flex-wrap">

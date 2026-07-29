@@ -814,37 +814,37 @@ function updateViolationCount(currentCount, msg) {
                 const description = parts.slice(1).join(':').trim();
                 
                 if (eventType === 'Tab Switch' || eventType === 'Window Focus Lost') {
-                    title = "⚠ Browser Tab Changed";
+                    title = '<i class="fa-solid fa-triangle-exclamation me-2"></i>Browser Tab Changed';
                     reason = "You switched to another browser tab or window.";
                 } else if (eventType === 'Full-screen Exit') {
-                    title = "⚠ Full Screen Exited";
+                    title = '<i class="fa-solid fa-triangle-exclamation me-2"></i>Full Screen Exited';
                     reason = "You exited Full Screen Mode.";
                 } else if (eventType === 'Face Missing') {
-                    title = "⚠ Face Not Detected";
+                    title = '<i class="fa-solid fa-triangle-exclamation me-2"></i>Face Not Detected';
                     reason = "No face was detected in the camera.";
                 } else if (eventType === 'Multiple Faces Detected') {
-                    title = "⚠ Multiple Faces";
+                    title = '<i class="fa-solid fa-triangle-exclamation me-2"></i>Multiple Faces';
                     reason = "More than one person was detected.";
                 } else if (eventType === 'Mobile Phone Detected') {
-                    title = "⚠ Mobile Phone Detected";
+                    title = '<i class="fa-solid fa-triangle-exclamation me-2"></i>Mobile Phone Detected';
                     reason = "A mobile phone was detected.";
                 } else if (eventType === 'Camera Disabled') {
-                    title = "⚠ Camera Disabled";
+                    title = '<i class="fa-solid fa-triangle-exclamation me-2"></i>Camera Disabled';
                     reason = "Camera feed stopped.";
                 } else if (eventType === 'Copy Attempt') {
-                    title = "⚠ Copy Attempt";
+                    title = '<i class="fa-solid fa-triangle-exclamation me-2"></i>Copy Attempt';
                     reason = "Copy operation is not allowed during the assessment.";
                 } else if (eventType === 'Paste Attempt') {
-                    title = "⚠ Paste Attempt";
+                    title = '<i class="fa-solid fa-triangle-exclamation me-2"></i>Paste Attempt';
                     reason = "Paste operation is not allowed during the assessment.";
                 } else if (eventType === 'Cut Attempt') {
-                    title = "⚠ Cut Attempt";
+                    title = '<i class="fa-solid fa-triangle-exclamation me-2"></i>Cut Attempt';
                     reason = "Cut operation is not allowed during the assessment.";
                 } else if (eventType === 'Developer Tools') {
-                    title = "⚠ Developer Tools";
+                    title = '<i class="fa-solid fa-triangle-exclamation me-2"></i>Developer Tools';
                     reason = "Developer tools were opened.";
                 } else {
-                    title = "⚠ " + eventType;
+                    title = '<i class="fa-solid fa-triangle-exclamation me-2"></i>' + eventType;
                     reason = description;
                 }
             }
@@ -854,7 +854,7 @@ function updateViolationCount(currentCount, msg) {
         const warningTitleEl = document.querySelector("#cheatWarningModal h2");
         if (warningTitleEl) {
             warningTitleEl.className = "text-danger fw-bold mb-2";
-            warningTitleEl.textContent = title;
+            warningTitleEl.innerHTML = title;
         }
         
         const warningMsgEl = document.getElementById("cheatWarningMsg");

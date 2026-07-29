@@ -118,15 +118,15 @@ $pageTitle = "Sign In – SkillBridge";
       <?php $activeRole = $_POST['selected_role'] ?? 'student'; ?>
       <div class="role-selector" id="roleSelector">
         <button type="button" class="role-tab <?= $activeRole === 'student' ? 'active' : '' ?>" data-role="student" onclick="selectRole('student', this)">
-          <span>👨‍🎓</span>
+          <i class="fa-solid fa-user-graduate"></i>
           <span>Student</span>
         </button>
         <button type="button" class="role-tab <?= $activeRole === 'faculty' ? 'active' : '' ?>" data-role="faculty" onclick="selectRole('faculty', this)">
-          <span>👨‍🏫</span>
+          <i class="fa-solid fa-chalkboard-user"></i>
           <span>Faculty</span>
         </button>
         <button type="button" class="role-tab <?= $activeRole === 'admin' ? 'active' : '' ?>" data-role="admin" onclick="selectRole('admin', this)">
-          <span>👨‍💼</span>
+          <i class="fa-solid fa-user-shield"></i>
           <span>Admin</span>
         </button>
       </div>

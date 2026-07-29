@@ -184,6 +184,10 @@ if (!empty($_SESSION['department'])) {
         <div class="nav-icon"><i class="fa-solid fa-life-ring"></i></div>
         <span>Help</span>
       </a>
+      <a href="<?= BASE_URL ?>faculty/settings.php" class="sidebar-nav-item <?= isActive('settings.php', 'faculty') ?>" title="Settings">
+        <div class="nav-icon"><i class="fa-solid fa-gear"></i></div>
+        <span>Settings</span>
+      </a>
 
     <?php elseif ($role === 'admin'): ?>
       <div class="sidebar-section-label">Main</div>

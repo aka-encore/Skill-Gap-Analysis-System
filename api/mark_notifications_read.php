@@ -18,9 +18,25 @@ $userId = $_SESSION['user_id'] ?? 0;
 $db = Database::getInstance();
 
 try {
-    $db->query("UPDATE notifications SET is_read = 1 WHERE user_id = ?", [$userId]);
+    $unreadRow = $db->fetch("SELECT COUNT(*) as cnt FROM notifications WHERE user_id = ? AND is_read = 0", [$userId]);
+    $unreadCount = (int)($unreadRow['cnt'] ?? 0);
+
+    if ($unreadCount === 0) {
+        echo json_encode([
+            'success' => true,
+            'already_read' => true,
+            'unread_count' => 0,
+            'message' => 'All notifications are already marked as read.'
+        ]);
+        exit;
+    }
+
+    $db->query("UPDATE notifications SET is_read = 1 WHERE user_id = ? AND is_read = 0", [$userId]);
+    log_activity($userId, 'NOTIFICATION_MARK_ALL_READ', 'Marked all notifications as read.');
+
     echo json_encode([
         'success' => true,
+        'already_read' => false,
         'unread_count' => 0,
         'message' => 'All notifications marked as read.'
     ]);

@@ -76,7 +76,7 @@ include __DIR__ . '/../includes/header.php';
 <div id="notifications-section">
     <?php if (empty($notifications)): ?>
         <div class="notif-empty-state visible card border-0 shadow-sm rounded-4 p-5 text-center my-4 bg-white">
-            <div class="empty-icon-ring mx-auto mb-3" style="width: 80px; height: 80px; font-size: 2.2rem;">🔔</div>
+            <div class="empty-icon-ring mx-auto mb-3" style="width: 80px; height: 80px; font-size: 2.2rem; display: flex; align-items: center; justify-content: center;"><i class="fa-solid fa-bell text-muted"></i></div>
             <h4 class="fw-bold text-dark mb-2">All caught up!</h4>
             <p class="text-muted small mb-4 mx-auto" style="max-width: 400px;">You have no notifications right now. Keep learning and we will alert you of score updates, achievements, and course recommendations.</p>
             <div>
@@ -131,13 +131,13 @@ include __DIR__ . '/../includes/header.php';
                         </span>
                         <span class="notif-card-tag <?= $tagClass ?>"><?= ucfirst($type) ?></span>
                         <?php if (!$isRead): ?>
-                            <span class="notif-card-tag bg-primary-subtle text-primary border border-primary-subtle">Unread</span>
+                            <span class="notif-card-tag bg-primary-subtle text-primary border border-primary-subtle unread-label">Unread</span>
                         <?php endif; ?>
                     </div>
                 </div>
                 <div class="notif-card-actions" onclick="event.stopPropagation();">
                     <?php if (!$isRead): ?>
-                        <button class="notif-action-btn text-success" title="Mark as Read" onclick="markSingleNotifRead(<?= $n['id'] ?>)">
+                        <button class="notif-action-btn text-success mark-read-btn" title="Mark as Read" onclick="markSingleNotifRead(<?= $n['id'] ?>)">
                             <i class="fa-solid fa-check"></i>
                         </button>
                     <?php endif; ?>
@@ -151,139 +151,152 @@ include __DIR__ . '/../includes/header.php';
 </div>
 
 <script>
+const BASE_URL = '<?= BASE_URL ?>';
 let currentNotifTab = 'all';
 
 function filterNotifTab(tab) {
     currentNotifTab = tab;
     document.querySelectorAll('.notif-filter-tab').forEach(t => t.classList.remove('active'));
-    document.getElementById('tab-' + tab).classList.add('active');
+    const tabBtn = document.getElementById('tab-' + tab);
+    if (tabBtn) tabBtn.classList.add('active');
 
-    const cards = document.querySelectorAll('.notif-card');
-    let visibleCount = 0;
-
-    cards.forEach(card => {
+    document.querySelectorAll('.notif-card').forEach(card => {
         const isRead = card.getAttribute('data-read') === '1';
         if (tab === 'all') {
             card.style.display = 'flex';
-            visibleCount++;
         } else if (tab === 'unread' && !isRead) {
             card.style.display = 'flex';
-            visibleCount++;
         } else if (tab === 'read' && isRead) {
             card.style.display = 'flex';
-            visibleCount++;
         } else {
             card.style.display = 'none';
         }
     });
 }
 
+function refreshCountBadges() {
+    const cards = document.querySelectorAll('.notif-card');
+    let total = cards.length, unread = 0, read = 0;
+    cards.forEach(c => c.getAttribute('data-read') === '1' ? read++ : unread++);
+
+    const el = (id) => document.getElementById(id);
+    if (el('count-all'))    el('count-all').textContent    = total;
+    if (el('count-unread')) el('count-unread').textContent = unread;
+    if (el('count-read'))   el('count-read').textContent   = read;
+    if (el('unreadCountNum')) el('unreadCountNum').textContent = unread;
+
+    const navBadge = el('notifBadge');
+    if (navBadge) {
+        navBadge.textContent = unread;
+        navBadge.style.display = unread > 0 ? 'inline-block' : 'none';
+    }
+}
+
+function renderEmptyState() {
+    const section = document.getElementById('notifications-section');
+    if (!section) return;
+    section.innerHTML = `
+        <div class="notif-empty-state visible card border-0 shadow-sm rounded-4 p-5 text-center my-4 bg-white">
+            <div class="empty-icon-ring mx-auto mb-3" style="width:80px;height:80px;font-size:2.2rem;display:flex;align-items:center;justify-content:center;">
+                <i class="fa-solid fa-bell text-muted"></i>
+            </div>
+            <h4 class="fw-bold text-dark mb-2">All caught up!</h4>
+            <p class="text-muted small mb-4 mx-auto" style="max-width:400px;">
+                You have no notifications right now. Keep learning and we will alert you of score updates, achievements, and course recommendations.
+            </p>
+            <div>
+                <a href="${BASE_URL}student/dashboard.php" class="btn btn-primary bg-gradient-primary border-0 rounded-pill px-4">
+                    <i class="fa-solid fa-gauge-high me-1"></i> Back to Dashboard
+                </a>
+            </div>
+        </div>`;
+    refreshCountBadges();
+}
+
 function markSingleNotifRead(id) {
-    fetch('<?= BASE_URL ?>api/notifications_action.php', {
+    fetch(BASE_URL + 'api/notifications_action.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: 'action=mark_read&id=' + id
     })
     .then(res => res.json())
     .then(data => {
-        if (data.success) {
-            const card = document.getElementById('notif-card-' + id);
-            if (card) {
-                card.classList.remove('unread');
-                card.setAttribute('data-read', '1');
-            }
-            updateNotifBadgeCounts(data.unread_count);
-            filterNotifTab(currentNotifTab);
+        if (!data.success) return;
+        const card = document.getElementById('notif-card-' + id);
+        if (card) {
+            card.classList.remove('unread');
+            card.setAttribute('data-read', '1');
+            card.querySelectorAll('.unread-label, .mark-read-btn').forEach(el => el.remove());
         }
+        refreshCountBadges();
+        filterNotifTab(currentNotifTab);
     });
 }
 
 function deleteSingleNotif(id) {
-    fetch('<?= BASE_URL ?>api/notifications_action.php', {
+    fetch(BASE_URL + 'api/notifications_action.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: 'action=delete&id=' + id
     })
     .then(res => res.json())
     .then(data => {
-        if (data.success) {
-            const card = document.getElementById('notif-card-' + id);
-            if (card) {
-                card.style.transition = 'all 0.3s ease';
-                card.style.opacity = '0';
-                card.style.transform = 'translateX(30px)';
-                setTimeout(() => {
-                    card.remove();
-                    updateNotifBadgeCounts(data.unread_count);
-                    filterNotifTab(currentNotifTab);
-                }, 300);
+        if (!data.success) return;
+        const card = document.getElementById('notif-card-' + id);
+        if (!card) return;
+        card.style.transition = 'all 0.3s ease';
+        card.style.opacity = '0';
+        card.style.transform = 'translateX(30px)';
+        setTimeout(() => {
+            card.remove();
+            filterNotifTab(currentNotifTab);
+            if (document.querySelectorAll('.notif-card').length === 0) {
+                renderEmptyState();
+            } else {
+                refreshCountBadges();
             }
-        }
+        }, 300);
     });
 }
 
 function markAllNotificationsReadPage() {
-    fetch('<?= BASE_URL ?>api/mark_notifications_read.php', {
-        method: 'POST'
+    const unreadCards = document.querySelectorAll('.notif-card[data-read="0"]');
+    if (unreadCards.length === 0) {
+        alert('All notifications are already marked as read.');
+        return;
+    }
+
+    fetch(BASE_URL + 'api/mark_notifications_read.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: ''
     })
     .then(res => res.json())
     .then(data => {
-        if (data.success) {
-            document.querySelectorAll('.notif-card').forEach(card => {
-                card.classList.remove('unread');
-                card.setAttribute('data-read', '1');
-            });
-            updateNotifBadgeCounts(0);
-            filterNotifTab(currentNotifTab);
-        }
+        if (!data.success) return;
+        document.querySelectorAll('.notif-card').forEach(card => {
+            card.classList.remove('unread');
+            card.setAttribute('data-read', '1');
+            card.querySelectorAll('.unread-label, .mark-read-btn').forEach(el => el.remove());
+        });
+        refreshCountBadges();
+        filterNotifTab(currentNotifTab);
     });
 }
 
 function clearAllNotificationsPage() {
-    if (!confirm('Are you sure you want to clear all notifications?')) return;
+    if (!confirm('Are you sure you want to clear all notifications? This cannot be undone.')) return;
 
-    fetch('<?= BASE_URL ?>api/notifications_action.php', {
+    fetch(BASE_URL + 'api/notifications_action.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: 'action=clear_all'
     })
     .then(res => res.json())
     .then(data => {
-        if (data.success) {
-            const container = document.getElementById('notifPageListContainer');
-            container.innerHTML = `
-                <div class="notif-empty-state visible card border-0 shadow-sm rounded-4 p-5 text-center my-4 bg-white">
-                    <div class="empty-icon-ring mx-auto mb-3" style="width: 80px; height: 80px; font-size: 2.2rem;">🔔</div>
-                    <h4 class="fw-bold text-dark mb-2">All caught up!</h4>
-                    <p class="text-muted small mb-4 mx-auto" style="max-width: 400px;">You have no notifications right now.</p>
-                    <div>
-                        <a href="<?= BASE_URL ?>student/dashboard.php" class="btn btn-primary bg-gradient-primary border-0 rounded-pill px-4">
-                            <i class="fa-solid fa-gauge-high me-1"></i> Back to Dashboard
-                        </a>
-                    </div>
-                </div>
-            `;
-            updateNotifBadgeCounts(0);
-        }
+        if (!data.success) return;
+        renderEmptyState();
     });
-}
-
-function updateNotifBadgeCounts(unreadCount) {
-    const headerCount = document.getElementById('unreadCountNum');
-    if (headerCount) headerCount.textContent = unreadCount;
-
-    const navBadge = document.getElementById('notifBadge');
-    if (navBadge) {
-        if (unreadCount > 0) {
-            navBadge.textContent = unreadCount;
-            navBadge.style.display = 'inline-block';
-        } else {
-            navBadge.style.display = 'none';
-        }
-    }
-
-    const unreadTabCount = document.getElementById('count-unread');
-    if (unreadTabCount) unreadTabCount.textContent = unreadCount;
 }
 
 window.initNotifications = function() {

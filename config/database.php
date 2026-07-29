@@ -19,6 +19,16 @@ class Database {
                 PDO::ATTR_EMULATE_PREPARES   => false,
             ];
             $this->pdo = new PDO($dsn, DB_USER, DB_PASS, $options);
+            
+            // Synchronize MySQL session time_zone offset with PHP configured time_zone
+            $now = new DateTime();
+            $mins = $now->getOffset() / 60;
+            $sgn = ($mins < 0 ? -1 : 1);
+            $mins = abs($mins);
+            $hrs = floor($mins / 60);
+            $mins -= $hrs * 60;
+            $offset = sprintf('%+03d:%02d', $hrs * $sgn, $mins);
+            $this->pdo->exec("SET time_zone = '$offset'");
         } catch (PDOException $e) {
             die("<div style='font-family:sans-serif; padding:20px; background:#fee2e2; color:#991b1b; border:1px solid #f87171; border-radius:8px; margin:20px;'>
                 <h2>Database Connection Error</h2>

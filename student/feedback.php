@@ -49,7 +49,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && isset($_POST['submit_fee
 
         // Build mailto URL for fallback
         $subject = "SkillBridge Feedback - " . $category;
-        $stars = str_repeat('★', $rating);
+        $stars = str_repeat('*', $rating);
         $dateTime = date('Y-m-d H:i:s');
 
         $emailBody = "SkillBridge Feedback\n\n"

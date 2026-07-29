@@ -292,6 +292,253 @@ $pageTitle = "Progress Tracking - SkillBridge";
 include __DIR__ . '/../includes/header.php';
 ?>
 
+<style>
+/* --- Premium Leaderboard Overrides (Targeted Page-Specific) --- */
+.leaderboard-card {
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 20px !important;
+    box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.05), 0 0 1px 0 rgba(0, 0, 0, 0.1) !important;
+    padding: 1.75rem !important;
+    transition: all 0.3s ease !important;
+}
+
+/* Header Section */
+.leaderboard-card .d-flex.justify-content-between.align-items-center.mb-3 {
+    margin-bottom: 1.5rem !important;
+}
+.leaderboard-card h5.fw-bold.text-dark {
+    font-size: 1.25rem !important;
+    font-weight: 700 !important;
+    color: var(--text-primary) !important;
+    font-family: 'Outfit', sans-serif !important;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.leaderboard-card h5.fw-bold.text-dark i {
+    color: #F59E0B !important;
+    filter: drop-shadow(0 2px 4px rgba(245, 158, 11, 0.25));
+}
+.leaderboard-card .badge.bg-warning-subtle {
+    background: rgba(245, 158, 11, 0.1) !important;
+    color: #F59E0B !important;
+    border: 1px solid rgba(245, 158, 11, 0.2) !important;
+    font-weight: 600 !important;
+    font-size: 0.75rem !important;
+    padding: 0.35rem 0.75rem !important;
+    border-radius: 20px !important;
+}
+
+/* Controls & Inputs */
+.leaderboard-card .leaderboard-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem !important;
+}
+.leaderboard-card .search-wrapper {
+    position: relative;
+    width: 100%;
+}
+.leaderboard-card .search-wrapper i {
+    position: absolute;
+    top: 50%;
+    left: 1.15rem;
+    transform: translateY(-50%);
+    color: var(--text-muted) !important;
+    font-size: 0.9rem;
+    pointer-events: none;
+}
+.leaderboard-card .leaderboard-search-input {
+    width: 100%;
+    height: 44px;
+    padding: 0.5rem 1rem 0.5rem 2.75rem !important;
+    background: var(--bg-alt, #F8FAFC) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 12px !important;
+    color: var(--text-primary) !important;
+    font-size: 0.875rem !important;
+    transition: all 0.2s ease !important;
+}
+.leaderboard-card .leaderboard-search-input::placeholder {
+    color: var(--text-muted) !important;
+    opacity: 0.8;
+}
+.leaderboard-card .leaderboard-search-input:focus {
+    outline: none !important;
+    border-color: var(--primary) !important;
+    background: var(--bg-card) !important;
+    box-shadow: 0 0 0 3px var(--primary-light) !important;
+}
+
+.leaderboard-card .leaderboard-select {
+    width: 100%;
+    height: 44px;
+    padding: 0.5rem 1.5rem 0.5rem 1rem !important;
+    background: var(--bg-alt, #F8FAFC) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 12px !important;
+    color: var(--text-primary) !important;
+    font-size: 0.875rem !important;
+    transition: all 0.2s ease !important;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%2364748b' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 1rem center !important;
+    background-size: 10px 10px !important;
+}
+.leaderboard-card .leaderboard-select:focus {
+    outline: none !important;
+    border-color: var(--primary) !important;
+    background: var(--bg-card) !important;
+    box-shadow: 0 0 0 3px var(--primary-light) !important;
+}
+.leaderboard-card .leaderboard-select:hover {
+    border-color: var(--border-hover, var(--primary));
+}
+
+/* Scroll Area */
+.leaderboard-card .leaderboard-list {
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 0.35rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+}
+.leaderboard-card .leaderboard-list::-webkit-scrollbar {
+    width: 6px;
+}
+.leaderboard-card .leaderboard-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+.leaderboard-card .leaderboard-list::-webkit-scrollbar-thumb {
+    background: var(--border) !important;
+    border-radius: 10px !important;
+}
+.leaderboard-card .leaderboard-list::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted) !important;
+}
+
+/* Leaderboard Cards / Rows */
+.leaderboard-card .leaderboard-item {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 0.85rem 1rem !important;
+    background: var(--bg-alt, #F8FAFC) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 14px !important;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    cursor: default;
+}
+.leaderboard-card .leaderboard-item:hover {
+    transform: translateY(-2px);
+    background: var(--bg-card-hover, var(--bg-card)) !important;
+    border-color: var(--primary-light, var(--primary)) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04) !important;
+}
+
+/* Rank */
+.leaderboard-card .lb-rank {
+    width: 32px;
+    text-align: center;
+    font-size: 0.95rem !important;
+    font-weight: 800 !important;
+    color: var(--text-secondary) !important;
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+.leaderboard-card .leaderboard-item.top-1 .lb-rank i {
+    color: #F59E0B !important;
+    font-size: 1.2rem;
+}
+.leaderboard-card .leaderboard-item.top-2 .lb-rank {
+    color: #94A3B8 !important;
+}
+.leaderboard-card .leaderboard-item.top-3 .lb-rank {
+    color: #CD7F32 !important;
+}
+
+/* Avatar */
+.leaderboard-card .avatar {
+    width: 38px !important;
+    height: 38px !important;
+    border-radius: 50% !important;
+    background: var(--primary-light, var(--primary)) !important;
+    color: var(--primary, #6366f1) !important;
+    font-weight: 700 !important;
+    font-size: 0.8rem !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--border) !important;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+}
+.leaderboard-card .leaderboard-item:hover .avatar {
+    transform: scale(1.05);
+}
+
+/* User Details */
+.leaderboard-card .lb-user-details {
+    flex-grow: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+.leaderboard-card .lb-name {
+    font-weight: 700 !important;
+    font-size: 0.95rem !important;
+    color: var(--text-primary) !important;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.leaderboard-card .lb-name .badge {
+    background: var(--primary) !important;
+    color: #FFFFFF !important;
+    font-size: 9px !important;
+    font-weight: 600 !important;
+    padding: 0.2rem 0.45rem !important;
+    border-radius: 4px !important;
+}
+.leaderboard-card .lb-dept {
+    font-size: 0.775rem !important;
+    color: var(--text-secondary) !important;
+    opacity: 0.8;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Progress Percentage */
+.leaderboard-card .lb-score {
+    font-weight: 700 !important;
+    font-size: 1rem !important;
+    color: var(--accent, #14B8A6) !important;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* Highlight Logged-In User Row */
+.leaderboard-card .leaderboard-item.logged-in-user {
+    background: var(--primary-light) !important;
+    border-color: var(--primary) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
+}
+.leaderboard-card .leaderboard-item.logged-in-user .avatar {
+    border-color: var(--primary) !important;
+}
+</style>
+
 <div class="dash-content">
   <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
     <div>
@@ -451,7 +698,7 @@ include __DIR__ . '/../includes/header.php';
   <div class="row g-4 mb-4">
     <!-- Institutional Leaderboard -->
     <div class="col-lg-6">
-      <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
+      <div class="card border-0 shadow-sm rounded-4 p-4 h-100 leaderboard-card">
         <div class="d-flex justify-content-between align-items-center mb-3">
           <h5 class="fw-bold text-dark mb-0"><i class="fa-solid fa-trophy text-warning me-2"></i>Student Leaderboard</h5>
           <span class="badge bg-warning-subtle text-warning border rounded-pill px-3 py-1">Top Ranks</span>
@@ -827,7 +1074,7 @@ function openBadgeModal(id, title, desc, unlocked) {
             <h4 class="fw-bold text-dark mb-1">${title}</h4>
             <p class="text-muted small mb-3">${desc}</p>
             <span class="badge ${unlocked ? 'bg-success text-white' : 'bg-secondary text-white'} rounded-pill px-3 py-1.5">
-                ${unlocked ? 'UNLOCKED ACHIEVED ✓' : 'LOCKED — COMPLETE REQUIREMENTS TO UNLOCK'}
+                ${unlocked ? 'UNLOCKED ACHIEVED <i class="fa-solid fa-circle-check ms-1"></i>' : 'LOCKED — COMPLETE REQUIREMENTS TO UNLOCK'}
             </span>
         </div>
     `;

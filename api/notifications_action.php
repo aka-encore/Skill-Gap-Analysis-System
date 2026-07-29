@@ -1,6 +1,6 @@
 <?php
 /**
- * SkillBridge - AJAX API Endpoint for Notification Actions (Mark Single Read, Delete)
+ * SkillBridge - AJAX API Endpoint for Notification Actions (Mark Single Read, Delete, Clear All, Open)
  */
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../config/database.php';
@@ -25,6 +25,7 @@ try {
         $userRole = strtolower(trim($_SESSION['user_role'] ?? 'student'));
         if ($notif) {
             $db->query("UPDATE notifications SET is_read = 1 WHERE id = ? AND user_id = ?", [$notifId, $userId]);
+            log_activity($userId, 'NOTIFICATION_OPEN', "Opened notification #{$notifId}.");
             $targetUrl = get_notification_redirect_url($notif, $userRole);
             header("Location: " . $targetUrl);
             exit;
@@ -41,16 +42,25 @@ try {
 
     if ($action === 'mark_read' && $notifId > 0) {
         $db->query("UPDATE notifications SET is_read = 1 WHERE id = ? AND user_id = ?", [$notifId, $userId]);
+        log_activity($userId, 'NOTIFICATION_MARK_READ', "Marked notification #{$notifId} as read.");
     } elseif ($action === 'delete' && $notifId > 0) {
         $db->query("DELETE FROM notifications WHERE id = ? AND user_id = ?", [$notifId, $userId]);
+        log_activity($userId, 'NOTIFICATION_DELETE', "Deleted notification #{$notifId}.");
     } elseif ($action === 'clear_all') {
-        $db->query("DELETE FROM notifications WHERE user_id = ?", [$userId]);
+        $deletedCount = $db->delete('notifications', 'user_id = ?', [$userId]);
+        log_activity($userId, 'NOTIFICATION_CLEAR_ALL', "Cleared all notifications ({$deletedCount} items).");
     }
 
-    $unreadCount = get_unread_notifications_count($userId);
+    $unreadCount = (int)($db->fetch("SELECT COUNT(*) as cnt FROM notifications WHERE user_id = ? AND is_read = 0", [$userId])['cnt'] ?? 0);
+    $totalCount = (int)($db->fetch("SELECT COUNT(*) as cnt FROM notifications WHERE user_id = ?", [$userId])['cnt'] ?? 0);
+    $readCount = (int)($db->fetch("SELECT COUNT(*) as cnt FROM notifications WHERE user_id = ? AND is_read = 1", [$userId])['cnt'] ?? 0);
+
     echo json_encode([
-        'success' => true,
-        'unread_count' => $unreadCount
+        'success'      => true,
+        'unread_count' => $unreadCount,
+        'total_count'  => $totalCount,
+        'read_count'   => $readCount,
+        'message'      => $action === 'clear_all' ? 'All notifications cleared successfully.' : 'Action completed.'
     ]);
 } catch (Exception $e) {
     echo json_encode(['success' => false, 'message' => $e->getMessage()]);

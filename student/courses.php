@@ -342,27 +342,132 @@ include __DIR__ . '/../includes/header.php';
     flex-direction: column;
     justify-content: space-between;
   }
-  .platform-badge {
-    background: rgba(255,255,255,0.2);
-    backdrop-filter: blur(4px);
-    color: white;
-    font-size: 0.72rem;
-    font-weight: 700;
-    padding: 4px 10px;
-    border-radius: 20px;
-    align-self: flex-start;
+  /* Filter Toolbar Premium Styles */
+  .courses-filter-toolbar {
+    background: var(--bg-card, #FFFFFF);
+    border: 1px solid var(--border, #E2E8F0);
+    border-radius: 16px;
+    padding: 16px 20px;
+    margin-bottom: 1.5rem;
   }
-  .price-tag-badge {
-    background: #10B981;
-    color: white;
-    font-size: 0.8rem;
-    font-weight: 800;
-    padding: 3px 10px;
-    border-radius: 6px;
-    align-self: flex-end;
+  [data-theme="dark"] .courses-filter-toolbar {
+    background: var(--bg-card, #23202E);
+    border-color: var(--border, #383347);
   }
-  .price-tag-badge.free {
-    background: #3B82F6;
+  .filter-toolbar-search {
+    position: relative;
+    flex: 1 1 220px;
+  }
+  .filter-toolbar-search .search-icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-placeholder, #94A3B8);
+    font-size: 0.82rem;
+    pointer-events: none;
+  }
+  .filter-toolbar-search input {
+    padding-left: 36px;
+    border-radius: 10px;
+    border: 1.5px solid var(--border, #E2E8F0);
+    background: var(--bg-input, #F8FAFC);
+    color: var(--text-heading, #021024);
+    height: 38px;
+    font-size: 0.87rem;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    width: 100%;
+  }
+  .filter-toolbar-search input:focus {
+    outline: none;
+    border-color: var(--primary, #26658C);
+    box-shadow: 0 0 0 3px rgba(38,101,140,0.12);
+    background: var(--bg-card, #FFFFFF);
+  }
+  .filter-toolbar-search input::placeholder {
+    color: var(--text-placeholder, #94A3B8);
+  }
+  [data-theme="dark"] .filter-toolbar-search input {
+    background: var(--bg-muted, #2D293B);
+    border-color: var(--border, #383347);
+    color: var(--text-heading, #FFFFFF);
+  }
+  [data-theme="dark"] .filter-toolbar-search input:focus {
+    background: var(--bg-card, #23202E);
+    border-color: var(--primary, #26658C);
+  }
+  .filter-select {
+    height: 38px;
+    border-radius: 10px;
+    border: 1.5px solid var(--border, #E2E8F0);
+    background: var(--bg-input, #F8FAFC);
+    color: var(--text-heading, #021024);
+    font-size: 0.87rem;
+    font-weight: 500;
+    padding: 0 32px 0 12px;
+    min-width: 140px;
+    cursor: pointer;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24'%3E%3Cpath fill='%2394A3B8' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+  }
+  .filter-select:focus {
+    outline: none;
+    border-color: var(--primary, #26658C);
+    box-shadow: 0 0 0 3px rgba(38,101,140,0.12);
+  }
+  .filter-select:hover {
+    border-color: var(--primary, #26658C);
+  }
+  [data-theme="dark"] .filter-select {
+    background-color: var(--bg-muted, #2D293B);
+    border-color: var(--border, #383347);
+    color: var(--text-heading, #FFFFFF);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24'%3E%3Cpath fill='%23E6E4DD' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+  }
+  [data-theme="dark"] .filter-select:focus {
+    background-color: var(--bg-card, #23202E);
+    border-color: var(--primary, #26658C);
+  }
+  .filter-divider {
+    width: 1px;
+    height: 28px;
+    background: var(--border, #E2E8F0);
+    flex-shrink: 0;
+  }
+  [data-theme="dark"] .filter-divider {
+    background: var(--border, #383347);
+  }
+  .btn-reset-filters {
+    height: 38px;
+    border-radius: 10px;
+    border: 1.5px solid var(--border, #E2E8F0);
+    background: transparent;
+    color: var(--text-secondary, #6B7280);
+    font-size: 0.82rem;
+    font-weight: 500;
+    padding: 0 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+  }
+  .btn-reset-filters:hover {
+    border-color: var(--primary, #26658C);
+    color: var(--primary, #26658C);
+    background: rgba(38,101,140,0.05);
+  }
+  [data-theme="dark"] .btn-reset-filters {
+    border-color: var(--border, #383347);
+    color: var(--text-secondary, #C5C2B8);
+  }
+  [data-theme="dark"] .btn-reset-filters:hover {
+    border-color: var(--primary, #26658C);
+    color: var(--primary, #26658C);
   }
   .modal-backdrop {
     display: none;
@@ -486,71 +591,63 @@ include __DIR__ . '/../includes/header.php';
     </div>
   </div>
 
-  <!-- 2. SIMPLIFIED FILTER BAR & TABS (Requirements 1, 2, 4) -->
-  <div class="saas-card p-3 mb-4">
-    <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
-      
-      <!-- Clean Tabs: All Courses, Enrolled Courses, Completed Courses -->
-      <div class="d-flex gap-2 flex-wrap" id="courseTabsList">
-        <button type="button" class="btn btn-primary btn-sm rounded-pill px-3 fw-semibold" onclick="switchCourseTab('all')" id="tab-all">
-          All Courses
-        </button>
-        <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3 fw-semibold" onclick="switchCourseTab('enrolled')" id="tab-enrolled">
-          Enrolled Courses <span class="badge bg-secondary rounded-pill ms-1" id="enrolledBadgeCount"><?= count($enrolledCourses) ?></span>
-        </button>
-        <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3 fw-semibold" onclick="switchCourseTab('completed')" id="tab-completed">
-          Completed Courses <span class="badge bg-secondary rounded-pill ms-1" id="completedBadgeCount"><?= count($completedCourses) ?></span>
-        </button>
+  <!-- Course Tabs -->
+  <div class="d-flex gap-2 flex-wrap mb-3" id="courseTabsList">
+    <button type="button" class="btn btn-primary btn-sm rounded-pill px-3 fw-semibold" onclick="switchCourseTab('all')" id="tab-all">
+      All Courses
+    </button>
+    <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3 fw-semibold" onclick="switchCourseTab('enrolled')" id="tab-enrolled">
+      Enrolled Courses <span class="badge bg-secondary rounded-pill ms-1" id="enrolledBadgeCount"><?= count($enrolledCourses) ?></span>
+    </button>
+    <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3 fw-semibold" onclick="switchCourseTab('completed')" id="tab-completed">
+      Completed Courses <span class="badge bg-secondary rounded-pill ms-1" id="completedBadgeCount"><?= count($completedCourses) ?></span>
+    </button>
+  </div>
+
+  <!-- Premium SaaS Filter Toolbar -->
+  <div class="courses-filter-toolbar">
+    <div class="d-flex flex-wrap align-items-center gap-2">
+
+      <!-- Search -->
+      <div class="filter-toolbar-search">
+        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+        <input type="text" id="courseSearchInput" placeholder="Search courses or instructors..." oninput="applyCourseFilters()" autocomplete="off" />
       </div>
 
-      <!-- Single Horizontal Row Filter Bar (Requirement 4 & 2) -->
-      <div class="d-flex flex-wrap gap-2 align-items-center">
-        <!-- Search Input -->
-        <div class="position-relative" style="min-width: 170px;">
-          <i class="fa-solid fa-search position-absolute top-50 start-0 translate-middle-y ms-2.5 text-muted small"></i>
-          <input type="text" id="courseSearchInput" class="form-control form-control-sm rounded-pill ps-4" placeholder="Search courses, instructors..." oninput="applyCourseFilters()" />
-        </div>
+      <div class="filter-divider d-none d-md-block"></div>
 
-        <!-- Single Learning Track Dropdown (Requirement 2) -->
-        <select class="form-select form-select-sm rounded-pill" id="trackFilterSelect" onchange="applyCourseFilters()" style="width: auto;">
-          <option value="All Tracks">Learning Track: All</option>
-          <?php foreach ($dbTracks as $trk): ?>
-            <option value="<?= htmlspecialchars(strtolower($trk)) ?>"><?= htmlspecialchars(ucfirst($trk)) ?></option>
-          <?php endforeach; ?>
-        </select>
+      <!-- Learning Track -->
+      <select class="filter-select" id="trackFilterSelect" onchange="applyCourseFilters()">
+        <option value="All Tracks">All Tracks</option>
+        <?php foreach ($dbTracks as $trk): ?>
+          <option value="<?= htmlspecialchars(strtolower($trk)) ?>"><?= htmlspecialchars(ucfirst($trk)) ?></option>
+        <?php endforeach; ?>
+      </select>
 
-        <!-- Level Filter -->
-        <select class="form-select form-select-sm rounded-pill" id="levelFilterSelect" onchange="applyCourseFilters()" style="width: auto;">
-          <option value="All Levels">Level: All</option>
-          <?php foreach ($dbLevels as $lvl): ?>
-            <option value="<?= htmlspecialchars(strtolower($lvl)) ?>"><?= htmlspecialchars(ucfirst($lvl)) ?></option>
-          <?php endforeach; ?>
-        </select>
+      <!-- Difficulty Level -->
+      <select class="filter-select" id="levelFilterSelect" onchange="applyCourseFilters()">
+        <option value="All Levels">All Levels</option>
+        <?php foreach ($dbLevels as $lvl): ?>
+          <option value="<?= htmlspecialchars(strtolower($lvl)) ?>"><?= htmlspecialchars(ucfirst($lvl)) ?></option>
+        <?php endforeach; ?>
+      </select>
 
-        <!-- Platform Filter -->
-        <select class="form-select form-select-sm rounded-pill" id="platformFilterSelect" onchange="applyCourseFilters()" style="width: auto;">
-          <option value="All Platforms">Platform: All</option>
-          <?php foreach ($dbPlatforms as $plat): ?>
-            <option value="<?= htmlspecialchars($plat) ?>"><?= htmlspecialchars($plat) ?></option>
-          <?php endforeach; ?>
-        </select>
+      <div class="filter-divider d-none d-md-block"></div>
 
-        <!-- Price Filter -->
-        <select class="form-select form-select-sm rounded-pill" id="priceFilterSelect" onchange="applyCourseFilters()" style="width: auto;">
-          <option value="all">Price: All</option>
-          <option value="free">Free Only</option>
-          <option value="paid">Paid Only</option>
-        </select>
+      <!-- Sort By -->
+      <select class="filter-select" id="sortFilterSelect" onchange="applyCourseFilters()" style="min-width:155px;">
+        <option value="recommended">Recommended</option>
+        <option value="newest">Newest</option>
+        <option value="popular">Most Popular</option>
+        <option value="rating">Highest Rated</option>
+        <option value="az">A &ndash; Z</option>
+        <option value="duration">Duration</option>
+      </select>
 
-        <!-- Sort Filter -->
-        <select class="form-select form-select-sm rounded-pill" id="sortFilterSelect" onchange="applyCourseFilters()" style="width: auto;">
-          <option value="recommended">Sort: Recommended</option>
-          <option value="rating">Sort: Top Rating</option>
-          <option value="price_low">Sort: Price (Low to High)</option>
-          <option value="price_high">Sort: Price (High to Low)</option>
-          <option value="duration">Sort: Duration</option>
-        </select>
-      </div>
+      <!-- Reset -->
+      <button type="button" class="btn-reset-filters ms-auto" onclick="resetAllFilters()" title="Clear all filters">
+        <i class="fa-solid fa-rotate-left"></i> Reset
+      </button>
 
     </div>
   </div>
@@ -582,13 +679,8 @@ include __DIR__ . '/../includes/header.php';
     <div class="p-3 bg-light rounded-3 border mb-3">
       <div class="text-muted small text-uppercase fw-semibold mb-1">Selected Course</div>
       <div id="checkoutCourseTitle" class="fw-bold text-dark fs-6 mb-1">Course Title</div>
-      <div class="d-flex justify-content-between align-items-center small text-secondary">
-        <span>Instructor: <strong id="checkoutInstructor" class="text-dark">Instructor</strong></span>
-        <span>Platform: <strong id="checkoutPlatform" class="text-dark">Udemy</strong></span>
-      </div>
-      <div class="border-top mt-2 pt-2 d-flex justify-content-between align-items-center">
-        <span class="fw-semibold text-dark">Access:</span>
-        <span id="checkoutPriceTag" class="fs-5 fw-bold text-success">FREE</span>
+      <div class="small text-secondary">
+        Instructor: <strong id="checkoutInstructor" class="text-dark">Instructor</strong>
       </div>
     </div>
 
@@ -751,8 +843,6 @@ function applyCourseFilters() {
   const search = document.getElementById('courseSearchInput').value.toLowerCase().trim();
   const track  = document.getElementById('trackFilterSelect').value.toLowerCase();
   const level  = document.getElementById('levelFilterSelect').value.toLowerCase();
-  const platform = document.getElementById('platformFilterSelect').value.toLowerCase();
-  const price = document.getElementById('priceFilterSelect').value;
   const sort = document.getElementById('sortFilterSelect').value;
 
   let dataset = ALL_COURSES;
@@ -768,13 +858,12 @@ function applyCourseFilters() {
       const matchTitle = (c.title || '').toLowerCase().includes(search);
       const matchInst  = (c.instructor || '').toLowerCase().includes(search);
       const matchDesc  = (c.description || '').toLowerCase().includes(search);
-      const matchPlat  = (c.platform || '').toLowerCase().includes(search);
       const matchTrack = (c.track_category || '').toLowerCase().includes(search);
       const matchCode  = (c.course_code || '').toLowerCase().includes(search);
-      if (!matchTitle && !matchInst && !matchDesc && !matchPlat && !matchTrack && !matchCode) return false;
+      if (!matchTitle && !matchInst && !matchDesc && !matchTrack && !matchCode) return false;
     }
 
-    // Learning Track (Requirement 2: Single Track Select)
+    // Learning Track
     if (track !== 'all tracks' && (c.track_category || '').toLowerCase() !== track) {
       return false;
     }
@@ -784,53 +873,28 @@ function applyCourseFilters() {
       return false;
     }
 
-    // Platform
-    if (platform !== 'all platforms' && (c.platform || '').toLowerCase() !== platform) {
-      return false;
-    }
-
-    // Price
-    if (price === 'free' && parseFloat(c.price || 0) > 0) return false;
-    if (price === 'paid' && parseFloat(c.price || 0) === 0) return false;
-
     return true;
   });
 
   // Sorting
-  if (currentTab === 'completed' && sort === 'recommended') {
-    filtered.sort((a, b) => {
-      // 1. Most recently completed first (by sp.last_updated)
+  filtered.sort((a, b) => {
+    if (sort === 'rating')   return parseFloat(b.rating || 0) - parseFloat(a.rating || 0);
+    if (sort === 'duration') return parseInt(b.duration_hours || 0) - parseInt(a.duration_hours || 0);
+    if (sort === 'az')       return (a.title || '').localeCompare(b.title || '');
+    if (sort === 'popular')  return parseInt(b.enrolled_count || b.id || 0) - parseInt(a.enrolled_count || a.id || 0);
+    if (sort === 'newest')   return b.id - a.id;
+    // recommended: completed tab recent-first, else newest
+    if (currentTab === 'completed') {
       const dateA = a.last_updated ? new Date(a.last_updated).getTime() : 0;
       const dateB = b.last_updated ? new Date(b.last_updated).getTime() : 0;
-      if (dateA !== dateB) {
-        return dateB - dateA;
-      }
-      
-      // 2. If completion dates are unavailable / same, sort by latest completion record (larger course ID or ID as proxy)
-      const idA = a.id || 0;
-      const idB = b.id || 0;
-      if (idA !== idB) {
-        return idB - idA;
-      }
-      
-      // 3. Alphabetical sort by course title
-      const nameA = (a.title || '').toLowerCase();
-      const nameB = (b.title || '').toLowerCase();
-      return nameA.localeCompare(nameB);
-    });
-  } else {
-    filtered.sort((a, b) => {
-      if (sort === 'rating') return parseFloat(b.rating || 0) - parseFloat(a.rating || 0);
-      if (sort === 'price_low') return parseFloat(a.price || 0) - parseFloat(b.price || 0);
-      if (sort === 'price_high') return parseFloat(b.price || 0) - parseFloat(a.price || 0);
-      if (sort === 'duration') return parseInt(b.duration_hours || 0) - parseInt(a.duration_hours || 0);
-      return b.id - a.id;
-    });
-  }
+      if (dateA !== dateB) return dateB - dateA;
+    }
+    return b.id - a.id;
+  });
 
   // Showing indicator
   const showingEl = document.getElementById('filteredShowingText');
-  const isFilterActive = search || track !== 'all tracks' || level !== 'all levels' || platform !== 'all platforms' || price !== 'all';
+  const isFilterActive = search || track !== 'all tracks' || level !== 'all levels';
   if (showingEl) {
     if (isFilterActive || currentTab === 'enrolled' || currentTab === 'completed') {
       showingEl.style.display = 'inline-block';
@@ -861,10 +925,7 @@ function renderCoursesGrid(courses = ALL_COURSES) {
 
   container.innerHTML = courses.map(c => {
     const isEnrolled = parseInt(c.progress_percentage || 0) > 0 || c.enrollment_status === 'in_progress' || c.enrollment_status === 'completed';
-    const isFree = parseFloat(c.price || 0) === 0;
-    const priceText = isFree ? 'FREE' : `₹${parseFloat(c.price).toFixed(0)}`;
     const rating = parseFloat(c.rating || 4.8).toFixed(1);
-    const platform = c.platform || 'SkillBridge';
     const instructor = c.instructor || 'Expert Instructor';
     const progress = parseInt(c.progress_percentage || 0);
     const isRecommended = Boolean(c.recommendation_id);
@@ -874,13 +935,10 @@ function renderCoursesGrid(courses = ALL_COURSES) {
         <div class="course-card-premium h-100">
           <div class="course-thumb-header">
             <div class="d-flex justify-content-between align-items-center w-100">
-              <span class="platform-badge"><i class="fa-solid fa-graduation-cap me-1"></i>${escapeHtml(platform)}</span>
-              <span class="price-tag-badge ${isFree ? 'free' : ''}">${priceText}</span>
-            </div>
-            <div class="d-flex justify-content-between align-items-center text-white">
               <span class="badge bg-white-subtle text-white border border-white-subtle rounded-pill small">${escapeHtml(c.course_code || 'CS')}</span>
-              ${isRecommended ? `<span class="badge bg-warning text-dark fw-bold rounded-pill small"><i class="fa-solid fa-star me-1"></i>Recommended</span>` : ''}
+              ${isRecommended ? `<span class="badge bg-warning text-dark fw-bold rounded-pill small"><i class="fa-solid fa-star me-1"></i>Recommended</span>` : '<span></span>'}
             </div>
+            <div></div>
           </div>
           
           <div class="p-3 d-flex flex-column justify-content-between flex-grow-1">
@@ -894,8 +952,8 @@ function renderCoursesGrid(courses = ALL_COURSES) {
               <h5 class="fw-bold text-dark fs-6 mb-1 text-truncate" title="${escapeHtml(c.title)}">${escapeHtml(c.title)}</h5>
               <p class="course-card-description mb-2 text-truncate-2" style="font-size:0.8rem; height:38px;">${escapeHtml(c.description || 'No description available.')}</p>
 
-              <div class="d-flex align-items-center justify-content-between course-card-instructor small mb-3">
-                <span class="text-truncate" style="max-width: 170px;"><i class="fa-solid fa-user-tie me-1"></i>${escapeHtml(instructor)}</span>
+              <div class="d-flex align-items-center course-card-instructor small mb-3">
+                <span class="text-truncate"><i class="fa-solid fa-user-tie me-1"></i>${escapeHtml(instructor)}</span>
               </div>
             </div>
 
@@ -920,7 +978,7 @@ function renderCoursesGrid(courses = ALL_COURSES) {
                 </div>
               ` : `
                 <div class="d-flex gap-2">
-                  <button type="button" class="btn btn-primary btn-sm rounded-pill flex-fill fw-semibold" onclick="openCheckoutModal(${c.id}, '${escapeJs(c.title)}', '${escapeJs(instructor)}', '${escapeJs(platform)}', '${priceText}')">
+                  <button type="button" class="btn btn-primary btn-sm rounded-pill flex-fill fw-semibold" onclick="openCheckoutModal(${c.id}, '${escapeJs(c.title)}', '${escapeJs(instructor)}')">
                     <i class="fa-solid fa-plus-circle me-1"></i> Enroll
                   </button>
                   <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill" onclick="openCoursePlayerModal(${c.id}, '${escapeJs(c.title)}', '${escapeJs(instructor)}', ${progress})" title="View Details">
@@ -940,21 +998,17 @@ function resetAllFilters() {
   document.getElementById('courseSearchInput').value = '';
   document.getElementById('trackFilterSelect').value = 'All Tracks';
   document.getElementById('levelFilterSelect').value = 'All Levels';
-  document.getElementById('platformFilterSelect').value = 'All Platforms';
-  document.getElementById('priceFilterSelect').value = 'all';
   document.getElementById('sortFilterSelect').value = 'recommended';
   applyCourseFilters();
 }
 
 // 4. Modal Controls
 let activeCheckoutCourseId = 0;
-function openCheckoutModal(id, title, instructor, platform, price) {
+function openCheckoutModal(id, title, instructor) {
   activeCheckoutCourseId = id;
   document.getElementById('checkoutCourseIdInput').value = id;
   document.getElementById('checkoutCourseTitle').textContent = title;
   document.getElementById('checkoutInstructor').textContent = instructor;
-  document.getElementById('checkoutPlatform').textContent = platform;
-  document.getElementById('checkoutPriceTag').textContent = price;
 
   document.getElementById('checkoutModal').classList.add('active');
 }
@@ -986,7 +1040,7 @@ if (!window.YT) {
 }
 
 function showLessonLockedAlert() {
-  alert("🔒 This lesson is locked. Please complete the preceding lessons first!");
+  alert("This lesson is locked. Please complete the preceding lessons first!");
 }
 
 function openCoursePlayerModal(id, title, instructor, progress) {
@@ -1295,7 +1349,7 @@ function triggerAutomaticLessonCompletion(lessonId) {
       if (curIdx !== -1 && curIdx < lessons.length - 1) {
           const nextLesson = lessons[curIdx + 1];
           setTimeout(() => {
-              if (confirm(`🎉 Lesson completed successfully! Move to next lesson: "${nextLesson.title}"?`)) {
+              if (confirm(`Lesson completed successfully! Move to next lesson: "${nextLesson.title}"?`)) {
                   selectDatabaseLesson(curIdx + 1, nextLesson.title, nextLesson.description, nextLesson.video_url, nextLesson.id);
               }
           }, 300);

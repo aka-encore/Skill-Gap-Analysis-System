@@ -239,11 +239,11 @@ $pageTitle = "Create Account – SkillBridge";
       <!-- Segmented Control Role Selector -->
       <div class="role-selector" id="roleSelector">
         <button type="button" class="role-tab active" id="tabStudent" data-role="student" onclick="selectRegRole('student', this)">
-          <span>👨‍🎓</span>
+          <i class="fa-solid fa-user-graduate"></i>
           <span>Student</span>
         </button>
         <button type="button" class="role-tab" id="tabFaculty" data-role="faculty" onclick="selectRegRole('faculty', this)">
-          <span>👨‍🏫</span>
+          <i class="fa-solid fa-chalkboard-user"></i>
           <span>Faculty</span>
         </button>
       </div>
@@ -374,18 +374,18 @@ $pageTitle = "Create Account – SkillBridge";
         <!-- Mobile Number with Country Code Selector -->
         <div class="mb-3">
           <label class="form-label small fw-semibold text-dark mb-1.5">Mobile Number</label>
-          <div class="input-group saas-input-group">
-            <select name="country_code" class="form-select text-dark fw-semibold border-end-0" style="max-width: 125px; background: #F8FAFC; border-color: #E2E8F0; border-top-left-radius: 12px; border-bottom-left-radius: 12px; font-size: 0.88rem;">
-              <option value="+91" selected>🇮🇳 +91</option>
-              <option value="+1">🇺🇸 +1</option>
-              <option value="+44">🇬🇧 +44</option>
-              <option value="+971">🇦🇪 +971</option>
-              <option value="+1">🇨🇦 +1</option>
-              <option value="+61">🇦🇺 +61</option>
-              <option value="+65">🇸🇬 +65</option>
-              <option value="+49">🇩🇪 +49</option>
+          <div class="saas-phone-input-group">
+            <select name="country_code" class="phone-country-select">
+              <option value="+91" <?= (($_POST['country_code'] ?? '+91') === '+91') ? 'selected' : '' ?>>IN +91</option>
+              <option value="+1" <?= (($_POST['country_code'] ?? '') === '+1') ? 'selected' : '' ?>>US +1</option>
+              <option value="+44" <?= (($_POST['country_code'] ?? '') === '+44') ? 'selected' : '' ?>>GB +44</option>
+              <option value="+971" <?= (($_POST['country_code'] ?? '') === '+971') ? 'selected' : '' ?>>AE +971</option>
+              <option value="+61" <?= (($_POST['country_code'] ?? '') === '+61') ? 'selected' : '' ?>>AU +61</option>
+              <option value="+65" <?= (($_POST['country_code'] ?? '') === '+65') ? 'selected' : '' ?>>SG +65</option>
+              <option value="+49" <?= (($_POST['country_code'] ?? '') === '+49') ? 'selected' : '' ?>>DE +49</option>
             </select>
-            <input type="text" name="phone" id="phoneInput" class="form-control border-start-0" placeholder="9876543210" maxlength="10" value="<?= htmlspecialchars($_POST['phone'] ?? '') ?>" style="border-top-right-radius: 12px; border-bottom-right-radius: 12px;">
+            <span class="phone-input-divider"></span>
+            <input type="text" name="phone" id="phoneInput" class="phone-number-input" placeholder="9876543210" maxlength="10" value="<?= htmlspecialchars($_POST['phone'] ?? '') ?>">
           </div>
           <div class="text-muted" style="font-size: 11px; margin-top: 4px;">Enter your 10-digit mobile number without spaces or symbols.</div>
         </div>

@@ -406,7 +406,7 @@ include __DIR__ . '/../includes/header.php';
         <!-- Left Column: Content & Search -->
         <div class="col-lg-7 col-md-12">
           <span class="badge hero-badge mb-3">
-            📘 SkillBridge Knowledge Base
+            <i class="fa-solid fa-book me-1"></i> SkillBridge Knowledge Base
           </span>
           <h2 class="fw-bold hero-title mb-3">How can we help you today, <span class="student-name-highlight"><?= $studentName ?></span>?</h2>
           <p class="hero-subtitle mb-4">Search guides, assessment rules, roadmap workflows, and frequently asked questions.</p>

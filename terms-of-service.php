@@ -11,47 +11,171 @@ $pageTitle = "Terms of Service - SkillBridge";
 include __DIR__ . '/includes/header.php';
 ?>
 
+<style>
+/* ── Terms of Service — Page-Scoped Hero Overrides ── */
+.tos-hero {
+    background: linear-gradient(135deg, #021024 0%, #073460 40%, #26658C 80%, #14B8A6 100%);
+    border-radius: 24px;
+    color: #FFFFFF;
+    padding: 4rem 3rem;
+    box-shadow: 0 20px 60px rgba(2, 16, 36, 0.25), 0 4px 16px rgba(38, 101, 140, 0.15);
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 2rem;
+}
+/* Decorative orb top-right */
+.tos-hero::before {
+    content: '';
+    position: absolute;
+    top: -80px;
+    right: -60px;
+    width: 340px;
+    height: 340px;
+    background: radial-gradient(circle, rgba(20, 184, 166, 0.22) 0%, transparent 68%);
+    border-radius: 50%;
+    pointer-events: none;
+}
+/* Decorative orb bottom-left */
+.tos-hero::after {
+    content: '';
+    position: absolute;
+    bottom: -60px;
+    left: -40px;
+    width: 260px;
+    height: 260px;
+    background: radial-gradient(circle, rgba(84, 131, 179, 0.20) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+}
+.tos-hero-inner {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 2.5rem;
+}
+.tos-hero-icon-wrap {
+    flex-shrink: 0;
+    width: 80px;
+    height: 80px;
+    border-radius: 22px;
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.20);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    color: #CCFBF1;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+}
+.tos-hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: 50px;
+    padding: 5px 14px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #CCFBF1;
+    letter-spacing: 0.02em;
+    margin-bottom: 1rem;
+}
+.tos-hero h1 {
+    font-size: clamp(1.9rem, 4vw, 2.75rem);
+    font-weight: 800;
+    color: #FFFFFF;
+    line-height: 1.15;
+    margin-bottom: 0.65rem;
+    letter-spacing: -0.02em;
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+}
+.tos-hero-subtitle {
+    font-size: 1.05rem;
+    color: rgba(255, 255, 255, 0.75);
+    line-height: 1.6;
+    margin-bottom: 1.2rem;
+    max-width: 560px;
+}
+.tos-hero-meta {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    flex-wrap: wrap;
+    font-size: 0.83rem;
+    color: rgba(255, 255, 255, 0.55);
+}
+.tos-hero-meta span {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+.tos-hero-divider {
+    width: 1px;
+    height: 14px;
+    background: rgba(255, 255, 255, 0.25);
+}
+/* Dark theme hero stays consistent */
+[data-theme="dark"] .tos-hero {
+    background: linear-gradient(135deg, #0D0D1A 0%, #1A1040 40%, #2D1A6B 80%, #3B82A0 100%);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 4px 16px rgba(139, 92, 246, 0.12);
+}
+[data-theme="dark"] .tos-hero::before {
+    background: radial-gradient(circle, rgba(139, 92, 246, 0.20) 0%, transparent 68%);
+}
+[data-theme="dark"] .tos-hero::after {
+    background: radial-gradient(circle, rgba(16, 185, 129, 0.15) 0%, transparent 70%);
+}
+[data-theme="dark"] .tos-hero-icon-wrap {
+    background: rgba(139, 92, 246, 0.15);
+    border-color: rgba(139, 92, 246, 0.30);
+    color: #C4B5FD;
+}
+[data-theme="dark"] .tos-hero-badge {
+    background: rgba(139, 92, 246, 0.15);
+    border-color: rgba(139, 92, 246, 0.30);
+    color: #C4B5FD;
+}
+@media (max-width: 640px) {
+    .tos-hero { padding: 2.5rem 1.5rem; }
+    .tos-hero-inner { flex-direction: column; align-items: flex-start; gap: 1.25rem; }
+    .tos-hero-icon-wrap { width: 60px; height: 60px; font-size: 1.5rem; border-radius: 16px; }
+}
+</style>
+
 <div class="dash-content pb-5">
   <!-- HERO BANNER -->
-  <div class="legal-hero-card mb-4">
-    <div class="position-relative z-1 max-w-800">
-      <span class="badge bg-white-subtle text-white border border-white-subtle rounded-pill px-3 py-1.5 mb-3 small fw-semibold">
-        <i class="bi bi-file-earmark-text me-1"></i> User Agreement & Terms
-      </span>
-      <h1 class="fw-bold display-5 mb-2">Terms of Service</h1>
-      <p class="text-white-50 fs-5 mb-3">
-        Rules, guidelines, user responsibilities, and terms governing your use of SkillBridge Skill Gap Analysis & LMS.
-      </p>
-      <div class="d-flex align-items-center gap-3 text-white-50 small">
-        <span><i class="bi bi-calendar3 me-1"></i> Last Updated: January 15, 2026</span>
-        <span>&bull;</span>
-        <span><i class="bi bi-clock me-1"></i> 6 min read</span>
+  <div class="tos-hero">
+    <div class="tos-hero-inner">
+      <!-- Icon orb -->
+      <div class="tos-hero-icon-wrap">
+        <i class="bi bi-file-earmark-text"></i>
+      </div>
+      <!-- Text content -->
+      <div>
+        <div class="tos-hero-badge">
+          <i class="bi bi-shield-check"></i> User Agreement &amp; Terms
+        </div>
+        <h1>Terms of Service</h1>
+        <p class="tos-hero-subtitle">
+          Rules, guidelines, user responsibilities, and terms governing your use of SkillBridge Skill Gap Analysis &amp; LMS.
+        </p>
+        <div class="tos-hero-meta">
+          <span><i class="bi bi-calendar3"></i> Last Updated: July 29, 2026</span>
+          <span class="tos-hero-divider"></span>
+          <span><i class="bi bi-clock"></i> 6 min read</span>
+        </div>
       </div>
     </div>
   </div>
 
   <!-- MAIN CONTENT CONTAINER -->
   <div class="row g-4">
-    <!-- STICKY TABLE OF CONTENTS -->
-    <div class="col-lg-3 d-none d-lg-block">
-      <div class="card border-0 shadow-sm rounded-4 p-3 legal-nav-sticky bg-white">
-        <h6 class="fw-bold text-dark mb-3 px-2">On This Page</h6>
-        <nav class="nav flex-column gap-1">
-          <a href="#acceptance" class="legal-toc-link active"><i class="bi bi-check-circle me-2"></i> 1. Acceptance of Terms</a>
-          <a href="#responsibilities" class="legal-toc-link"><i class="bi bi-person-badge me-2"></i> 2. User Responsibilities</a>
-          <a href="#acceptable-use" class="legal-toc-link"><i class="bi bi-shield-x me-2"></i> 3. Acceptable Use</a>
-          <a href="#ip-rights" class="legal-toc-link"><i class="bi bi-lightbulb me-2"></i> 4. Intellectual Property</a>
-          <a href="#privacy" class="legal-toc-link"><i class="bi bi-shield-lock me-2"></i> 5. Privacy Policy</a>
-          <a href="#liability" class="legal-toc-link"><i class="bi bi-exclamation-triangle me-2"></i> 6. Limitation of Liability</a>
-          <a href="#suspension" class="legal-toc-link"><i class="bi bi-slash-circle me-2"></i> 7. Account Suspension</a>
-          <a href="#modifications" class="legal-toc-link"><i class="bi bi-pencil-square me-2"></i> 8. Modifications</a>
-          <a href="#contact" class="legal-toc-link"><i class="bi bi-envelope me-2"></i> 9. Contact Info</a>
-        </nav>
-      </div>
-    </div>
-
     <!-- TERMS SECTIONS -->
-    <div class="col-lg-9">
+    <div class="col-12">
       <!-- 1. Acceptance of Terms -->
       <section id="acceptance" class="legal-card-section">
         <div class="d-flex align-items-center gap-3 mb-3">
@@ -219,9 +343,9 @@ include __DIR__ . '/includes/header.php';
         <div class="p-3 bg-light rounded-3 d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3 border border-light-subtle">
           <div>
             <strong class="text-dark d-block mb-1">SkillBridge Legal & Administrative Support</strong>
-            <span class="text-muted small"><i class="bi bi-envelope me-1"></i> <a href="mailto:skill.profile.project1@gmail.com" class="text-decoration-none text-primary">skill.profile.project1@gmail.com</a> &bull; <i class="bi bi-building me-1"></i> SkillBridge Governance Office</span>
+            <span class="text-muted small"><i class="bi bi-envelope me-1"></i> <a href="mailto:skill.profile.project1@gmail.com" class="text-decoration-none text-primary">skill.profile.project1@gmail.com</a> &bull; <i class="bi bi-building me-1"></i> IT Department, ZCOER, Pune</span>
           </div>
-          <a href="<?= BASE_URL ?>student/help.php" class="btn btn-primary btn-sm rounded-pill px-4 fw-semibold flex-shrink-0">
+          <a href="mailto:skill.bridge.project1@gmail.com" class="btn btn-primary btn-sm rounded-pill px-4 fw-semibold flex-shrink-0">
             <i class="bi bi-life-ring me-1"></i> Help Center
           </a>
         </div>

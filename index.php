@@ -842,9 +842,7 @@ $pageTitle = "SkillBridge – Skill Gap Analysis & Learning Management System";
         </a>
         <p class="footer-desc mb-3">The most advanced skill gap analysis and LMS platform for students, faculty, and educational institutions.</p>
         <div>
-          <a href="javascript:void(0)" class="social-btn"><i class="fa-brands fa-twitter"></i></a>
-          <a href="javascript:void(0)" class="social-btn"><i class="fa-brands fa-linkedin-in"></i></a>
-          <a href="javascript:void(0)" class="social-btn"><i class="fa-brands fa-github"></i></a>
+          <a href="mailto:skill.bridge.project1@gmail.com" class="social-btn" title="Contact us at skill.bridge.project1@gmail.com"><i class="fa-solid fa-envelope"></i></a>
         </div>
       </div>
 

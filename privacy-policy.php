@@ -11,45 +11,170 @@ $pageTitle = "Privacy Policy - SkillBridge";
 include __DIR__ . '/includes/header.php';
 ?>
 
+<style>
+/* ── Privacy Policy — Page-Scoped Hero Overrides ── */
+.pp-hero {
+    background: linear-gradient(135deg, #021024 0%, #063352 40%, #26658C 80%, #14B8A6 100%);
+    border-radius: 24px;
+    color: #FFFFFF;
+    padding: 4rem 3rem;
+    box-shadow: 0 20px 60px rgba(2, 16, 36, 0.25), 0 4px 16px rgba(38, 101, 140, 0.15);
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 2rem;
+}
+/* Decorative orb top-right */
+.pp-hero::before {
+    content: '';
+    position: absolute;
+    top: -80px;
+    right: -60px;
+    width: 340px;
+    height: 340px;
+    background: radial-gradient(circle, rgba(20, 184, 166, 0.22) 0%, transparent 68%);
+    border-radius: 50%;
+    pointer-events: none;
+}
+/* Decorative orb bottom-left */
+.pp-hero::after {
+    content: '';
+    position: absolute;
+    bottom: -60px;
+    left: -40px;
+    width: 260px;
+    height: 260px;
+    background: radial-gradient(circle, rgba(84, 131, 179, 0.20) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+}
+.pp-hero-inner {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 2.5rem;
+}
+.pp-hero-icon-wrap {
+    flex-shrink: 0;
+    width: 80px;
+    height: 80px;
+    border-radius: 22px;
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.20);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    color: #CCFBF1;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+}
+.pp-hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: 50px;
+    padding: 5px 14px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #CCFBF1;
+    letter-spacing: 0.02em;
+    margin-bottom: 1rem;
+}
+.pp-hero h1 {
+    font-size: clamp(1.9rem, 4vw, 2.75rem);
+    font-weight: 800;
+    color: #FFFFFF;
+    line-height: 1.15;
+    margin-bottom: 0.65rem;
+    letter-spacing: -0.02em;
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+}
+.pp-hero-subtitle {
+    font-size: 1.05rem;
+    color: rgba(255, 255, 255, 0.75);
+    line-height: 1.6;
+    margin-bottom: 1.2rem;
+    max-width: 580px;
+}
+.pp-hero-meta {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    flex-wrap: wrap;
+    font-size: 0.83rem;
+    color: rgba(255, 255, 255, 0.55);
+}
+.pp-hero-meta span {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+.pp-hero-divider {
+    width: 1px;
+    height: 14px;
+    background: rgba(255, 255, 255, 0.25);
+}
+/* Dark theme overrides */
+[data-theme="dark"] .pp-hero {
+    background: linear-gradient(135deg, #0D0D1A 0%, #1A1040 40%, #2D1A6B 80%, #3B82A0 100%);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 4px 16px rgba(139, 92, 246, 0.12);
+}
+[data-theme="dark"] .pp-hero::before {
+    background: radial-gradient(circle, rgba(139, 92, 246, 0.20) 0%, transparent 68%);
+}
+[data-theme="dark"] .pp-hero::after {
+    background: radial-gradient(circle, rgba(16, 185, 129, 0.15) 0%, transparent 70%);
+}
+[data-theme="dark"] .pp-hero-icon-wrap {
+    background: rgba(139, 92, 246, 0.15);
+    border-color: rgba(139, 92, 246, 0.30);
+    color: #C4B5FD;
+}
+[data-theme="dark"] .pp-hero-badge {
+    background: rgba(139, 92, 246, 0.15);
+    border-color: rgba(139, 92, 246, 0.30);
+    color: #C4B5FD;
+}
+@media (max-width: 640px) {
+    .pp-hero { padding: 2.5rem 1.5rem; }
+    .pp-hero-inner { flex-direction: column; align-items: flex-start; gap: 1.25rem; }
+    .pp-hero-icon-wrap { width: 60px; height: 60px; font-size: 1.5rem; border-radius: 16px; }
+}
+</style>
+
 <div class="dash-content pb-5">
   <!-- HERO BANNER -->
-  <div class="legal-hero-card mb-4">
-    <div class="position-relative z-1 max-w-800">
-      <span class="badge bg-white-subtle text-white border border-white-subtle rounded-pill px-3 py-1.5 mb-3 small fw-semibold">
-        <i class="bi bi-shield-check me-1"></i> Legal & Data Trust
-      </span>
-      <h1 class="fw-bold display-5 mb-2">Privacy Policy</h1>
-      <p class="text-white-50 fs-5 mb-3">
-        Learn how SkillBridge handles, protects, and respects your personal and skill evaluation data across our Skill Gap Analysis & LMS platform.
-      </p>
-      <div class="d-flex align-items-center gap-3 text-white-50 small">
-        <span><i class="bi bi-calendar3 me-1"></i> Last Updated: January 15, 2026</span>
-        <span>&bull;</span>
-        <span><i class="bi bi-clock me-1"></i> 5 min read</span>
+  <div class="pp-hero">
+    <div class="pp-hero-inner">
+      <!-- Icon orb -->
+      <div class="pp-hero-icon-wrap">
+        <i class="bi bi-shield-lock"></i>
+      </div>
+      <!-- Text content -->
+      <div>
+        <div class="pp-hero-badge">
+          <i class="bi bi-shield-check"></i> Legal &amp; Data Trust
+        </div>
+        <h1>Privacy Policy</h1>
+        <p class="pp-hero-subtitle">
+          Learn how SkillBridge handles, protects, and respects your personal and skill evaluation data across our Skill Gap Analysis &amp; LMS platform.
+        </p>
+        <div class="pp-hero-meta">
+          <span><i class="bi bi-calendar3"></i> Last Updated: July 29, 2026</span>
+          <span class="pp-hero-divider"></span>
+          <span><i class="bi bi-clock"></i> 5 min read</span>
+        </div>
       </div>
     </div>
   </div>
 
   <div class="row g-4">
-    <!-- LEFT SIDEBAR STICKY NAVIGATION -->
-    <div class="col-lg-3 d-none d-lg-block">
-      <div class="legal-nav-card sticky-top" style="top: 90px; z-index: 10;">
-        <h6 class="fw-bold text-dark mb-3 px-2">Privacy Topics</h6>
-        <div class="nav flex-column nav-pills gap-1">
-          <a href="#intro" class="nav-link active rounded-3 text-start"><i class="bi bi-info-circle me-2"></i> 1. Introduction</a>
-          <a href="#info-collect" class="nav-link rounded-3 text-start"><i class="bi bi-folder-check me-2"></i> 2. Information Collected</a>
-          <a href="#how-we-use" class="nav-link rounded-3 text-start"><i class="bi bi-gear me-2"></i> 3. How We Use Data</a>
-          <a href="#cookies" class="nav-link rounded-3 text-start"><i class="bi bi-cookie me-2"></i> 4. Cookies & Sessions</a>
-          <a href="#data-sharing" class="nav-link rounded-3 text-start"><i class="bi bi-share me-2"></i> 5. Data Sharing</a>
-          <a href="#data-security" class="nav-link rounded-3 text-start"><i class="bi bi-shield-lock me-2"></i> 6. Data Security</a>
-          <a href="#user-rights" class="nav-link rounded-3 text-start"><i class="bi bi-person-check me-2"></i> 7. Your User Rights</a>
-          <a href="#contact" class="nav-link rounded-3 text-start"><i class="bi bi-envelope me-2"></i> 8. Contact Support</a>
-        </div>
-      </div>
-    </div>
-
     <!-- RIGHT CONTENT AREA -->
-    <div class="col-lg-9">
+    <div class="col-12">
       <!-- 1. Introduction -->
       <section id="intro" class="legal-card-section">
         <div class="d-flex align-items-center gap-3 mb-3">
@@ -209,9 +334,9 @@ include __DIR__ . '/includes/header.php';
         <div class="p-3 bg-light rounded-3 d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3 border border-light-subtle">
           <div>
             <strong class="text-dark d-block mb-1">SkillBridge Data Protection & Support</strong>
-            <span class="text-muted small"><i class="bi bi-envelope me-1"></i> <a href="mailto:skill.profile.project1@gmail.com" class="text-decoration-none text-primary">skill.profile.project1@gmail.com</a> &bull; <i class="bi bi-building me-1"></i> Department of Computer Science & Engineering</span>
+            <span class="text-muted small"><i class="bi bi-envelope me-1"></i> <a href="mailto:skill.profile.project1@gmail.com" class="text-decoration-none text-primary">skill.profile.project1@gmail.com</a> &bull; <i class="bi bi-building me-1"></i> IT Department, ZCOER, Pune</span>
           </div>
-          <a href="<?= BASE_URL ?>student/help.php" class="btn btn-primary btn-sm rounded-pill px-4 fw-semibold flex-shrink-0">
+          <a href="mailto:skill.bridge.project1@gmail.com" class="btn btn-primary btn-sm rounded-pill px-4 fw-semibold flex-shrink-0">
             <i class="bi bi-life-ring me-1"></i> Help Center
           </a>
         </div>

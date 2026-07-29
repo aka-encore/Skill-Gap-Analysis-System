@@ -103,21 +103,21 @@ include __DIR__ . '/../includes/header.php';
             <div class="col-md-4">
                 <div class="selection-card h-100 text-center" onclick="selectWizardCategory('Frontend Development')">
                     <div class="card-icon"><i class="fa-solid fa-laptop-code"></i></div>
-                    <h5 class="fw-bold mb-2" style="color: var(--text-heading);">💻 Frontend Development</h5>
+                    <h5 class="fw-bold mb-2" style="color: var(--text-heading);"><i class="fa-solid fa-laptop me-2"></i>Frontend Development</h5>
                     <p class="small mb-0" style="color: var(--text-muted);">Evaluate styling, responsive layouts, framework mechanics, and UI scripting (10 Skills).</p>
                 </div>
             </div>
             <div class="col-md-4">
                 <div class="selection-card h-100 text-center" onclick="selectWizardCategory('Backend Development')">
                     <div class="card-icon"><i class="fa-solid fa-server"></i></div>
-                    <h5 class="fw-bold mb-2" style="color: var(--text-heading);">⚙️ Backend Development</h5>
+                    <h5 class="fw-bold mb-2" style="color: var(--text-heading);"><i class="fa-solid fa-gear me-2"></i>Backend Development</h5>
                     <p class="small mb-0" style="color: var(--text-muted);">Verify server-side scripting, database architecture, query logic, and APIs (10 Skills).</p>
                 </div>
             </div>
             <div class="col-md-4">
                 <div class="selection-card h-100 text-center" onclick="selectWizardCategory('Full Stack Development')">
                     <div class="card-icon"><i class="fa-solid fa-layer-group"></i></div>
-                    <h5 class="fw-bold mb-2" style="color: var(--text-heading);">🚀 Full Stack Development</h5>
+                    <h5 class="fw-bold mb-2" style="color: var(--text-heading);"><i class="fa-solid fa-rocket me-2"></i>Full Stack Development</h5>
                     <p class="small mb-0" style="color: var(--text-muted);">Test end-to-end application stacks, microservices, frameworks, and architecture (10 Skills).</p>
                 </div>
             </div>
@@ -224,7 +224,7 @@ include __DIR__ . '/../includes/header.php';
         <div class="saas-card p-4 max-w-2xl mx-auto mb-4 shadow-sm" style="background: var(--bg-alt);">
             <div class="text-center mb-4">
                 <h3 id="previewSkillName" class="fw-bold text-primary mb-1">JavaScript</h3>
-                <div id="previewDifficultyStars" class="stars-glow fs-5 mb-2">⭐⭐⭐</div>
+                <div id="previewDifficultyStars" class="stars-glow fs-5 mb-2"><i class="fa-solid fa-star text-warning"></i><i class="fa-solid fa-star text-warning"></i><i class="fa-solid fa-star text-warning"></i></div>
                 <span id="previewDifficultyName" class="badge saas-badge-primary text-uppercase">Intermediate (Level 3)</span>
             </div>
 
@@ -430,8 +430,8 @@ function transitionWizardStage(targetStageId) {
 function populateWizardPreview() {
     document.getElementById('previewSkillName').textContent = wizardState.skillName || 'Skill Challenge';
     
-    const stars = '⭐'.repeat(wizardState.levelNum || 3);
-    document.getElementById('previewDifficultyStars').textContent = stars;
+    const starsHtml = '<i class="fa-solid fa-star text-warning mx-0.5"></i>'.repeat(wizardState.levelNum || 3);
+    document.getElementById('previewDifficultyStars').innerHTML = starsHtml;
     document.getElementById('previewDifficultyName').textContent = (wizardState.difficultyName || 'Intermediate') + ' (Level ' + wizardState.levelNum + ')';
 }
 

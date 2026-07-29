@@ -29,11 +29,11 @@ if (!$student) {
 // Time-aware greeting
 $hour = (int)date('H');
 if ($hour < 12) {
-    $greetingTitle = "Good Morning, " . htmlspecialchars($student['first_name']) . "! ☀️";
+    $greetingTitle = "Good Morning, " . htmlspecialchars($student['first_name']) . "! <i class=\"fa-solid fa-sun text-warning ms-1\"></i>";
 } elseif ($hour < 17) {
-    $greetingTitle = "Good Afternoon, " . htmlspecialchars($student['first_name']) . "! ☀️";
+    $greetingTitle = "Good Afternoon, " . htmlspecialchars($student['first_name']) . "! <i class=\"fa-solid fa-sun text-warning ms-1\"></i>";
 } else {
-    $greetingTitle = "Good Evening, " . htmlspecialchars($student['first_name']) . "! 🌙";
+    $greetingTitle = "Good Evening, " . htmlspecialchars($student['first_name']) . "! <i class=\"fa-solid fa-moon text-primary ms-1\"></i>";
 }
 
 // 2. Fetch Overall Skill Score & Weekly Change
@@ -190,7 +190,7 @@ $recentActivity = $db->fetchAll(
 $achievements = [];
 if ($completedAssessments > 0) {
     $achievements[] = [
-        'icon'  => '🏆',
+        'icon'  => 'fa-trophy',
         'bg'    => 'linear-gradient(135deg,#F59E0B,#EF4444)',
         'title' => 'First Assessment',
         'desc'  => 'Completed ' . $completedAssessments . ' skill test' . ($completedAssessments > 1 ? 's' : '')
@@ -198,7 +198,7 @@ if ($completedAssessments > 0) {
 }
 if ($currentStreak >= 1) {
     $achievements[] = [
-        'icon'  => '🔥',
+        'icon'  => 'fa-fire',
         'bg'    => 'linear-gradient(135deg,#10B981,#3B82F6)',
         'title' => $currentStreak . '-Day Streak',
         'desc'  => 'Learning consistency champion'
@@ -206,7 +206,7 @@ if ($currentStreak >= 1) {
 }
 if ($avgScore >= 70) {
     $achievements[] = [
-        'icon'  => '⭐',
+        'icon'  => 'fa-star',
         'bg'    => 'linear-gradient(135deg,#6366F1,#8B5CF6)',
         'title' => 'Top ' . $percentileRank . '% Cohort Rank',
         'desc'  => 'Maintained ' . $avgScore . '% overall score average'
@@ -214,7 +214,7 @@ if ($avgScore >= 70) {
 }
 if (empty($achievements)) {
     $achievements[] = [
-        'icon'  => '🚀',
+        'icon'  => 'fa-rocket',
         'bg'    => 'linear-gradient(135deg,#26658C,#14B8A6)',
         'title' => 'Skill Journey Ready',
         'desc'  => 'Enrolled in ' . htmlspecialchars($student['department']) . ' department'
@@ -662,7 +662,7 @@ include __DIR__ . '/../includes/header.php';
   <div class="d-flex flex-column gap-3">
     <?php foreach ($recommendations as $rec): ?>
       <div class="course-item d-flex align-items-center gap-3 p-3 rounded-3" style="background: var(--bg-alt); border: 1px solid var(--border);">
-        <div class="fs-2">🎓</div>
+        <div class="fs-2 text-primary"><i class="fa-solid fa-graduation-cap"></i></div>
         <div class="flex-grow-1">
           <div class="fw-semibold fs-6" style="color: var(--text-heading);"><?= htmlspecialchars($rec['course_title']) ?></div>
           <div class="small" style="color: var(--text-secondary);">Code: <?= htmlspecialchars($rec['course_code']) ?> &bull; <?= $rec['duration_hours'] ?>h &bull; Skill: <?= htmlspecialchars($rec['skill_name']) ?></div>
@@ -689,7 +689,7 @@ include __DIR__ . '/../includes/header.php';
     <div class="d-flex flex-column gap-3">
       <?php foreach ($achievements as $ach): ?>
         <div class="achievement">
-          <div class="ach-icon" style="background:<?= $ach['bg'] ?>"><?= $ach['icon'] ?></div>
+          <div class="ach-icon" style="background:<?= $ach['bg'] ?>"><i class="fa-solid <?= htmlspecialchars($ach['icon']) ?>"></i></div>
           <div>
             <div class="ach-name"><?= htmlspecialchars($ach['title']) ?></div>
             <div class="ach-desc"><?= htmlspecialchars($ach['desc']) ?></div>

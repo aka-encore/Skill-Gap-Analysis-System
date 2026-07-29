@@ -830,7 +830,7 @@ function renderRoadmap(roleKey) {
 
             timelineHtml += `
                 <div class="roadmap-milestone ${status}" id="milestone-card-${m.id}">
-                    <div class="roadmap-dot ${status}">${status === 'completed' ? '✓' : mIndex + 1}</div>
+                    <div class="roadmap-dot ${status}">${status === 'completed' ? '<i class="fa-solid fa-check"></i>' : mIndex + 1}</div>
                     
                     <div class="milestone-info">
                         <div class="milestone-title-wrapper">
@@ -856,7 +856,7 @@ function renderRoadmap(roleKey) {
                         <!-- Notes Section -->
                         <div class="mt-2 border-top pt-2">
                             <button class="btn btn-link p-0 text-muted small text-decoration-none" onclick="toggleNotes('${m.id}')">
-                                <i class="fa-solid fa-pen-to-square me-1"></i> Personal Notes ${savedNote ? '✓' : ''}
+                                <i class="fa-solid fa-pen-to-square me-1"></i> Personal Notes ${savedNote ? '<i class="fa-solid fa-check text-success ms-1"></i>' : ''}
                             </button>
                             <div id="notes-panel-${m.id}" style="display:${savedNote ? 'block' : 'none'};" class="mt-2">
                                 <textarea class="notes-textarea" placeholder="Write personal study notes here..." onblur="saveNotes('${m.id}', this.value)">${savedNote}</textarea>
