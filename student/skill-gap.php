@@ -90,6 +90,64 @@ if (empty($missingSkills)) {
 $weakestSkill = !empty($prioritySkills) ? $prioritySkills[0] : null;
 $strongestSkill = !empty($prioritySkills) ? end($prioritySkills) : null;
 
+// --- DATABASE DATA FOR EXPORT PDF REPORT ---
+// 1. Check if the student has completed any assessments
+$hasAssessments = (int)($db->fetch(
+    "SELECT COUNT(*) as cnt FROM assessment_results WHERE student_id = ?",
+    [$studentId]
+)['cnt'] ?? 0) > 0;
+
+// 2. Fetch completed assessments history
+$completedAssessments = $db->fetchAll(
+    "SELECT ar.score_obtained, a.total_marks, ar.score_percentage, ar.completed_at,
+            a.title as assessment_title, a.difficulty_level,
+            s.name as skill_name, s.category as skill_category
+     FROM assessment_results ar
+     JOIN assessments a ON ar.assessment_id = a.id
+     JOIN skills s ON a.skill_id = s.id
+     WHERE ar.student_id = ?
+     ORDER BY ar.completed_at DESC",
+    [$studentId]
+);
+
+// 3. Fetch courses completed & total courses
+$coursesCompleted = (int)($db->fetch(
+    "SELECT COUNT(*) as cnt FROM student_progress WHERE student_id = ? AND (progress_percentage = 100 OR status = 'completed')",
+    [$studentId]
+)['cnt'] ?? 0);
+
+$totalCoursesCount = (int)($db->fetch(
+    "SELECT COUNT(*) as cnt FROM courses"
+)['cnt'] ?? 0);
+
+$coursesRemaining = max(0, $totalCoursesCount - $coursesCompleted);
+
+// 4. Certificates earned (Score >= 75%)
+$certificatesEarned = (int)($db->fetch(
+    "SELECT COUNT(DISTINCT assessment_id) as cnt FROM assessment_results WHERE student_id = ? AND score_percentage >= 75.0",
+    [$studentId]
+)['cnt'] ?? 0);
+
+// 5. Recommended Learning: weakest 3 skills with their course recommendations
+$weakestSkillsForRec = array_slice($prioritySkills, 0, 3);
+$recommendedLearning = [];
+foreach ($weakestSkillsForRec as $ws) {
+    // Find course recommending for this skill
+    $courseRec = $db->fetch(
+        "SELECT c.title, c.course_code 
+         FROM courses c 
+         JOIN course_skills cs ON c.id = cs.course_id 
+         WHERE cs.skill_id = ? 
+         LIMIT 1",
+        [$ws['id']]
+    );
+    $recommendedLearning[] = [
+        'skill_name' => $ws['name'],
+        'course_title' => $courseRec ? $courseRec['title'] : null,
+        'course_code' => $courseRec ? $courseRec['course_code'] : null
+    ];
+}
+
 $pageTitle = "Skill Gap Analysis - SkillBridge";
 include __DIR__ . '/../includes/header.php';
 ?>
@@ -857,11 +915,25 @@ function number_format(num, decimals) {
 }
 
 const reportStudentName = <?php echo json_encode($studentName); ?>;
+const reportStudentUsername = <?php echo json_encode($student['username']); ?>;
 const reportStudentDept = <?php echo json_encode($studentDept); ?>;
 const reportDate = <?php echo json_encode(date("M d, Y")); ?>;
 const reportSkillLevel = <?php echo json_encode(number_format($currentSkillLevel, 1)); ?>;
 const reportOverallGap = <?php echo json_encode(number_format($overallGap, 1)); ?>;
 const reportCareerMatch = <?php echo json_encode((string)$careerMatch); ?>;
+const reportSemester = <?php echo json_encode($student['current_semester']); ?>;
+const reportLearningPath = <?php echo json_encode($targetCareer); ?>;
+const reportHasAssessments = <?php echo json_encode($hasAssessments); ?>;
+const reportTotalSkills = <?php echo json_encode($totalSkillsCount); ?>;
+const reportSkillsMastered = <?php echo json_encode($strongCount); ?>;
+const reportSkillsInProgress = <?php echo json_encode($totalSkillsCount - $weakCount - $strongCount); ?>;
+const reportSkillsNeedImprovement = <?php echo json_encode($weakCount); ?>;
+const reportAssessmentsHistory = <?php echo json_encode($completedAssessments); ?>;
+const reportCoursesCompleted = <?php echo json_encode($coursesCompleted); ?>;
+const reportCoursesRemaining = <?php echo json_encode($coursesRemaining); ?>;
+const reportCertificatesEarned = <?php echo json_encode($certificatesEarned); ?>;
+const reportRecommendations = <?php echo json_encode($recommendedLearning); ?>;
+
 const reportTableRows = <?php 
     $pdfRows = [];
     foreach ($skillsData as $s) {
@@ -877,6 +949,16 @@ const reportTableRows = <?php
     echo json_encode($pdfRows);
 ?>;
 
+function getFormattedDate() {
+    const d = new Date();
+    const year = d.getFullYear();
+    let month = '' + (d.getMonth() + 1);
+    let day = '' + d.getDate();
+    if (month.length < 2) month = '0' + month;
+    if (day.length < 2) day = '0' + day;
+    return [year, month, day].join('-');
+}
+
 function exportPDFReport() {
     if (!window.jspdf || !window.jspdf.jsPDF) {
         alert('PDF library loading... Please try again in a moment.');
@@ -884,43 +966,283 @@ function exportPDFReport() {
     }
 
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
+    const doc = new jsPDF('p', 'mm', 'a4');
 
+    // ─── 1. REPORT HEADER ───
+    // Draw premium logo icon
+    doc.setFillColor(38, 101, 140);
+    doc.roundedRect(14, 15, 10, 10, 2, 2, 'F');
+    doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(18);
-    doc.setTextColor(38, 101, 140);
-    doc.text('SkillBridge - Institutional Skill Gap Report', 14, 20);
+    doc.setFontSize(8);
+    doc.text('SB', 16.5, 22);
 
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(100, 116, 139);
-    doc.text('Student: ' + reportStudentName + ' | Dept: ' + reportStudentDept + ' | Date: ' + reportDate, 14, 28);
-
-    doc.setLineWidth(0.5);
-    doc.setDrawColor(226, 232, 240);
-    doc.line(14, 32, 196, 32);
-
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
+    // Title
     doc.setTextColor(2, 16, 36);
-    doc.text('Summary Overview', 14, 40);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(14);
+    doc.text('SkillBridge', 27, 22);
 
-    doc.setFontSize(10);
+    // Meta details
     doc.setFont('helvetica', 'normal');
-    doc.text('Overall Skill Score: ' + reportSkillLevel + '%', 14, 47);
-    doc.text('Total Skill Gap: ' + reportOverallGap + '%', 14, 53);
-    doc.text('Career Match Score: ' + reportCareerMatch + '%', 14, 59);
+    doc.setFontSize(8.5);
+    doc.setTextColor(100, 116, 139);
+    doc.text('Skill Gap Analysis Report', 196, 18, { align: 'right' });
+    doc.text('Generated: ' + reportDate + ' ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), 196, 23, { align: 'right' });
 
-    doc.autoTable({
-        startY: 68,
-        head: [['Skill Name', 'Category', 'Score %', 'Gap %', 'Levels', 'Status']],
-        body: reportTableRows,
-        theme: 'striped',
-        headStyles: { fillColor: [38, 101, 140], textColor: [255, 255, 255], fontStyle: 'bold' },
-        styles: { fontSize: 9, cellPadding: 3 }
+    // Divider
+    doc.setDrawColor(226, 232, 240);
+    doc.setLineWidth(0.5);
+    doc.line(14, 28, 196, 28);
+
+    // ─── 2. STUDENT METADATA CARD ───
+    doc.setFillColor(248, 250, 252);
+    doc.rect(14, 32, 182, 28, 'F');
+    doc.setDrawColor(226, 232, 240);
+    doc.rect(14, 32, 182, 28, 'S');
+
+    doc.setTextColor(2, 16, 36);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.text('STUDENT PROFILE', 18, 38);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    doc.setTextColor(71, 85, 105);
+    doc.text('Name: ' + reportStudentName, 18, 44);
+    doc.text('Username: ' + reportStudentUsername, 18, 49);
+    doc.text('Department: ' + reportStudentDept, 18, 54);
+
+    doc.text('Learning Path: ' + reportLearningPath, 110, 44);
+    doc.text('Current Semester: ' + (reportSemester ? 'Semester ' + reportSemester : 'N/A'), 110, 49);
+    doc.text('Report ID: SB-GAP-' + Math.floor(100000 + Math.random() * 900000), 110, 54);
+
+    // ─── 3. EMPTY STATE CHECK ───
+    if (!reportHasAssessments) {
+        doc.setFillColor(254, 242, 242);
+        doc.rect(14, 68, 182, 40, 'F');
+        doc.setDrawColor(248, 113, 113);
+        doc.rect(14, 68, 182, 40, 'S');
+
+        doc.setTextColor(220, 38, 38);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10.5);
+        doc.text('No Skill Gap Data Available', 20, 78);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8.5);
+        doc.setTextColor(127, 29, 29);
+        doc.text('You have not completed any skill assessments yet.', 20, 86);
+        doc.text('Complete an assessment on the platform to generate your personalized Skill Gap Report.', 20, 92);
+
+        writeFooterAndSave(doc);
+        return;
+    }
+
+    // ─── 4. OVERALL SKILL SUMMARY ───
+    doc.setTextColor(2, 16, 36);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.text('Overall Competency Summary', 14, 68);
+
+    const cardWidth = 56;
+    const cardHeight = 18;
+    const cardGap = 7;
+
+    // Card 1
+    doc.setFillColor(248, 250, 252);
+    doc.roundedRect(14, 73, cardWidth, cardHeight, 1.5, 1.5, 'F');
+    doc.setDrawColor(226, 232, 240);
+    doc.roundedRect(14, 73, cardWidth, cardHeight, 1.5, 1.5, 'S');
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.5);
+    doc.setTextColor(100, 116, 139);
+    doc.text('OVERALL SKILL SCORE', 18, 78);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12.5);
+    doc.setTextColor(38, 101, 140);
+    doc.text(reportSkillLevel + '%', 18, 86);
+
+    // Card 2
+    doc.setFillColor(248, 250, 252);
+    doc.roundedRect(14 + cardWidth + cardGap, 73, cardWidth, cardHeight, 1.5, 1.5, 'F');
+    doc.roundedRect(14 + cardWidth + cardGap, 73, cardWidth, cardHeight, 1.5, 1.5, 'S');
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.5);
+    doc.setTextColor(100, 116, 139);
+    doc.text('CAREER MATCH SCORE', 14 + cardWidth + cardGap + 4, 78);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12.5);
+    doc.setTextColor(217, 119, 6);
+    doc.text(reportCareerMatch + '%', 14 + cardWidth + cardGap + 4, 86);
+
+    // Card 3
+    doc.setFillColor(248, 250, 252);
+    doc.roundedRect(14 + (cardWidth + cardGap) * 2, 73, cardWidth, cardHeight, 1.5, 1.5, 'F');
+    doc.roundedRect(14 + (cardWidth + cardGap) * 2, 73, cardWidth, cardHeight, 1.5, 1.5, 'S');
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.5);
+    doc.setTextColor(100, 116, 139);
+    doc.text('ASSESSED SKILLS STATUS', 14 + (cardWidth + cardGap) * 2 + 4, 78);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8.5);
+    doc.setTextColor(2, 16, 36);
+    doc.text('Mastered: ' + reportSkillsMastered + ' | In Progress: ' + reportSkillsInProgress, 14 + (cardWidth + cardGap) * 2 + 4, 86);
+
+    // ─── 5. SKILL GAP ANALYSIS TABLE ───
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(2, 16, 36);
+    doc.text('Skill Gap Analysis Breakdown', 14, 98);
+
+    const tableBody = reportTableRows.map(row => {
+        return [
+            row[0], 
+            row[2], 
+            '100.0%', 
+            row[3], 
+            row[5]  
+        ];
     });
 
-    doc.save('SkillBridge_Skill_Gap_Report.pdf');
+    doc.autoTable({
+        startY: 102,
+        head: [['Skill Name', 'Current Score', 'Target Score', 'Skill Gap', 'Status']],
+        body: tableBody,
+        theme: 'striped',
+        headStyles: { fillColor: [38, 101, 140], textColor: [255, 255, 255], fontStyle: 'bold' },
+        styles: { fontSize: 8.5, cellPadding: 2.2 },
+        columnStyles: {
+            0: { cellWidth: 50 },
+            1: { cellWidth: 33, halign: 'center' },
+            2: { cellWidth: 33, halign: 'center' },
+            3: { cellWidth: 33, halign: 'center' },
+            4: { cellWidth: 33, halign: 'center' }
+        }
+    });
+
+    // ─── 6. ASSESSMENT HISTORY ───
+    let nextY = doc.lastAutoTable.finalY + 10;
+    if (nextY + 35 > 280) {
+        doc.addPage();
+        nextY = 20;
+    }
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(2, 16, 36);
+    doc.text('Assessment History Log', 14, nextY);
+
+    const historyBody = reportAssessmentsHistory.map(row => {
+        const scoreStr = row.score_obtained + ' / ' + row.total_marks;
+        const pctStr = parseFloat(row.score_percentage).toFixed(1) + '%';
+        const dateStr = new Date(row.completed_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+        return [
+            row.assessment_title,
+            row.skill_category,
+            row.difficulty_level.charAt(0).toUpperCase() + row.difficulty_level.slice(1),
+            scoreStr,
+            pctStr,
+            dateStr
+        ];
+    });
+
+    doc.autoTable({
+        startY: nextY + 4,
+        head: [['Assessment Title', 'Category', 'Difficulty', 'Marks', 'Percentage', 'Date Completed']],
+        body: historyBody.length > 0 ? historyBody : [['No completed assessments found.', '', '', '', '', '']],
+        theme: 'striped',
+        headStyles: { fillColor: [2, 16, 36], textColor: [255, 255, 255], fontStyle: 'bold' },
+        styles: { fontSize: 8, cellPadding: 2.2 }
+    });
+
+    // ─── 7. PROGRESS & RECOMMENDATIONS ───
+    nextY = doc.lastAutoTable.finalY + 10;
+    if (nextY + 48 > 280) {
+        doc.addPage();
+        nextY = 20;
+    }
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(2, 16, 36);
+    doc.text('Learning Actions & Progress Summary', 14, nextY);
+
+    // Box 1
+    doc.setFillColor(250, 251, 252);
+    doc.rect(14, nextY + 4, 88, 38, 'F');
+    doc.setDrawColor(226, 232, 240);
+    doc.rect(14, nextY + 4, 88, 38, 'S');
+
+    doc.setTextColor(2, 16, 36);
+    doc.setFontSize(8.5);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Progress Overview', 18, nextY + 9);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(71, 85, 105);
+    doc.text('• Learning Pathway: ' + reportLearningPath, 18, nextY + 15);
+    doc.text('• Courses Completed: ' + reportCoursesCompleted, 18, nextY + 20);
+    doc.text('• Courses Remaining: ' + reportCoursesRemaining, 18, nextY + 25);
+    doc.text('• Certificates Earned: ' + reportCertificatesEarned, 18, nextY + 30);
+    doc.text('• Current Rank: N/A', 18, nextY + 35);
+
+    // Box 2
+    doc.setFillColor(250, 251, 252);
+    doc.rect(108, nextY + 4, 88, 38, 'F');
+    doc.rect(108, nextY + 4, 88, 38, 'S');
+
+    doc.setTextColor(38, 101, 140);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Recommended Actions', 112, nextY + 9);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(71, 85, 105);
+    
+    let recY = nextY + 15;
+    reportRecommendations.slice(0, 3).forEach(function(rec) {
+        if (rec.course_title) {
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(2, 16, 36);
+            doc.text('• Complete ' + rec.course_code + ':', 112, recY);
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(71, 85, 105);
+            doc.text(rec.course_title, 112, recY + 4);
+            recY += 8;
+        } else {
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(100, 116, 139);
+            doc.text('• For ' + rec.skill_name + ':', 112, recY);
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(148, 163, 184);
+            doc.text('Course not currently available.', 112, recY + 4);
+            recY += 8;
+        }
+    });
+
+    writeFooterAndSave(doc);
+}
+
+function writeFooterAndSave(doc) {
+    const totalPages = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        
+        // Footer line
+        doc.setDrawColor(226, 232, 240);
+        doc.setLineWidth(0.5);
+        doc.line(14, 282, 196, 282);
+        
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7.5);
+        doc.setTextColor(148, 163, 184);
+        doc.text('Generated by SkillBridge – Skill Gap Analysis & Learning Management System', 14, 287);
+        doc.text('This report is generated automatically based on the student\'s current learning progress and assessment data.', 14, 291);
+        
+        doc.text('Page ' + i + ' of ' + totalPages, 196, 287, { align: 'right' });
+    }
+
+    doc.save('SkillBridge_SkillGapReport_' + reportStudentUsername + '_' + getFormattedDate() + '.pdf');
 }
 </script>
 

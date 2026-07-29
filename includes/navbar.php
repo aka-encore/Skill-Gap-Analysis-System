@@ -10,11 +10,8 @@ $unreadCount = get_unread_notifications_count($userId);
 $notifications = get_user_notifications($userId, 5);
 $userRole = $_SESSION['user_role'] ?? 'student';
 $fullName = $_SESSION['full_name'] ?? $_SESSION['username'] ?? 'User';
-$avatar = $_SESSION['avatar'] ?? 'default-avatar.png';
-$avatarUrl = BASE_URL . 'uploads/avatars/' . $avatar;
-if (!file_exists(__DIR__ . '/../uploads/avatars/' . $avatar) || empty($avatar)) {
-    $avatarUrl = 'https://ui-avatars.com/api/?name=' . urlencode($fullName) . '&background=6366f1&color=ffffff&bold=true';
-}
+$avatar = $_SESSION['avatar'] ?? '';
+$avatarUrl = resolve_avatar_url($avatar, $userRole);
 ?>
 <nav class="navbar navbar-expand navbar-saas sticky-top px-3 px-md-4 py-2">
     <div class="container-fluid p-0">
@@ -647,13 +644,274 @@ document.addEventListener('DOMContentLoaded', function() {
     const modulesIndex = <?= json_encode($authorizedPages) ?>;
     let selectedIndex = -1;
 
+    // Inject search highlight and animations stylesheet
+    const searchStyle = document.createElement('style');
+    searchStyle.innerHTML = `
+        .search-fade-out {
+            opacity: 0.15 !important;
+            transition: opacity 0.25s ease-in-out;
+        }
+        .search-target-pulse {
+            animation: searchPulse 2.5s ease-in-out;
+        }
+        @keyframes searchPulse {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(38, 101, 140, 0.6); }
+            30% { transform: scale(1.02); box-shadow: 0 0 20px 8px rgba(38, 101, 140, 0.4); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(38, 101, 140, 0); }
+        }
+        .search-text-highlight {
+            background-color: #fef08a !important;
+            color: #1e293b !important;
+            border-radius: 2px !important;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08) !important;
+        }
+    `;
+    document.head.appendChild(searchStyle);
+
+    function applyTextHighlight(element, query) {
+        if (!element) return;
+        removeTextHighlight(element);
+        
+        const term = query.trim().toLowerCase();
+        if (!term) return;
+        
+        const walk = document.createTreeWalker(element, NodeFilter.SHOW_TEXT, null, false);
+        let node;
+        const matches = [];
+        while (node = walk.nextNode()) {
+            const parentTagName = node.parentNode.tagName.toUpperCase();
+            if (parentTagName === 'SCRIPT' || parentTagName === 'STYLE' || parentTagName === 'NOSCRIPT' || parentTagName === 'I' || node.parentNode.classList.contains('header-search-results')) {
+                continue;
+            }
+            
+            const val = node.nodeValue;
+            const idx = val.toLowerCase().indexOf(term);
+            if (idx >= 0) {
+                matches.push({ node: node, value: val });
+            }
+        }
+        
+        matches.forEach(m => {
+            const node = m.node;
+            const val = m.value;
+            const frag = document.createDocumentFragment();
+            let lastIdx = 0;
+            
+            let idx = val.toLowerCase().indexOf(term);
+            while (idx >= 0) {
+                if (idx > lastIdx) {
+                    frag.appendChild(document.createTextNode(val.substring(lastIdx, idx)));
+                }
+                
+                const span = document.createElement('span');
+                span.className = 'search-text-highlight';
+                span.appendChild(document.createTextNode(val.substring(idx, idx + term.length)));
+                frag.appendChild(span);
+                
+                lastIdx = idx + term.length;
+                idx = val.toLowerCase().indexOf(term, lastIdx);
+            }
+            
+            if (lastIdx < val.length) {
+                frag.appendChild(document.createTextNode(val.substring(lastIdx)));
+            }
+            
+            if (node.parentNode) {
+                node.parentNode.replaceChild(frag, node);
+            }
+        });
+    }
+
+    function removeTextHighlight(element) {
+        if (!element) return;
+        element.querySelectorAll('.search-text-highlight').forEach(span => {
+            const parent = span.parentNode;
+            if (parent) {
+                parent.replaceChild(document.createTextNode(span.textContent), span);
+                parent.normalize();
+            }
+        });
+    }
+
+    function filterCurrentPage(term) {
+        const q = term.trim().toLowerCase();
+        
+        const selectors = [
+            '.kpi-card-premium',
+            '.saas-stat-card',
+            '.milestone-card',
+            '.clickable-skill-item',
+            '.course-card',
+            '.saas-card',
+            '.card',
+            '.stat-card',
+            'tbody tr',
+            '.list-group-item',
+            '.notification-item',
+            '.activity-item',
+            '.feedback-item',
+            '.profile-info-row',
+            '.q-bank-item',
+            '.question-card'
+        ];
+        
+        let targets = [];
+        selectors.forEach(sel => {
+            document.querySelectorAll(sel).forEach(el => {
+                if (!el.closest('#globalSearchResults') && !targets.includes(el)) {
+                    targets.push(el);
+                }
+            });
+        });
+        
+        if (!q) {
+            targets.forEach(el => {
+                el.style.display = '';
+                el.classList.remove('search-fade-out');
+                removeTextHighlight(el);
+            });
+            
+            document.querySelectorAll('section, .section-wrapper, .row, .col-md-6, .col-lg-4, .col-xl-3, .col-md-4, .col-md-3, .col-lg-3').forEach(parent => {
+                parent.style.display = '';
+            });
+            
+            const banner = document.getElementById('pageSearchEmptyState');
+            if (banner) banner.remove();
+            return;
+        }
+        
+        let matchCount = 0;
+        targets.forEach(el => {
+            const text = el.innerText.toLowerCase();
+            const isMatch = text.includes(q);
+            
+            if (isMatch) {
+                el.style.display = '';
+                el.classList.remove('search-fade-out');
+                matchCount++;
+                applyTextHighlight(el, q);
+            } else {
+                el.style.display = 'none';
+                el.classList.add('search-fade-out');
+                removeTextHighlight(el);
+            }
+        });
+        
+        // Hide parent layout cols if empty
+        document.querySelectorAll('.col, .col-md-6, .col-lg-4, .col-xl-3, .col-12, .col-md-4, .col-md-3, .col-lg-3').forEach(col => {
+            const innerTargets = Array.from(col.querySelectorAll(selectors.join(','))).filter(t => !t.closest('#globalSearchResults'));
+            if (innerTargets.length > 0) {
+                const visibleCount = innerTargets.filter(t => t.style.display !== 'none').length;
+                if (visibleCount === 0) {
+                    col.style.display = 'none';
+                } else {
+                    col.style.display = '';
+                }
+            }
+        });
+
+        // Hide parent sections/rows if empty
+        document.querySelectorAll('section, .section-wrapper, .row, .mb-4').forEach(parent => {
+            if (parent.classList.contains('container-fluid') || parent.classList.contains('wrapper') || parent.id === 'previewDifficultyStars') return;
+            const innerTargets = Array.from(parent.querySelectorAll(selectors.join(','))).filter(t => !t.closest('#globalSearchResults'));
+            if (innerTargets.length > 0) {
+                const visibleCount = innerTargets.filter(t => t.style.display !== 'none').length;
+                if (visibleCount === 0) {
+                    parent.style.display = 'none';
+                } else {
+                    parent.style.display = '';
+                }
+            }
+        });
+        
+        let banner = document.getElementById('pageSearchEmptyState');
+        if (matchCount === 0) {
+            if (!banner) {
+                banner = document.createElement('div');
+                banner.id = 'pageSearchEmptyState';
+                banner.className = 'card border-0 shadow-sm rounded-4 p-5 text-center my-4 bg-white';
+                banner.innerHTML = `
+                    <div class="p-3 bg-light rounded-circle d-inline-flex align-items-center justify-content-center mx-auto mb-3" style="width: 70px; height: 70px;">
+                        <i class="bi bi-search text-warning fs-1"></i>
+                    </div>
+                    <h4 class="fw-bold text-dark mb-1">No matches found on this page</h4>
+                    <p class="text-muted small mb-0">Try typing another keyword, or explore global results in the search dropdown above.</p>
+                `;
+                const container = document.querySelector('main, .container-fluid, .content-wrapper, .content') || document.body;
+                container.appendChild(banner);
+            }
+        } else {
+            if (banner) banner.remove();
+        }
+    }
+
+    function getPageMatches(query) {
+        const q = query.trim().toLowerCase();
+        if (!q) return [];
+
+        const matches = [];
+        const selectors = [
+            { sel: '.kpi-card-premium', type: 'KPI Card' },
+            { sel: '.saas-stat-card', type: 'Statistics Card' },
+            { sel: '.milestone-card', type: 'Roadmap Milestone' },
+            { sel: '.clickable-skill-item', type: 'Skill Gap Item' },
+            { sel: '.course-card', type: 'Course Card' },
+            { sel: '.saas-card', type: 'Section Card' },
+            { sel: '.card', type: 'Page Card' },
+            { sel: '.stat-card', type: 'Statistics Card' },
+            { sel: 'tbody tr', type: 'Table Row' },
+            { sel: '.list-group-item', type: 'List Item' },
+            { sel: '.notification-item', type: 'Notification' },
+            { sel: '.activity-item', type: 'Activity Item' },
+            { sel: '.feedback-item', type: 'Feedback' },
+            { sel: '.profile-info-row', type: 'Profile Details' },
+            { sel: '.question-card', type: 'Question Card' }
+        ];
+
+        let matchIdx = 0;
+        selectors.forEach(item => {
+            document.querySelectorAll(item.sel).forEach((el) => {
+                if (el.closest('#globalSearchResults')) return;
+                
+                const text = el.innerText.trim();
+                const lowerText = text.toLowerCase();
+                
+                if (lowerText.includes(q)) {
+                    let heading = el.querySelector('h1, h2, h3, h4, h5, h6, .fw-bold, .fw-semibold, td:first-child');
+                    let headingText = heading ? heading.innerText.trim() : '';
+                    if (!headingText || headingText.length > 50) {
+                        headingText = text.split('\n')[0].substring(0, 40) + '...';
+                    }
+                    
+                    let snippet = text.replace(/\n/g, ' ').substring(0, 65) + '...';
+
+                    let targetId = el.getAttribute('id');
+                    if (!targetId) {
+                        targetId = 'search-match-target-' + matchIdx++;
+                        el.setAttribute('id', targetId);
+                    }
+
+                    matches.push({
+                        title: headingText,
+                        desc: item.type + ' • ' + snippet,
+                        url: '#' + targetId,
+                        icon: 'fa-eye',
+                        category: 'Matches on Current Page'
+                    });
+                }
+            });
+        });
+
+        return matches;
+    }
+
     function renderResults(matches) {
         if (matches.length === 0) {
             resultsContainer.innerHTML = '<div class="search-no-results"><i class="bi bi-search me-2"></i>No matching results found.</div>';
         } else {
             let html = '';
             let currentCat = '';
-            matches.slice(0, 8).forEach((item, index) => {
+            matches.slice(0, 15).forEach((item, index) => {
                 if (item.category !== currentCat) {
                     currentCat = item.category;
                     html += `<div class="search-category-header">${currentCat}</div>`;
@@ -676,10 +934,13 @@ document.addEventListener('DOMContentLoaded', function() {
         resultsContainer.classList.add('active');
     }
 
-    // ── Step 4 & 5: Perform Search on Filtered Authorized List ──
     function performSearch(query) {
         const term = query.trim().toLowerCase();
         selectedIndex = -1;
+
+        // Step A: Client-side DOM filtering on current page
+        filterCurrentPage(term);
+
         if (!term) {
             resultsContainer.classList.remove('active');
             resultsContainer.innerHTML = '';
@@ -689,7 +950,17 @@ document.addEventListener('DOMContentLoaded', function() {
         const matches = [];
         const seen = new Set();
 
-        // Search authorized page index by title, description, and keywords
+        // Step B: Collect matches on current page
+        const pageMatches = getPageMatches(term);
+        pageMatches.forEach(item => {
+            const uniqueKey = item.title.toLowerCase() + '_' + item.url;
+            if (!seen.has(uniqueKey)) {
+                seen.add(uniqueKey);
+                matches.push(item);
+            }
+        });
+
+        // Step C: Search authorized menu links
         modulesIndex.forEach(item => {
             const titleMatch   = item.title.toLowerCase().includes(term);
             const descMatch    = item.desc ? item.desc.toLowerCase().includes(term) : false;
@@ -703,7 +974,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         renderResults(matches);
 
-        // Fetch dynamic backend search entities
+        // Fetch dynamic backend database results
         fetch(`${baseUrl}api/search.php?q=${encodeURIComponent(term)}`)
             .then(res => res.ok ? res.json() : [])
             .then(apiResults => {
@@ -728,6 +999,37 @@ document.addEventListener('DOMContentLoaded', function() {
     searchInput.addEventListener('focus', function() {
         if (this.value.trim().length > 0) {
             performSearch(this.value);
+        }
+    });
+
+    // Results click hijack for smooth scroll anchor matching
+    resultsContainer.addEventListener('click', function(e) {
+        const item = e.target.closest('.search-result-item');
+        if (item) {
+            const href = item.getAttribute('href');
+            if (href && href.startsWith('#')) {
+                e.preventDefault();
+                const targetEl = document.querySelector(href);
+                if (targetEl) {
+                    resultsContainer.classList.remove('active');
+                    searchInput.value = '';
+                    filterCurrentPage(''); // Restore visible elements
+                    
+                    targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    
+                    targetEl.classList.remove('search-target-pulse');
+                    void targetEl.offsetWidth; // trigger reflow
+                    targetEl.classList.add('search-target-pulse');
+                    
+                    targetEl.style.outline = '2px solid var(--bs-primary, #26658c)';
+                    targetEl.style.boxShadow = '0 0 20px rgba(38, 101, 140, 0.4)';
+                    setTimeout(() => {
+                        targetEl.style.outline = '';
+                        targetEl.style.boxShadow = '';
+                        targetEl.classList.remove('search-target-pulse');
+                    }, 2500);
+                }
+            }
         }
     });
 

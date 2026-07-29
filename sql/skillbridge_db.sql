@@ -1547,7 +1547,7 @@ CREATE TABLE `students` (
   `college_name` varchar(255) DEFAULT NULL,
   `avatar` varchar(255) DEFAULT 'default-avatar.png',
   `bio` varchar(255) DEFAULT NULL,
-  `city_location` varchar(100) DEFAULT 'Mumbai, India',
+  `city_location` varchar(100) DEFAULT NULL,
   `phone` varchar(20) DEFAULT NULL,
   `department` varchar(100) NOT NULL DEFAULT 'Computer Science',
   `current_semester` int(11) NOT NULL DEFAULT 1,

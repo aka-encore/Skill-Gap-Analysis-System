@@ -24,8 +24,17 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && isset($_POST['update_pro
     $facultyRow = $db->fetch("SELECT * FROM faculty WHERE id = ?", [$facultyId]);
     $avatarName = $facultyRow['avatar'] ?? 'default-avatar.png';
 
-    // Handle Avatar Upload
-    if (isset($_FILES['avatar_file']) && $_FILES['avatar_file']['error'] === UPLOAD_ERR_OK) {
+    // Handle Avatar Upload & Removal
+    if (isset($_POST['remove_avatar']) && $_POST['remove_avatar'] === '1') {
+        if (!empty($facultyRow['avatar']) && $facultyRow['avatar'] !== 'default-avatar.png') {
+            $oldFile = AVATAR_UPLOAD_DIR . $facultyRow['avatar'];
+            if (file_exists($oldFile)) {
+                @unlink($oldFile);
+            }
+        }
+        $avatarName = 'default-avatar.png';
+        $_SESSION['avatar'] = 'default-avatar.png';
+    } elseif (isset($_FILES['avatar_file']) && $_FILES['avatar_file']['error'] === UPLOAD_ERR_OK) {
         $tmp = $_FILES['avatar_file']['tmp_name'];
         $origName = $_FILES['avatar_file']['name'];
         $size = $_FILES['avatar_file']['size'];
@@ -41,6 +50,13 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && isset($_POST['update_pro
             }
 
             if (move_uploaded_file($tmp, $dest)) {
+                // Clean up previous custom avatar
+                if (!empty($facultyRow['avatar']) && $facultyRow['avatar'] !== 'default-avatar.png') {
+                    $oldFile = AVATAR_UPLOAD_DIR . $facultyRow['avatar'];
+                    if (file_exists($oldFile)) {
+                        @unlink($oldFile);
+                    }
+                }
                 $avatarName = $newFilename;
                 $_SESSION['avatar'] = $newFilename;
             }
@@ -89,10 +105,7 @@ include __DIR__ . '/../includes/header.php';
     <div class="row align-items-center g-4">
       <div class="col-auto position-relative">
         <?php 
-          $avatarPath = BASE_URL . 'assets/images/default-avatar.png';
-          if (!empty($faculty['avatar']) && file_exists(AVATAR_UPLOAD_DIR . $faculty['avatar'])) {
-              $avatarPath = BASE_URL . 'uploads/avatars/' . htmlspecialchars($faculty['avatar']);
-          }
+          $avatarPath = resolve_avatar_url($faculty['avatar'] ?? '', 'faculty');
         ?>
         <div class="rounded-circle overflow-hidden shadow-sm border border-3 border-teal" style="width: 110px; height: 110px; background: #021024;">
           <img src="<?= $avatarPath ?>" alt="<?= $facultyName ?>" style="width: 100%; height: 100%; object-fit: cover;">
@@ -220,6 +233,14 @@ include __DIR__ . '/../includes/header.php';
           <div class="mb-3">
             <label class="form-label small fw-semibold text-muted">UPLOAD PROFILE PICTURE</label>
             <input type="file" name="avatar_file" class="form-control rounded-3" accept="image/jpeg,image/png,image/webp">
+            <?php if (!empty($faculty['avatar']) && $faculty['avatar'] !== 'default-avatar.png'): ?>
+              <div class="form-check mt-2">
+                <input class="form-check-input" type="checkbox" name="remove_avatar" id="remove_avatar" value="1">
+                <label class="form-check-label text-danger small fw-semibold" for="remove_avatar">
+                  Remove current photo (revert to default)
+                </label>
+              </div>
+            <?php endif; ?>
           </div>
 
           <div class="row g-3 mb-3">

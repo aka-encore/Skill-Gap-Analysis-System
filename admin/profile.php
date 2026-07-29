@@ -31,9 +31,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type'])) {
             if (empty($firstName) || empty($lastName)) {
                 $error = 'First Name and Last Name are required.';
             } else {
-                $avatarFileName = $_SESSION['avatar'] ?? 'default-avatar.png';
+                $adminRow = $db->fetch("SELECT avatar FROM admins WHERE user_id = ?", [$userId]);
+                $currAvatar = $adminRow['avatar'] ?? 'default-avatar.png';
+                $avatarFileName = $currAvatar;
 
-                if (isset($_FILES['avatar_file']) && $_FILES['avatar_file']['error'] === UPLOAD_ERR_OK) {
+                if (isset($_POST['remove_avatar']) && $_POST['remove_avatar'] === '1') {
+                    if (!empty($currAvatar) && $currAvatar !== 'default-avatar.png') {
+                        $oldFile = AVATAR_UPLOAD_DIR . $currAvatar;
+                        if (file_exists($oldFile)) {
+                            @unlink($oldFile);
+                        }
+                    }
+                    $avatarFileName = 'default-avatar.png';
+                    $_SESSION['avatar'] = 'default-avatar.png';
+                } elseif (isset($_FILES['avatar_file']) && $_FILES['avatar_file']['error'] === UPLOAD_ERR_OK) {
                     $fileTmp = $_FILES['avatar_file']['tmp_name'];
                     $fileName = $_FILES['avatar_file']['name'];
                     $fileSize = $_FILES['avatar_file']['size'];
@@ -47,6 +58,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type'])) {
                         $ext = pathinfo($fileName, PATHINFO_EXTENSION);
                         $newAvatarName = 'avatar_user_' . $userId . '_' . time() . '.' . $ext;
                         if (move_uploaded_file($fileTmp, AVATAR_UPLOAD_DIR . $newAvatarName)) {
+                            // Clean up previous custom avatar
+                            if (!empty($currAvatar) && $currAvatar !== 'default-avatar.png') {
+                                $oldFile = AVATAR_UPLOAD_DIR . $currAvatar;
+                                if (file_exists($oldFile)) {
+                                    @unlink($oldFile);
+                                }
+                            }
                             $avatarFileName = $newAvatarName;
                             $_SESSION['avatar'] = $newAvatarName;
                         }
@@ -87,7 +105,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type'])) {
 }
 
 $profile = get_user_profile_data($userId, 'admin');
-$avatarUrl = BASE_URL . 'uploads/avatars/' . ($profile['avatar'] ?? 'default-avatar.png');
+$avatarUrl = resolve_avatar_url($profile['avatar'] ?? '', 'admin');
 
 $pageTitle = "Admin Profile - SkillBridge";
 include __DIR__ . '/../includes/header.php';
@@ -124,6 +142,14 @@ include __DIR__ . '/../includes/header.php';
                         <div>
                             <label class="form-label fw-semibold small text-secondary">Profile Avatar</label>
                             <input type="file" name="avatar_file" class="form-control form-control-sm" accept="image/*">
+                            <?php if (!empty($profile['avatar']) && $profile['avatar'] !== 'default-avatar.png'): ?>
+                                <div class="form-check mt-2">
+                                    <input class="form-check-input" type="checkbox" name="remove_avatar" id="remove_avatar" value="1">
+                                    <label class="form-check-label text-danger small fw-semibold" for="remove_avatar">
+                                        Remove current photo (revert to default)
+                                    </label>
+                                </div>
+                            <?php endif; ?>
                         </div>
                     </div>
 

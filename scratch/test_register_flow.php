@@ -32,7 +32,7 @@ require __DIR__ . '/../register.php';
 $output = ob_get_clean();
 
 echo "3. register.php Render Length: " . strlen($output) . " bytes\n";
-if (strpos($output, "Create Your Account") !== false && strpos($output, "tech-bg-container") !== false && strpos($output, "pw-strength") !== false) {
+if (strpos($output, "Create Your Account") !== false && strpos($output, "auth-center-wrapper") !== false && strpos($output, "pw-strength") !== false) {
     echo "   -> register.php Render Test: PASSED with SaaS styling and password strength meter!\n";
 } else {
     echo "   -> register.php Render Test: FAILED\n";

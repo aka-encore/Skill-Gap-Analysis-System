@@ -36,8 +36,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $description = trim($_POST['description'] ?? '');
         $skillId = (int)($_POST['skill_id'] ?? 0);
         $duration = (int)($_POST['duration_minutes'] ?? 25);
-        $passingMarks = 20;
         $totalMarks = 25;
+        $passThreshold = (float)get_system_setting('pass_mark_threshold', 60);
+        $passingMarks = (int)round($totalMarks * ($passThreshold / 100.0));
         $difficulty = trim($_POST['difficulty_level'] ?? 'intermediate');
         $status = trim($_POST['status'] ?? 'active');
 
@@ -125,9 +126,13 @@ include __DIR__ . '/../includes/header.php';
                     <input type="number" name="duration_minutes" class="saas-form-control w-100" min="5" max="180" value="<?= $assessment['duration_minutes'] ?>" required>
                 </div>
                 <div class="col-md-4">
+                    <?php 
+                    $passThreshold = (float)get_system_setting('pass_mark_threshold', 60);
+                    $calcPassingMarks = (int)round(25 * ($passThreshold / 100.0));
+                    ?>
                     <label class="form-label fw-semibold small text-secondary">Passing Marks (Read-only)</label>
-                    <input type="number" name="passing_marks" class="saas-form-control w-100 bg-light text-muted" value="20" readonly required>
-                    <div class="text-muted" style="font-size: 10px; margin-top: 4px;">Fixed at 80% passing threshold.</div>
+                    <input type="number" name="passing_marks" class="saas-form-control w-100 bg-light text-muted" value="<?= $calcPassingMarks ?>" readonly required>
+                    <div class="text-muted" style="font-size: 10px; margin-top: 4px;">Fixed at <?= $passThreshold ?>% passing threshold.</div>
                 </div>
                 <div class="col-md-4">
                     <label class="form-label fw-semibold small text-secondary">Total Marks (Read-only)</label>

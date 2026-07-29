@@ -31,7 +31,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && isset($_POST['update_pro
     $phone     = trim($_POST['phone'] ?? '');
     $dept      = trim($_POST['department'] ?? '');
     $bio       = trim($_POST['bio'] ?? '');
-    $location  = trim($_POST['city_location'] ?? 'Mumbai, India');
+    $location  = trim($_POST['city_location'] ?? '');
     $collegeName = trim($_POST['college_name'] ?? '');
 
     // Name validations
@@ -72,11 +72,27 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && isset($_POST['update_pro
         }
     }
 
-    // Handle Avatar File Upload
+    // College Name validation (optional field — validate only when provided)
+    if (!empty($collegeName) && !validate_college_name($collegeName)) {
+        set_flash_message('danger', "College Name may only contain letters, spaces, periods (.), hyphens (-), apostrophes ('), ampersands (&), and parentheses. Numbers are not allowed.");
+        redirect(BASE_URL . 'student/profile.php');
+    }
+
+    // Handle Avatar File Upload & Removal
     $avatarName = $student['avatar'] ?? 'default-avatar.png';
     $avatarUploaded = false;
 
-    if (isset($_FILES['avatar_file']) && $_FILES['avatar_file']['error'] === UPLOAD_ERR_OK) {
+    if (isset($_POST['remove_avatar']) && $_POST['remove_avatar'] === '1') {
+        if (!empty($student['avatar']) && $student['avatar'] !== 'default-avatar.png') {
+            $oldFile = AVATAR_UPLOAD_DIR . $student['avatar'];
+            if (file_exists($oldFile)) {
+                @unlink($oldFile);
+            }
+        }
+        $avatarName = 'default-avatar.png';
+        $_SESSION['avatar'] = 'default-avatar.png';
+        $avatarUploaded = true;
+    } elseif (isset($_FILES['avatar_file']) && $_FILES['avatar_file']['error'] === UPLOAD_ERR_OK) {
         $tmp = $_FILES['avatar_file']['tmp_name'];
         $origName = $_FILES['avatar_file']['name'];
         $size = $_FILES['avatar_file']['size'];
@@ -98,6 +114,13 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && isset($_POST['update_pro
             }
 
             if (move_uploaded_file($tmp, $dest)) {
+                // Clean up previous custom avatar
+                if (!empty($student['avatar']) && $student['avatar'] !== 'default-avatar.png') {
+                    $oldFile = AVATAR_UPLOAD_DIR . $student['avatar'];
+                    if (file_exists($oldFile)) {
+                        @unlink($oldFile);
+                    }
+                }
                 $avatarName = $newFilename;
                 $_SESSION['avatar'] = $newFilename;
                 $avatarUploaded = true;
@@ -386,10 +409,7 @@ include __DIR__ . '/../includes/header.php';
           <!-- Large Profile Picture -->
           <div class="profile-avatar-container mb-3">
             <?php 
-              $avatarPath = BASE_URL . 'assets/images/default-avatar.png';
-              if (!empty($student['avatar']) && file_exists(AVATAR_UPLOAD_DIR . $student['avatar'])) {
-                  $avatarPath = BASE_URL . 'uploads/avatars/' . htmlspecialchars($student['avatar']);
-              }
+              $avatarPath = resolve_avatar_url($student['avatar'] ?? '', 'student');
             ?>
             <div class="rounded-circle overflow-hidden border border-3 border-primary shadow-sm" style="width: 100%; height: 100%;">
               <img src="<?= $avatarPath ?>" alt="<?= $studentName ?>">
@@ -525,7 +545,7 @@ include __DIR__ . '/../includes/header.php';
                   </div>
                   <div>
                     <div class="info-item-label">Location</div>
-                    <div class="info-item-value"><?= !empty($student['city_location']) ? htmlspecialchars($student['city_location']) : 'Not Provided' ?></div>
+                    <div class="info-item-value"><?= !empty(trim($student['city_location'] ?? '')) ? htmlspecialchars($student['city_location']) : 'Not Provided' ?></div>
                   </div>
                 </div>
               </div>
@@ -686,8 +706,8 @@ include __DIR__ . '/../includes/header.php';
                     Score: <?= (float)$att['score_percentage'] ?>% · <?= date('M d, Y · h:i A', strtotime($att['completed_at'])) ?>
                   </div>
                 </div>
-                <span class="badge <?= (float)$att['score_percentage'] >= 60 ? 'saas-badge-success' : 'saas-badge-danger' ?>">
-                  <?= (float)$att['score_percentage'] >= 60 ? 'Passed' : 'Failed' ?>
+                <span class="badge <?= ($att['status'] === 'pass') ? 'saas-badge-success' : 'saas-badge-danger' ?>">
+                  <?= ($att['status'] === 'pass') ? 'Passed' : 'Failed' ?>
                 </span>
               </div>
             <?php endforeach; ?>
@@ -734,6 +754,14 @@ include __DIR__ . '/../includes/header.php';
                 No file selected
               <?php endif; ?>
             </div>
+            <?php if (!empty($student['avatar']) && $student['avatar'] !== 'default-avatar.png'): ?>
+              <div class="form-check mt-2">
+                <input class="form-check-input" type="checkbox" name="remove_avatar" id="remove_avatar" value="1">
+                <label class="form-check-label text-danger small fw-semibold" for="remove_avatar">
+                  Remove current photo (revert to default)
+                </label>
+              </div>
+            <?php endif; ?>
             <div class="text-muted" style="font-size: 11px; margin-top: 4px;">Accepted formats: JPG, PNG, WebP (Max size: 5MB)</div>
           </div>
 
@@ -776,7 +804,7 @@ include __DIR__ . '/../includes/header.php';
             </div>
             <div class="col-6">
               <label class="form-label small fw-semibold text-muted">LOCATION</label>
-              <input type="text" name="city_location" class="form-control rounded-3" value="<?= htmlspecialchars($student['city_location'] ?? 'Mumbai, India') ?>">
+              <input type="text" name="city_location" class="form-control rounded-3" value="<?= htmlspecialchars($student['city_location'] ?? '') ?>" placeholder="e.g. Pune, India">
             </div>
           </div>
 

@@ -53,11 +53,8 @@ if (empty(trim($sidebarUserName))) {
     $sidebarUserName = $_SESSION['username'] ?? 'User';
 }
 
-$sidebarAvatar = $_SESSION['avatar'] ?? 'default-avatar.png';
-$sidebarAvatarUrl = BASE_URL . 'uploads/avatars/' . $sidebarAvatar;
-if (!file_exists(__DIR__ . '/../uploads/avatars/' . $sidebarAvatar) || empty($sidebarAvatar)) {
-    $sidebarAvatarUrl = 'https://ui-avatars.com/api/?name=' . urlencode($sidebarUserName) . '&background=26658C&color=ffffff&bold=true';
-}
+$sidebarAvatar = $_SESSION['avatar'] ?? '';
+$sidebarAvatarUrl = resolve_avatar_url($sidebarAvatar, $role);
 
 $sidebarSubTitle = ucfirst($role);
 if (!empty($_SESSION['department'])) {

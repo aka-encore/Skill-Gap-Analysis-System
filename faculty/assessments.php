@@ -48,7 +48,7 @@ $assessments = $db->fetchAll(
             (SELECT COUNT(*) FROM assessment_results WHERE assessment_id = a.id) as submission_count,
             (SELECT COUNT(DISTINCT student_id) FROM assessment_results WHERE assessment_id = a.id) as student_count,
             (SELECT AVG(score_percentage) FROM assessment_results WHERE assessment_id = a.id) as avg_score,
-            (SELECT COUNT(*) FROM assessment_results WHERE assessment_id = a.id AND status = 'passed') as pass_count
+            (SELECT COUNT(*) FROM assessment_results WHERE assessment_id = a.id AND status = 'pass') as pass_count
      FROM assessments a
      JOIN skills s ON a.skill_id = s.id
      LEFT JOIN faculty f ON a.created_by_faculty_id = f.id
@@ -59,7 +59,7 @@ $assessments = $db->fetchAll(
 $totalAssessmentsCount = count($assessments);
 $totalStudentsAttempted = (int)($db->fetch("SELECT COUNT(DISTINCT student_id) as cnt FROM assessment_results")['cnt'] ?? 0);
 $overallAvgScore = round((float)($db->fetch("SELECT AVG(score_percentage) as cnt FROM assessment_results")['cnt'] ?? 0), 1);
-$totalPassedAttempts = (int)($db->fetch("SELECT COUNT(*) as cnt FROM assessment_results WHERE status = 'passed'")['cnt'] ?? 0);
+$totalPassedAttempts = (int)($db->fetch("SELECT COUNT(*) as cnt FROM assessment_results WHERE status = 'pass'")['cnt'] ?? 0);
 $totalAttemptsCount = (int)($db->fetch("SELECT COUNT(*) as cnt FROM assessment_results")['cnt'] ?? 0);
 $overallPassRate = $totalAttemptsCount > 0 ? round(($totalPassedAttempts / $totalAttemptsCount) * 100, 1) : 0;
 

@@ -34,7 +34,7 @@ if ($user) {
     $output = ob_get_clean();
 
     echo "2. reset-password.php Render Length: " . strlen($output) . " bytes\n";
-    if (strpos($output, "Set New Password") !== false && strpos($output, "tech-bg-container") !== false && strpos($output, "btn-saas-primary") !== false) {
+    if (strpos($output, "Set New Password") !== false && strpos($output, "auth-center-wrapper") !== false && strpos($output, "btn-saas-primary") !== false) {
         echo "   -> reset-password.php Render Test: PASSED with SaaS styling!\n";
     } else {
         echo "   -> reset-password.php Render Test: FAILED\n";

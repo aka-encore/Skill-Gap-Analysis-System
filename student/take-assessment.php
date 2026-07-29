@@ -96,7 +96,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_assessment']))
     }
 
     $scorePercentage = $totalPossibleMarks > 0 ? ($marksObtained / $totalPossibleMarks) * 100.0 : 0;
-    $status = ($marksObtained >= $assessment['passing_marks']) ? 'pass' : 'fail';
+    
+    // Dynamic Global Default Passing Score Threshold
+    $passThreshold = (float)get_system_setting('pass_mark_threshold', 60);
+    $status = ($scorePercentage >= $passThreshold) ? 'pass' : 'fail';
 
     try {
         $db->beginTransaction();

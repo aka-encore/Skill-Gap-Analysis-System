@@ -11,7 +11,7 @@ try {
         echo "Added 'bio' column to students table.\n";
     }
     if (!in_array('city_location', $cols)) {
-        $db->query("ALTER TABLE students ADD COLUMN city_location VARCHAR(100) NULL DEFAULT 'Mumbai, India' AFTER bio");
+        $db->query("ALTER TABLE students ADD COLUMN city_location VARCHAR(100) NULL DEFAULT NULL AFTER bio");
         echo "Added 'city_location' column to students table.\n";
     }
     echo "SUCCESS: Student profile schema is fully ready!\n";

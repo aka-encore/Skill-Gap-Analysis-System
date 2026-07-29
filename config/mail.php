@@ -20,11 +20,11 @@ use PHPMailer\PHPMailer\Exception;
 if (!defined('SMTP_HOST'))       define('SMTP_HOST',       'smtp.gmail.com');
 if (!defined('SMTP_PORT'))       define('SMTP_PORT',       587); // Use 587 for TLS, 465 for SSL
 if (!defined('SMTP_SECURE'))     define('SMTP_SECURE',     PHPMailer::ENCRYPTION_STARTTLS); // STARTTLS or SMTPS
-if (!defined('SMTP_USER'))       define('SMTP_USER',       'sudrikyash1@gmail.com');
-if (!defined('SMTP_PASS'))       define('SMTP_PASS',       'xlwm lcsx nzlc wdla'); // Gmail App Password
-if (!defined('SMTP_FROM_EMAIL')) define('SMTP_FROM_EMAIL', 'sudrikyash1@gmail.com');
+if (!defined('SMTP_USER'))       define('SMTP_USER',       'skill.bridge.project1@gmail.com');
+if (!defined('SMTP_PASS'))       define('SMTP_PASS',       'yoyk rcga ofti rgae'); // Gmail App Password
+if (!defined('SMTP_FROM_EMAIL')) define('SMTP_FROM_EMAIL', 'skill.bridge.project1@gmail.com');
 if (!defined('SMTP_FROM_NAME'))  define('SMTP_FROM_NAME',  'SkillBridge Team');
-if (!defined('SUPPORT_EMAIL'))   define('SUPPORT_EMAIL',   'sudrikyash1@gmail.com');
+if (!defined('SUPPORT_EMAIL'))   define('SUPPORT_EMAIL',   'skill.bridge.project1@gmail.com');
 
 /**
  * Centralized PHPMailer Instance Factory

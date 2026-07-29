@@ -239,7 +239,11 @@ include __DIR__ . '/../includes/header.php';
                 </div>
                 <div class="col-6 col-md-3">
                     <div class="small text-uppercase" style="font-size:10px; color: var(--text-muted);">Passing Marks</div>
-                    <div class="fw-bold fs-5 text-success">80% (20/25)</div>
+                    <?php 
+                    $passThreshold = (float)get_system_setting('pass_mark_threshold', 60);
+                    $calcPassingMarks = (int)round(25 * ($passThreshold / 100.0));
+                    ?>
+                    <div class="fw-bold fs-5 text-success"><?= $passThreshold ?>% (<?= $calcPassingMarks ?>/25)</div>
                 </div>
                 <div class="col-6 col-md-3">
                     <div class="small text-uppercase" style="font-size:10px; color: var(--text-muted);">System Security</div>

@@ -191,7 +191,7 @@ $dbWeeklyHours  = array_column($daysMap, 'hours');
 
 // 7. Leaderboard Calculation across all students (STRICTLY FROM DATABASE, EXCLUDING SUSPENDED)
 $allStudents = $db->fetchAll(
-    "SELECT s.id, s.first_name, s.last_name, s.department, u.username 
+    "SELECT s.id, s.first_name, s.last_name, s.department, s.avatar, u.username 
      FROM students s 
      JOIN users u ON s.user_id = u.id
      WHERE u.status != 'suspended'"
@@ -215,6 +215,7 @@ foreach ($allStudents as $st) {
         'id' => $stId,
         'name' => htmlspecialchars($st['first_name'] . ' ' . $st['last_name']),
         'department' => htmlspecialchars($st['department'] ?? 'Computer Science'),
+        'avatar' => $st['avatar'] ?? '',
         'score' => $stOverallScore,
         'is_current' => ($stId == $studentId)
     ];
@@ -735,8 +736,8 @@ include __DIR__ . '/../includes/header.php';
                 <?php else: ?>#<?= $lb['rank'] ?>
                 <?php endif; ?>
               </div>
-              <div class="avatar avatar-xs rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold" style="width: 32px; height: 32px; font-size: 11px;">
-                <?= strtoupper(substr($lb['name'], 0, 2)) ?>
+              <div class="avatar overflow-hidden d-flex align-items-center justify-content-center">
+                <img src="<?= resolve_avatar_url($lb['avatar'] ?? '', 'student') ?>" class="w-100 h-100 object-fit-cover" alt="<?= $lb['name'] ?>">
               </div>
               <div class="lb-user-details">
                 <div class="lb-name"><?= $lb['name'] ?> <?= $lb['is_current'] ? '<span class="badge bg-primary text-white" style="font-size: 9px;">YOU</span>' : '' ?></div>

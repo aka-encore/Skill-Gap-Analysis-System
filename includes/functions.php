@@ -17,6 +17,51 @@ function sanitize_input($data): string {
 }
 
 /**
+ * Return the URL of the role-specific default avatar SVG.
+ * Falls back to student avatar for unknown roles.
+ */
+function get_default_avatar_url(string $role = 'student'): string {
+    $map = [
+        'student' => 'default-avatar-student.svg',
+        'faculty' => 'default-avatar-faculty.svg',
+        'admin'   => 'default-avatar-admin.svg',
+    ];
+    $file = $map[strtolower($role)] ?? 'default-avatar-student.svg';
+    return BASE_URL . 'assets/images/' . $file;
+}
+
+/**
+ * Resolve the avatar URL for a given avatar filename and role.
+ * Returns the uploaded image URL when the file exists, otherwise the
+ * role-specific default SVG.
+ */
+function resolve_avatar_url(string $avatarFile, string $role = 'student'): string {
+    $isDefault = (empty($avatarFile) || $avatarFile === 'default-avatar.png');
+    if (!$isDefault) {
+        $diskPath = __DIR__ . '/../uploads/avatars/' . $avatarFile;
+        if (file_exists($diskPath)) {
+            return BASE_URL . 'uploads/avatars/' . $avatarFile;
+        }
+    }
+    return get_default_avatar_url($role);
+}
+
+/**
+ * Validate a college / institution name.
+ * Allows letters, spaces, periods, hyphens, apostrophes, ampersands, parentheses.
+ * Rejects digits and unsupported special characters.
+ */
+function validate_college_name(string $name): bool {
+    if (empty($name)) {
+        return false;
+    }
+    // Must not contain digits; only allowed chars: letters, space . - ' & ( )
+    return (bool) preg_match("/^[a-zA-Z\s\.\-\'\&\(\)]+$/u", $name);
+}
+
+
+
+/**
  * Perform safe HTTP redirect
  */
 function redirect(string $url): void {
@@ -586,4 +631,21 @@ function delete_announcement(int $announcementId, int $currentUserId, string $cu
     log_activity($currentUserId, 'ANNOUNCEMENT_DELETED', "Deleted announcement #{$announcementId}.");
 
     return ['success' => true, 'message' => 'Announcement deleted successfully.'];
+}
+
+/**
+ * Retrieve a system setting value dynamically from system_settings table.
+ *
+ * @param string $key
+ * @param mixed $default
+ * @return string
+ */
+function get_system_setting(string $key, $default = ''): string {
+    try {
+        $db = Database::getInstance();
+        $row = $db->fetch("SELECT setting_value FROM system_settings WHERE setting_key = ?", [$key]);
+        return $row ? (string)$row['setting_value'] : (string)$default;
+    } catch (Exception $e) {
+        return (string)$default;
+    }
 }

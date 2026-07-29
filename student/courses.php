@@ -784,6 +784,26 @@ const ALL_COURSES = <?= json_encode($allCourses) ?>;
 const ENROLLED_COURSES = <?= json_encode($enrolledCourses) ?>;
 const COMPLETED_COURSES = <?= json_encode($completedCourses) ?>;
 
+function formatDuration(seconds) {
+  if (!seconds) return '0m';
+  const hours = Math.floor(seconds / 3600);
+  const remainingSeconds = seconds % 3600;
+  
+  if (hours < 1) {
+    const mins = Math.round(remainingSeconds / 60);
+    return `${mins}m`;
+  } else {
+    let mins = Math.round(remainingSeconds / 60);
+    let h = hours;
+    if (mins >= 60) {
+      mins = 0;
+      h += 1;
+    }
+    const paddedMins = mins.toString().padStart(2, '0');
+    return `${h}:${paddedMins}`;
+  }
+}
+
 let currentTab = 'all';
 
 window.initCourses = function() {
@@ -1066,7 +1086,7 @@ function openCoursePlayerModal(id, title, instructor, progress) {
   // Find first uncompleted lesson
   let activeIdx = 0;
   for (let i = 0; i < lessons.length; i++) {
-    const isDone = completedList.includes(parseInt(lessons[i].id));
+    const isDone = completedList.includes(parseInt(lessons[i].id)) || completedList.includes(String(lessons[i].id));
     if (!isDone) {
       activeIdx = i;
       break;
@@ -1119,15 +1139,15 @@ function openCoursePlayerModal(id, title, instructor, progress) {
     document.getElementById('videoContainer').style.display = 'none';
   } else {
     modulesContainer.innerHTML = lessons.map((l, idx) => {
-      const isDone = completedList.includes(parseInt(l.id));
-      const isPriorDone = idx === 0 || completedList.includes(parseInt(lessons[idx - 1].id));
-      const isUnlocked = isPriorDone;
+      const isDone = completedList.includes(parseInt(l.id)) || completedList.includes(String(l.id));
+      const isPriorDone = idx === 0 || completedList.includes(parseInt(lessons[idx - 1].id)) || completedList.includes(String(lessons[idx - 1].id));
+      const isUnlocked = isDone || isPriorDone;
       const isActive = activePlayerLessonId == l.id || (activePlayerLessonId === 0 && idx === activeIdx);
       
       let statusClass = 'not-started';
       let iconHtml = '<i class="fa-regular fa-circle"></i>';
       let lockClass = '';
-      let clickAttr = `onclick="selectDatabaseLesson(${idx}, ${cEscapeJs(l.title)}, ${cEscapeJs(l.description || '')}, ${cEscapeJs(l.video_url || '')}, ${l.id})"`;
+      let clickAttr = `onclick="selectDatabaseLesson(${idx}, '${escapeJs(l.title)}', '${escapeJs(l.description || '')}', '${escapeJs(l.video_url || '')}', ${l.id})"`;
 
       if (!isUnlocked) {
           statusClass = 'locked';
@@ -1150,7 +1170,7 @@ function openCoursePlayerModal(id, title, instructor, progress) {
               <span class="text-muted me-1">#${idx + 1}</span> ${escapeHtml(l.title)}
             </span>
           </div>
-          <span class="badge bg-light text-dark ms-1">${l.duration_minutes || 15}m</span>
+          <span class="badge bg-light text-dark ms-1">${formatDuration(l.duration_seconds || (l.duration_minutes * 60) || 900)}</span>
         </div>
       `;
     }).join('');
@@ -1213,10 +1233,9 @@ function selectDatabaseLesson(idx, title, desc, videoUrl, lessonId) {
         iconSpan.innerHTML = '<i class="fa-solid fa-circle-play text-primary"></i>';
       }
     } else {
-      item.classList.remove('active');
       const otherLesson = lessons[i];
-      const isDone = completedList.includes(parseInt(otherLesson.id));
-      const isUnlocked = i === 0 || completedList.includes(parseInt(lessons[i - 1].id));
+      const isDone = completedList.includes(parseInt(otherLesson.id)) || completedList.includes(String(otherLesson.id));
+      const isUnlocked = isDone || i === 0 || completedList.includes(parseInt(lessons[i - 1].id)) || completedList.includes(String(lessons[i - 1].id));
       const iconSpan = item.querySelector('.lesson-status-icon');
       if (iconSpan) {
         if (!isUnlocked) {

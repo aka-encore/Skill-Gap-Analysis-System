@@ -95,16 +95,16 @@ include __DIR__ . '/../includes/header.php';
 /* ── Roadmap Custom Styles (Theme-Aware) ── */
 .role-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 1.5rem;
-  margin-top: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.25rem;
+  margin-top: 1rem;
 }
 
 .role-card {
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 16px;
-  padding: 1.5rem;
+  padding: 1.25rem;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   display: flex;
@@ -122,41 +122,60 @@ include __DIR__ . '/../includes/header.php';
   background: var(--bg-hover);
 }
 
+.role-card.selected {
+  border: 2px solid var(--primary, #26658C) !important;
+  background-color: var(--primary-light, rgba(38, 101, 140, 0.05)) !important;
+  box-shadow: 0 10px 25px -5px rgba(38, 101, 140, 0.15), 0 8px 10px -6px rgba(38, 101, 140, 0.15) !important;
+  transform: translateY(-4px);
+}
+
 .role-icon-box {
-  width: 54px;
-  height: 54px;
-  border-radius: 14px;
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.6rem;
-  margin-bottom: 1rem;
+  font-size: 1.4rem;
+  margin-bottom: 0.85rem;
 }
 .role-icon-box.primary { background: var(--primary-light); color: var(--primary); border: 1px solid var(--primary-light); }
 .role-icon-box.accent  { background: var(--accent-light); color: var(--accent); border: 1px solid var(--accent-light); }
 .role-icon-box.warning { background: var(--warning-light); color: var(--warning-text); border: 1px solid var(--warning-light); }
 .role-icon-box.success { background: var(--success-light); color: var(--success-text); border: 1px solid var(--success-light); }
 
-.role-title { font-size: 1.15rem; font-weight: 700; margin-bottom: 0.5rem; color: var(--text-heading); }
-.role-desc { font-size: 0.825rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: 1rem; flex-grow: 1; }
+.role-title { font-size: 1.05rem; font-weight: 700; margin-bottom: 0.4rem; color: var(--text-heading); }
+.role-desc { font-size: 0.8rem; color: var(--text-secondary); line-height: 1.45; margin-bottom: 0.85rem; flex-grow: 1; }
 
-.role-skills { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 1.25rem; }
+.role-skills { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 1rem; }
 .role-skill-tag { background: var(--primary-light); border: 1px solid var(--border); padding: 4px 8px; border-radius: 6px; font-size: 0.7rem; color: var(--primary); font-weight: 600; }
 
 .btn-select-role {
-  background: var(--primary); color: #fff; border: none; border-radius: 10px; padding: 0.75rem 1rem; font-weight: 600; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s ease; width: 100%; cursor: pointer;
+  background: var(--bg-muted, #F1F5F9);
+  color: var(--text-secondary, #475569);
+  border: 1px solid var(--border, #E2E8F0);
+  border-radius: 10px;
+  padding: 0.65rem 1rem;
+  font-weight: 600;
+  font-size: 0.825rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.25s ease;
+  width: 100%;
+  cursor: pointer;
 }
-.role-card:hover .btn-select-role { background: var(--primary-hover); }
-
-.top-path-selector-card {
-  background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 0.85rem 1.25rem; margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; box-shadow: var(--shadow-card);
+.role-card:hover .btn-select-role {
+  background: var(--primary-light, rgba(38, 101, 140, 0.1));
+  color: var(--primary, #26658C);
+  border-color: var(--primary-light, rgba(38, 101, 140, 0.1));
 }
-
-.top-path-select-wrapper { display: flex; align-items: center; gap: 12px; }
-.top-path-dropdown {
-  background: var(--bg-input); color: var(--text-heading); border: 1px solid var(--border-input); padding: 8px 16px; border-radius: 10px; font-weight: 600; font-size: 0.875rem; min-width: 240px; cursor: pointer; outline: none; transition: border-color 0.2s;
+.role-card.selected .btn-select-role {
+  background: var(--primary, #26658C);
+  color: #FFF;
+  border-color: var(--primary, #26658C);
 }
-.top-path-dropdown:focus { border-color: var(--border-focus); }
 
 /* Custom Checkboxes */
 .milestone-custom-checkbox {
@@ -295,34 +314,18 @@ include __DIR__ . '/../includes/header.php';
 <div class="dash-content">
   
   <!-- Role Selection Screen -->
-  <div id="role-selection-screen" class="animate-slideUp" style="display: none;">
+  <div id="role-selection-screen" class="animate-slideUp">
     <div style="text-align: center; margin-bottom: 2rem; max-width: 700px; margin-left: auto; margin-right: auto;">
-      <h1 class="fw-bold" style="font-size: 2.2rem; line-height: 1.3">Select Your <span class="gradient-text">Career Path</span></h1>
+      <h1 class="fw-bold text-dark mb-2" style="font-size: 2.2rem; line-height: 1.3">Select Your <span class="gradient-text">Career Path</span></h1>
       <p class="text-muted small">Choose your professional target to generate your personalized learning roadmap, curated video playlists, and track real-time DB skill achievements.</p>
     </div>
     <div class="role-grid" id="role-grid-container">
-      <!-- Injected by JS -->
+      <!-- Injected dynamically by JS -->
     </div>
   </div>
 
   <!-- Active Roadmap Screen -->
   <div id="roadmap-screen" style="display: none;">
-    <!-- Top Active Path Selector Bar -->
-    <div class="top-path-selector-card">
-      <div class="top-path-select-wrapper">
-        <i class="fa-solid fa-graduation-cap text-primary fs-5"></i>
-        <span class="fw-bold text-dark small">Active Learning Path:</span>
-      </div>
-      <select id="role-selector-top" onchange="selectRole(this.value)" class="top-path-dropdown">
-        <option value="frontend">Frontend Developer</option>
-        <option value="backend">Backend Developer</option>
-        <option value="fullstack">Full Stack Developer</option>
-        <option value="uiux">UI/UX Designer</option>
-        <option value="datascientist">Data Scientist / Analyst</option>
-        <option value="devops">DevOps & Cloud Engineer</option>
-        <option value="cybersecurity">Cybersecurity Specialist</option>
-      </select>
-    </div>
 
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
       <div>
@@ -335,6 +338,23 @@ include __DIR__ . '/../includes/header.php';
         </button>
       </div>
     </div>
+    
+    <!-- Roadmap Empty State (📚 Courses Coming Soon) -->
+    <div id="roadmap-empty-state" class="card border-0 shadow-sm rounded-4 p-5 text-center bg-white mb-4" style="display: none; border: 1px solid #E2E8F0 !important;">
+      <div class="mb-3">
+        <span style="font-size: 3.5rem;"><i class="fa-solid fa-graduation-cap text-primary opacity-50"></i></span>
+      </div>
+      <h4 class="fw-bold text-dark mb-2">📚 Courses Coming Soon</h4>
+      <p class="text-muted mb-4 mx-auto" style="max-width: 500px; font-size: 0.85rem;">
+        Courses for the selected learning pathway are not yet available. Please check back later as new learning content is regularly added.
+      </p>
+      <div>
+        <button class="btn btn-primary rounded-pill px-4 btn-sm fw-semibold" onclick="selectRole('fullstack')">View Full Stack Pathway</button>
+      </div>
+    </div>
+
+    <!-- Active Roadmap Content Container -->
+    <div id="roadmap-content-container">
 
     <!-- Overall Roadmap Progress Widget -->
     <div class="card border-0 shadow-sm rounded-4 p-4 mb-4" style="background: #FFFFFF; border: 1px solid #E2E8F0;">
@@ -432,6 +452,7 @@ include __DIR__ . '/../includes/header.php';
         </div>
       </div>
     </div>
+    </div> <!-- Close roadmap-content-container -->
 
   </div>
 </div>
@@ -613,6 +634,21 @@ const roadmaps = {
       }
     ]
   },
+  uiux: {
+    title: "UI/UX Designer",
+    duration: "4 Months",
+    matchPercentage: 70,
+    phases: [
+      {
+        name: "Phase 1 — UI/UX Fundamentals",
+        duration: "8 Weeks",
+        milestones: [
+          { id: "ui_m1", skillId: 11, title: "UI/UX Interface Design", desc: "Understand color systems, visual hierarchy, typography, and responsive grid layouts.", hours: 20, playlistId: "PL4cUxeGkcC9h6OAGy8Sy1x7dbVOMQGjX8", difficulty: "Beginner", docLink: "https://figma.com", practiceProject: "Create a high-fidelity user interface prototype of a mobile food delivery app in Figma." },
+          { id: "ui_m2", skillId: 98, title: "Interaction Design & User Research", desc: "Learn user flows, wireframing, high-fidelity interactive prototyping, and micro-interactions.", hours: 25, playlistId: "PL4cUxeGkcC9h6OAGy8Sy1x7dbVOMQGjX8", difficulty: "Intermediate", docLink: "https://figma.com", practiceProject: "Conduct user testing on a prototype and refine interaction flows based on user feedback." }
+        ]
+      }
+    ]
+  },
   datascientist: {
     title: "Data Scientist / Analyst",
     duration: "6 Months",
@@ -627,11 +663,63 @@ const roadmaps = {
         ]
       }
     ]
+  },
+  devops: {
+    title: "DevOps & Cloud Engineer",
+    duration: "6 Months",
+    matchPercentage: 75,
+    phases: [
+      {
+        name: "Phase 1 — Containers & Cloud",
+        duration: "10 Weeks",
+        milestones: [
+          { id: "do_m1", skillId: 13, title: "Docker & Containerization", desc: "Package and deploy applications inside lightweight containers.", hours: 15, playlistId: "PL4cUxeGkcC9gZD-Tvwfod2gaISzfRiP9d", difficulty: "Intermediate", docLink: "https://docs.docker.com", practiceProject: "Containerize a full-stack web app." },
+          { id: "do_m2", skillId: 15, title: "Cloud Computing (AWS/Azure)", desc: "Manage server instances, buckets, and cloud load balancing.", hours: 25, playlistId: "PL4cUxeGkcC9gZD-Tvwfod2gaISzfRiP9d", difficulty: "Advanced", docLink: "https://aws.amazon.com", practiceProject: "Deploy a static site on AWS S3 with CloudFront CDN." }
+        ]
+      },
+      {
+        name: "Phase 2 — Automation & Administration",
+        duration: "8 Weeks",
+        milestones: [
+          { id: "do_m3", skillId: 10, title: "Version Control with Git", desc: "Master commits, branching, merging, and collaboration workflows.", hours: 10, playlistId: "PL4cUxeGkcC9goXbgTDQ0n_4TBzOO0ocPR", difficulty: "Beginner", docLink: "https://git-scm.com/doc", practiceProject: "Manage version control for a multi-developer project." },
+          { id: "do_m4", skillId: 18, title: "Linux System Administration", desc: "Manage Linux command-line operations, permissions, and shell scripting.", hours: 20, playlistId: "PL4cUxeGkcC9goXbgTDQ0n_4TBzOO0ocPR", difficulty: "Intermediate", docLink: "https://linux.org", practiceProject: "Write a Bash script to automate daily system backups." }
+        ]
+      }
+    ]
+  },
+  cybersecurity: {
+    title: "Cybersecurity Specialist",
+    duration: "6 Months",
+    matchPercentage: 80,
+    phases: [
+      {
+        name: "Phase 1 — Network & App Security",
+        duration: "12 Weeks",
+        milestones: [
+          { id: "cs_m1", skillId: 20, title: "Cybersecurity Fundamentals", desc: "Explore threat modeling, cryptography, and network defenses.", hours: 20, playlistId: "PL10u0b3N6Lw4UfW75pXW8w216fA", difficulty: "Beginner", docLink: "https://owasp.org", practiceProject: "Set up a secure network configuration with threat logging." },
+          { id: "cs_m2", skillId: 6, title: "Web Application Security", desc: "Defend against SQL injection, Cross-Site Scripting (XSS), and CSRF.", hours: 15, playlistId: "PL10u0b3N6Lw4UfW75pXW8w216fA", difficulty: "Advanced", docLink: "https://owasp.org", practiceProject: "Audit and patch security vulnerabilities in a legacy web portal." }
+        ]
+      }
+    ]
+  },
+  mobile: {
+    title: "Mobile App Developer",
+    duration: "4 Months",
+    matchPercentage: 50,
+    phases: [
+      {
+        name: "Phase 1 — Native iOS & Android",
+        duration: "8 Weeks",
+        milestones: [
+          { id: "mb_m1", skillId: 88, title: "iOS Development with Swift", desc: "Build iOS applications using Swift and SwiftUI.", hours: 25, playlistId: "PL4cUxeGkcC9gZD-Tvwfod2gaISzfRiP9d", difficulty: "Beginner", docLink: "https://developer.apple.com", practiceProject: "Build a responsive calculator application in SwiftUI." },
+          { id: "mb_m2", skillId: 89, title: "Android Development with Kotlin", desc: "Build Android applications using Kotlin and Jetpack Compose.", hours: 25, playlistId: "PL4cUxeGkcC9gZD-Tvwfod2gaISzfRiP9d", difficulty: "Beginner", docLink: "https://developer.android.com", practiceProject: "Build a tasks tracker application in Kotlin." }
+        ]
+      }
+    ]
   }
 };
 
-let currentRoleKey = userDefaultRole || 'fullstack';
-if (!roadmaps[currentRoleKey]) currentRoleKey = 'fullstack';
+let currentRoleKey = '';
 
 window.initRoadmap = function() {
     initRoadmapPage();
@@ -645,7 +733,7 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
 
 function initRoadmapPage() {
     renderRoleCards();
-    selectRole(currentRoleKey, false);
+    document.getElementById('roadmap-screen').style.display = 'none';
 }
 
 function renderRoleCards() {
@@ -655,16 +743,30 @@ function renderRoleCards() {
     let html = '';
     for (const key in roadmaps) {
         const role = roadmaps[key];
+        const isSelected = (key === currentRoleKey);
+        
+        let icon = 'fa-briefcase';
+        if (key === 'frontend') icon = 'fa-code';
+        else if (key === 'backend') icon = 'fa-server';
+        else if (key === 'fullstack') icon = 'fa-layer-group';
+        else if (key === 'uiux') icon = 'fa-pen-nib';
+        else if (key === 'datascientist') icon = 'fa-chart-pie';
+        else if (key === 'devops') icon = 'fa-network-wired';
+        else if (key === 'cybersecurity') icon = 'fa-shield-halved';
+        else if (key === 'mobile') icon = 'fa-mobile-screen-button';
+
         html += `
-            <div class="role-card" onclick="selectRole('${key}')">
-                <div class="role-icon-box primary"><i class="fa-solid fa-briefcase"></i></div>
+            <div class="role-card ${isSelected ? 'selected' : ''}" onclick="selectRole('${key}')">
+                <div class="role-icon-box primary"><i class="fa-solid ${icon}"></i></div>
                 <div class="role-title">${role.title}</div>
                 <div class="role-desc">Personalized pathway to master ${role.title} competencies and industry tools.</div>
                 <div class="role-skills">
                     <span class="role-skill-tag">${role.duration}</span>
                     <span class="role-skill-tag">${role.phases.length} Phases</span>
                 </div>
-                <button class="btn-select-role"><i class="fa-solid fa-arrow-right"></i> Launch Pathway</button>
+                <button type="button" class="btn-select-role" onclick="selectRole('${key}'); event.stopPropagation();">
+                    ${isSelected ? '<i class="fa-solid fa-circle-check"></i> Active Pathway' : '<i class="fa-solid fa-arrow-right"></i> Launch Pathway'}
+                </button>
             </div>
         `;
     }
@@ -678,9 +780,7 @@ function selectRole(roleKey, animate = true) {
     document.getElementById('role-selection-screen').style.display = 'none';
     document.getElementById('roadmap-screen').style.display = 'block';
 
-    const selectTop = document.getElementById('role-selector-top');
-    if (selectTop) selectTop.value = roleKey;
-
+    renderRoleCards();
     renderRoadmap(roleKey);
 }
 
@@ -700,6 +800,29 @@ function renderRoadmap(roleKey) {
     let completedHours = 0;
 
     let timelineHtml = '';
+
+    // Verify whether SkillBridge currently contains courses for the selected learning pathway
+    let availableCoursesCount = 0;
+    role.phases.forEach(phase => {
+        phase.milestones.forEach(m => {
+            const mCourses = skillBridgeCourses[m.skillId] || [];
+            if (mCourses.length > 0) {
+                availableCoursesCount++;
+            }
+        });
+    });
+
+    const emptyStateEl = document.getElementById('roadmap-empty-state');
+    const contentEl = document.getElementById('roadmap-content-container');
+
+    if (availableCoursesCount === 0) {
+        if (emptyStateEl) emptyStateEl.style.display = 'block';
+        if (contentEl) contentEl.style.display = 'none';
+        return;
+    } else {
+        if (emptyStateEl) emptyStateEl.style.display = 'none';
+        if (contentEl) contentEl.style.display = 'block';
+    }
 
     role.phases.forEach((phase, phaseIndex) => {
         timelineHtml += `
@@ -809,7 +932,7 @@ function renderRoadmap(roleKey) {
             } else {
                 courseHtml = `
                     <div class="alert alert-light border small text-muted rounded-3 p-3 d-flex align-items-center gap-2 mt-3 mb-0">
-                        <i class="fa-solid fa-circle-info text-primary fs-6"></i> No SkillBridge course available yet.
+                        <i class="fa-solid fa-circle-info text-secondary fs-6"></i> Course not available.
                     </div>
                 `;
             }

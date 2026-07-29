@@ -179,7 +179,7 @@ $pageTitle = "Sign In – SkillBridge";
         <!-- Remember Me Checkbox -->
         <div class="d-flex align-items-center justify-content-between mb-4" id="rememberMeWrapper">
           <div class="form-check">
-            <input class="form-check-input" type="checkbox" name="remember_me" id="rememberMe">
+            <input class="form-check-input" type="checkbox" name="remember_me" id="rememberMe" <?= isset($_POST['remember_me']) ? 'checked' : '' ?>>
             <label class="form-check-input-label small text-muted" for="rememberMe">Remember me for 30 days</label>
           </div>
         </div>

@@ -27,13 +27,13 @@ $studentName = htmlspecialchars(($student['first_name'] ?? 'Student') . ' ' . ($
 // Handle Feedback Form Submit
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && isset($_POST['submit_feedback'])) {
     $category = trim($_POST['category'] ?? '');
-    $rating   = (int)($_POST['rating'] ?? 5);
+    $rating   = isset($_POST['rating']) && $_POST['rating'] !== '' ? (int)$_POST['rating'] : 0;
     $message  = trim($_POST['message'] ?? '');
 
     if (empty($category)) {
         set_flash_message('danger', 'Please select a feedback category.');
     } elseif ($rating < 1 || $rating > 5) {
-        set_flash_message('danger', 'Please select a valid rating between 1 and 5 stars.');
+        set_flash_message('danger', 'Please select a rating before submitting your feedback.');
     } elseif (empty($message)) {
         set_flash_message('danger', 'Please write your feedback message before submitting.');
     } else {
@@ -42,30 +42,15 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && isset($_POST['submit_fee
              VALUES (?, 'student', ?, ?, ?, 'pending')",
             [$userId, $category, $rating, $message]
         );
-
         $userEmailAddr = $student['email'] ?? '';
         require_once __DIR__ . '/../config/mail.php';
         $feedbackMailRes = send_feedback_email('student', $studentName, $userEmailAddr, $category, $rating, $message);
 
-        // Build mailto URL for fallback
-        $subject = "SkillBridge Feedback - " . $category;
-        $stars = str_repeat('*', $rating);
-        $dateTime = date('Y-m-d H:i:s');
-
-        $emailBody = "SkillBridge Feedback\n\n"
-                   . "Name:\n" . $studentName . "\n\n"
-                   . "Email:\n" . $userEmailAddr . "\n\n"
-                   . "Role:\nStudent\n\n"
-                   . "Category:\n" . $category . "\n\n"
-                   . "Rating:\n" . $stars . " (" . $rating . "/5 Stars)\n\n"
-                   . "Feedback:\n" . $message . "\n\n"
-                   . "Submitted via SkillBridge\n"
-                   . "Date:\n" . $dateTime;
-
-        $mailtoUrl = "mailto:skill.profile.project1@gmail.com?subject=" . rawurlencode($subject) . "&body=" . rawurlencode($emailBody);
-
-        $_SESSION['open_mailto'] = $mailtoUrl;
-        set_flash_message('success', 'Thank you! Your feedback has been saved successfully.');
+        if ($feedbackMailRes['success']) {
+            set_flash_message('success', 'Thank you! Your feedback has been sent successfully.');
+        } else {
+            set_flash_message('warning', 'Feedback saved to database, but email notification failed: ' . $feedbackMailRes['message']);
+        }
         redirect(BASE_URL . 'student/feedback.php');
     }
 }
@@ -118,7 +103,7 @@ include __DIR__ . '/../includes/header.php';
 
       <form action="<?= BASE_URL ?>student/feedback.php" method="POST">
         <input type="hidden" name="submit_feedback" value="1">
-        <input type="hidden" name="rating" id="ratingInput" value="5">
+        <input type="hidden" name="rating" id="ratingInput" value="">
 
         <!-- CATEGORY SELECTION -->
         <div class="mb-4">
@@ -142,14 +127,18 @@ include __DIR__ . '/../includes/header.php';
         <!-- RATING CONTROL -->
         <div class="mb-4">
           <label class="form-label small fw-semibold text-muted d-block">YOUR RATING <span class="text-danger">*</span></label>
-          <div class="star-rating" id="starRating">
-            <i class="fa-solid fa-star active" data-value="1"></i>
-            <i class="fa-solid fa-star active" data-value="2"></i>
-            <i class="fa-solid fa-star active" data-value="3"></i>
-            <i class="fa-solid fa-star active" data-value="4"></i>
-            <i class="fa-solid fa-star active" data-value="5"></i>
+          <div class="star-rating mb-1" id="starRating">
+            <i class="fa-solid fa-star" data-value="1"></i>
+            <i class="fa-solid fa-star" data-value="2"></i>
+            <i class="fa-solid fa-star" data-value="3"></i>
+            <i class="fa-solid fa-star" data-value="4"></i>
+            <i class="fa-solid fa-star" data-value="5"></i>
           </div>
-          <span class="text-muted ms-2 small fw-semibold" id="ratingLabel">5 - Excellent</span>
+          <span class="text-muted ms-1 small fw-semibold" id="ratingLabel">Please select a rating</span>
+          
+          <div id="ratingErrorAlert" class="alert alert-danger d-none rounded-3 py-2 px-3 mt-2 mb-0 small">
+              <i class="fa-solid fa-circle-exclamation me-1"></i> Please select a rating before submitting your feedback.
+          </div>
         </div>
 
         <!-- MESSAGE TEXTAREA -->
@@ -188,6 +177,9 @@ window.initFeedback = function() {
             const val = parseInt(this.getAttribute('data-value'));
             if (ratingInput) ratingInput.value = val;
             if (ratingLabel) ratingLabel.textContent = labels[val];
+            
+            const errorAlert = document.getElementById('ratingErrorAlert');
+            if (errorAlert) errorAlert.classList.add('d-none');
 
             document.querySelectorAll('#starRating i').forEach(s => {
                 const sVal = parseInt(s.getAttribute('data-value'));
@@ -200,12 +192,37 @@ window.initFeedback = function() {
         });
     });
 
-    <?php if (isset($_SESSION['open_mailto'])): 
-      $mailtoToOpen = $_SESSION['open_mailto'];
-      unset($_SESSION['open_mailto']);
-    ?>
-    window.location.href = <?= json_encode($mailtoToOpen) ?>;
-    <?php endif; ?>
+    // Render pre-selected value if present
+    if (ratingInput && ratingInput.value) {
+        const initialVal = parseInt(ratingInput.value);
+        if (initialVal >= 1 && initialVal <= 5) {
+            if (ratingLabel) ratingLabel.textContent = labels[initialVal];
+            document.querySelectorAll('#starRating i').forEach(s => {
+                const sVal = parseInt(s.getAttribute('data-value'));
+                if (sVal <= initialVal) {
+                    s.classList.add('active');
+                } else {
+                    s.classList.remove('active');
+                }
+            });
+        }
+    }
+
+    // Form submit validation handler
+    const form = document.querySelector('#feedback-section form') || document.querySelector('form');
+    if (form) {
+        form.addEventListener('submit', function (e) {
+            if (ratingInput && (!ratingInput.value || ratingInput.value === '')) {
+                e.preventDefault();
+                const errorAlert = document.getElementById('ratingErrorAlert');
+                if (errorAlert) {
+                    errorAlert.classList.remove('d-none');
+                    errorAlert.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+                return false;
+            }
+        });
+    }
 };
 
 if (document.readyState === 'complete' || document.readyState === 'interactive') {

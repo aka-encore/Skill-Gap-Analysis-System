@@ -19,11 +19,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'Invalid CSRF token.';
     } else {
         $settings = $_POST['settings'] ?? [];
-        foreach ($settings as $key => $val) {
-            $db->update('system_settings', ['setting_value' => trim($val)], 'setting_key = ?', [$key]);
+        
+        // Validate Default Passing Score Threshold (%)
+        $passThreshold = isset($settings['pass_mark_threshold']) ? trim($settings['pass_mark_threshold']) : '';
+        if ($passThreshold === '') {
+            $error = 'Default Passing Score Threshold is required.';
+        } elseif (!is_numeric($passThreshold)) {
+            $error = 'Default Passing Score Threshold must be a numeric value.';
+        } else {
+            $passThresholdVal = (float)$passThreshold;
+            if ($passThresholdVal < 0.0 || $passThresholdVal > 100.0) {
+                $error = 'Default Passing Score Threshold must be a percentage between 0 and 100.';
+            }
         }
-        log_activity($_SESSION['user_id'], 'SYSTEM_SETTING_UPDATE', 'Updated system settings');
-        $success = 'System settings updated successfully.';
+        
+        // Validate Session Timeout (Seconds)
+        $timeout = isset($settings['session_timeout']) ? trim($settings['session_timeout']) : '';
+        if ($timeout !== '' && (!is_numeric($timeout) || (int)$timeout < 0)) {
+            $error = 'Session Timeout must be a non-negative number of seconds.';
+        }
+
+        // Validate Proctoring Max Violations Limit
+        $violations = isset($settings['proctoring_max_violations']) ? trim($settings['proctoring_max_violations']) : '';
+        if ($violations !== '' && (!is_numeric($violations) || (int)$violations < 1 || (int)$violations > 10)) {
+            $error = 'Proctoring Max Violations Limit must be between 1 and 10.';
+        }
+
+        if (empty($error)) {
+            foreach ($settings as $key => $val) {
+                $db->update('system_settings', ['setting_value' => trim($val)], 'setting_key = ?', [$key]);
+            }
+            log_activity($_SESSION['user_id'], 'SYSTEM_SETTING_UPDATE', 'Updated system settings');
+            $success = 'System settings updated successfully.';
+        }
     }
 }
 
@@ -77,7 +105,7 @@ include __DIR__ . '/../includes/header.php';
             <div class="row g-3 mb-4">
                 <div class="col-md-6">
                     <label class="form-label fw-semibold small text-secondary">Default Passing Score Threshold (%)</label>
-                    <input type="number" name="settings[pass_mark_threshold]" class="form-control" value="<?= htmlspecialchars($settingsMap['pass_mark_threshold']['setting_value'] ?? '60') ?>">
+                    <input type="number" name="settings[pass_mark_threshold]" class="form-control" value="<?= htmlspecialchars($settingsMap['pass_mark_threshold']['setting_value'] ?? '60') ?>" min="0" max="100" step="any" required>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label fw-semibold small text-secondary">Automated Skill Recommendations</label>

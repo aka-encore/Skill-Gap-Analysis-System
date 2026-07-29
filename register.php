@@ -22,6 +22,7 @@ if (is_logged_in()) {
 }
 
 $error = '';
+$selectedRole = 'student';
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     if (!verify_csrf_token()) {
         $error = 'Invalid CSRF security token. Please refresh and try again.';
@@ -30,6 +31,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         if (!in_array($role, ['student', 'faculty'])) {
             $role = 'student';
         }
+        $selectedRole = $role;
 
         $firstName   = trim($_POST['first_name'] ?? '');
         $lastName    = trim($_POST['last_name'] ?? '');
@@ -68,9 +70,15 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         elseif (empty($email) || !validate_email($email)) {
             $error = 'Please enter a valid email address.';
         }
-        // 5. Faculty Specific Validations (College Name Required)
+        // 5. Faculty Specific Validations (College Name Required + Format)
         elseif ($role === 'faculty' && empty($collegeName)) {
             $error = 'College Name is required for Faculty registration.';
+        } elseif ($role === 'faculty' && !validate_college_name($collegeName)) {
+            $error = 'College Name may only contain letters, spaces, periods (.), hyphens (-), apostrophes (\'), ampersands (&), and parentheses. Numbers and other special characters are not allowed.';
+        }
+        // 5b. Student College Name Format (optional field, validate only if provided)
+        elseif ($role === 'student' && !empty($collegeName) && !validate_college_name($collegeName)) {
+            $error = 'College Name may only contain letters, spaces, periods (.), hyphens (-), apostrophes (\'), ampersands (&), and parentheses. Numbers are not allowed.';
         }
         // 6. Mobile Number (10 Digits) Validations
         elseif (!empty($phoneRaw) && !preg_match("/^[0-9]{10}$/", $phoneRaw)) {
@@ -238,11 +246,11 @@ $pageTitle = "Create Account – SkillBridge";
 
       <!-- Segmented Control Role Selector -->
       <div class="role-selector" id="roleSelector">
-        <button type="button" class="role-tab active" id="tabStudent" data-role="student" onclick="selectRegRole('student', this)">
+        <button type="button" class="role-tab <?= $selectedRole === 'student' ? 'active' : '' ?>" id="tabStudent" data-role="student" onclick="selectRegRole('student', this)">
           <i class="fa-solid fa-user-graduate"></i>
           <span>Student</span>
         </button>
-        <button type="button" class="role-tab" id="tabFaculty" data-role="faculty" onclick="selectRegRole('faculty', this)">
+        <button type="button" class="role-tab <?= $selectedRole === 'faculty' ? 'active' : '' ?>" id="tabFaculty" data-role="faculty" onclick="selectRegRole('faculty', this)">
           <i class="fa-solid fa-chalkboard-user"></i>
           <span>Faculty</span>
         </button>
@@ -259,7 +267,7 @@ $pageTitle = "Create Account – SkillBridge";
       <!-- Registration Form -->
       <form action="<?= BASE_URL ?>register.php" method="POST" enctype="multipart/form-data" onsubmit="return handleRegSubmit(this)">
         <?= csrf_field() ?>
-        <input type="hidden" name="role" id="selectedRoleInput" value="student">
+        <input type="hidden" name="role" id="selectedRoleInput" value="<?= htmlspecialchars($selectedRole) ?>">
         
         <!-- Name Fields -->
         <div class="row g-3 mb-3">
@@ -302,26 +310,26 @@ $pageTitle = "Create Account – SkillBridge";
           <div class="col-md-6">
             <label class="form-label small fw-semibold text-dark mb-1.5">Department</label>
             <select name="department" class="form-select rounded-3" style="background:#F8FAFC; border-color:#E2E8F0; padding:0.75rem 1rem; font-size:0.9rem;">
-              <option value="Computer Science">Computer Science</option>
-              <option value="Information Technology">Information Technology</option>
-              <option value="Software Engineering">Software Engineering</option>
-              <option value="Data Science">Data Science</option>
-              <option value="Systems Engineering">Systems Engineering</option>
+              <option value="Computer Science" <?= (($_POST['department'] ?? '') === 'Computer Science') ? 'selected' : '' ?>>Computer Science</option>
+              <option value="Information Technology" <?= (($_POST['department'] ?? '') === 'Information Technology') ? 'selected' : '' ?>>Information Technology</option>
+              <option value="Software Engineering" <?= (($_POST['department'] ?? '') === 'Software Engineering') ? 'selected' : '' ?>>Software Engineering</option>
+              <option value="Data Science" <?= (($_POST['department'] ?? '') === 'Data Science') ? 'selected' : '' ?>>Data Science</option>
+              <option value="Systems Engineering" <?= (($_POST['department'] ?? '') === 'Systems Engineering') ? 'selected' : '' ?>>Systems Engineering</option>
             </select>
           </div>
           
           <!-- Student Semester Selection -->
-          <div class="col-md-6" id="studentSemesterCol">
+          <div class="col-md-6" id="studentSemesterCol" style="<?= $selectedRole === 'student' ? '' : 'display:none;' ?>">
             <label class="form-label small fw-semibold text-dark mb-1.5">Current Semester</label>
             <select name="current_semester" class="form-select rounded-3" style="background:#F8FAFC; border-color:#E2E8F0; padding:0.75rem 1rem; font-size:0.9rem;">
               <?php for ($i=1; $i<=8; $i++): ?>
-                <option value="<?= $i ?>">Semester <?= $i ?></option>
+                <option value="<?= $i ?>" <?= ((int)($_POST['current_semester'] ?? 1) === $i) ? 'selected' : '' ?>>Semester <?= $i ?></option>
               <?php endfor; ?>
             </select>
           </div>
 
           <!-- Faculty Designation Field -->
-          <div class="col-md-6" id="facultyDesignationCol" style="display:none;">
+          <div class="col-md-6" id="facultyDesignationCol" style="<?= $selectedRole === 'faculty' ? '' : 'display:none;' ?>">
             <label class="form-label small fw-semibold text-dark mb-1.5">Designation <span class="text-danger">*</span></label>
             <div class="saas-input-group">
               <i class="fa-solid fa-id-badge saas-input-icon"></i>
@@ -331,13 +339,14 @@ $pageTitle = "Create Account – SkillBridge";
         </div>
 
         <!-- Faculty Specific Professional Details & File Uploads -->
-        <div id="facultyExtraFields" style="display:none;">
+        <div id="facultyExtraFields" style="<?= $selectedRole === 'faculty' ? '' : 'display:none;' ?>">
           <div class="mb-3">
             <label class="form-label small fw-semibold text-dark mb-1.5">College Name <span class="text-danger">*</span></label>
             <div class="saas-input-group">
               <i class="fa-solid fa-building-columns saas-input-icon"></i>
-              <input type="text" name="college_name" id="collegeNameInput" class="form-control" placeholder="e.g., National Institute of Technology / SkillBridge University" value="<?= htmlspecialchars($_POST['college_name'] ?? '') ?>">
+              <input type="text" name="college_name" id="collegeNameInput" class="form-control" placeholder="e.g., Zeal College of Engineering and Research" value="<?= htmlspecialchars($_POST['college_name'] ?? '') ?>" oninput="validateCollegeNameField(this)" autocomplete="organization">
             </div>
+            <div id="collegeNameError" class="invalid-feedback d-none" style="display:none!important;font-size:0.8rem;color:#dc2626;margin-top:4px;"></div>
           </div>
 
           <div class="row g-3 mb-3">
@@ -437,7 +446,7 @@ $pageTitle = "Create Account – SkillBridge";
 
         <!-- Submit Button with Loading State -->
         <button type="submit" id="submitBtn" class="btn btn-saas-primary w-100 py-2.5">
-          <i class="fa-solid fa-user-plus me-1.5"></i> <span id="submitBtnText">Create Student Account</span>
+          <i class="fa-solid fa-user-plus me-1.5"></i> <span id="submitBtnText"><?= $selectedRole === 'faculty' ? 'Submit Faculty Application' : 'Create Student Account' ?></span>
         </button>
       </form>
 
@@ -571,6 +580,27 @@ $pageTitle = "Create Account – SkillBridge";
       label.className = 'pw-strength-label ' + (colors[strength] || 'text-danger');
     }
 
+    // Real-time college name validation
+    function validateCollegeNameField(input) {
+      const val = input.value;
+      const errEl = document.getElementById('collegeNameError');
+      const collegeRegex = /^[a-zA-Z\s.\-'&()]*$/;
+      if (val.length > 0 && !collegeRegex.test(val)) {
+        input.classList.add('is-invalid');
+        if (errEl) {
+          errEl.textContent = "College Name may only contain letters, spaces, periods (.), hyphens (-), apostrophes ('), ampersands (&), and parentheses. Numbers and special characters are not allowed.";
+          errEl.style.removeProperty('display');
+          errEl.classList.remove('d-none');
+        }
+      } else {
+        input.classList.remove('is-invalid');
+        if (errEl) {
+          errEl.style.setProperty('display', 'none', 'important');
+          errEl.classList.add('d-none');
+        }
+      }
+    }
+
     // Client-side Form Validation & Submit Handler with Toast Notifications
     function handleRegSubmit(form) {
       clearFieldErrors();
@@ -625,6 +655,41 @@ $pageTitle = "Create Account – SkillBridge";
         showToastNotification(msg, 'danger');
         phInput.focus();
         return false;
+      }
+
+      // College Name validation (client-side)
+      const collegeInput = document.getElementById('collegeNameInput');
+      if (collegeInput && collegeInput.closest('[style*="block"]') !== null) {
+        // Faculty field is visible
+        const collegeName = collegeInput.value.trim();
+        const collegeRegex = /^[a-zA-Z\s.\-'&()]+$/;
+        if (collegeName.length === 0) {
+          const msg = "College Name is required for Faculty registration.";
+          showFieldError(collegeInput, msg);
+          showToastNotification(msg, 'danger');
+          collegeInput.focus();
+          return false;
+        }
+        if (!collegeRegex.test(collegeName)) {
+          const msg = "College Name may only contain letters, spaces, periods (.), hyphens (-), apostrophes ('), ampersands (&), and parentheses. Numbers are not allowed.";
+          showFieldError(collegeInput, msg);
+          showToastNotification(msg, 'danger');
+          collegeInput.focus();
+          return false;
+        }
+      } else if (collegeInput && collegeInput.closest('[style*="block"]') === null) {
+        // Student — validate only if user typed something
+        const collegeVal = collegeInput ? collegeInput.value.trim() : '';
+        const studCollegeInput = document.querySelector('input[name="college_name"]:not(#collegeNameInput)');
+        const studField = studCollegeInput || null;
+        const studCollegeVal = studField ? studField.value.trim() : '';
+        const collegeRegex = /^[a-zA-Z\s.\-'&()]+$/;
+        if (studCollegeVal.length > 0 && !collegeRegex.test(studCollegeVal)) {
+          const msg = "College Name may only contain letters, spaces, periods, hyphens, apostrophes, ampersands, and parentheses. Numbers are not allowed.";
+          if (studField) { showFieldError(studField, msg); studField.focus(); }
+          showToastNotification(msg, 'danger');
+          return false;
+        }
       }
 
       if (pw1 !== pw2) {
