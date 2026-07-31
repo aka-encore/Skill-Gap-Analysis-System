@@ -14,14 +14,17 @@ check_suspended_status();
 $facultyId = $_SESSION['profile_id'];
 $db = Database::getInstance();
 
+// Auto-sync assessments table with valid published question banks
+sync_assessments_table($db);
+
 $faculty = $db->fetch("SELECT f.*, u.email FROM faculty f JOIN users u ON f.user_id = u.id WHERE f.id = ?", [$facultyId]);
 
 // Faculty Metrics (Shared Academic Repository)
 $totalStudents = (int)($db->fetch("SELECT COUNT(*) as cnt FROM students")['cnt'] ?? 0);
-$myAssessmentsCount = (int)($db->fetch("SELECT COUNT(*) as cnt FROM assessments")['cnt'] ?? 0);
-$totalSubmissions = (int)($db->fetch("SELECT COUNT(*) as cnt FROM assessment_results")['cnt'] ?? 0);
+$myAssessmentsCount = (int)($db->fetch("SELECT COUNT(*) as cnt FROM assessments WHERE status = 'active'")['cnt'] ?? 0);
+$totalSubmissions = (int)($db->fetch("SELECT COUNT(*) as cnt FROM assessment_results WHERE assessment_id IN (SELECT id FROM assessments WHERE status = 'active')")['cnt'] ?? 0);
 
-$classAvgRow = $db->fetch("SELECT AVG(score_percentage) as avg_score FROM assessment_results");
+$classAvgRow = $db->fetch("SELECT AVG(score_percentage) as avg_score FROM assessment_results WHERE assessment_id IN (SELECT id FROM assessments WHERE status = 'active')");
 $classAvgScore = round((float)($classAvgRow['avg_score'] ?? 0), 1);
 
 // Recent Student Submissions (Shared Repository)
@@ -31,6 +34,7 @@ $recentSubmissions = $db->fetchAll(
      JOIN assessments a ON ar.assessment_id = a.id
      JOIN students st ON ar.student_id = st.id
      JOIN skills s ON a.skill_id = s.id
+     WHERE a.status = 'active'
      ORDER BY ar.completed_at DESC LIMIT 5"
 );
 
@@ -39,6 +43,7 @@ $assessmentPerf = $db->fetchAll(
     "SELECT a.title, AVG(ar.score_percentage) as avg_score
      FROM assessments a
      LEFT JOIN assessment_results ar ON a.id = ar.assessment_id
+     WHERE a.status = 'active'
      GROUP BY a.id, a.title ORDER BY a.created_at DESC LIMIT 6"
 );
 

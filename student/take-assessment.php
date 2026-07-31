@@ -17,6 +17,9 @@ $assessmentId = (int)($_GET['id'] ?? $_POST['assessment_id'] ?? 0);
 
 $db = Database::getInstance();
 
+// Auto-sync assessments table with valid published question banks
+sync_assessments_table($db);
+
 $assessment = $db->fetch(
     "SELECT a.*, COALESCE(s.name, 'General Technical') as skill_name 
      FROM assessments a 
@@ -30,16 +33,70 @@ if (!$assessment) {
     redirect(BASE_URL . 'student/assessments.php');
 }
 
-// Fetch all 25 questions for this assessment
-$questions = $db->fetchAll("SELECT * FROM assessment_questions WHERE assessment_id = ? ORDER BY id ASC", [$assessmentId]);
+// Fetch all questions IDs for this assessment
+$allDbQuestions = $db->fetchAll(
+    "SELECT q.id FROM questions q
+     JOIN assessments a ON q.question_bank_id = a.question_bank_id
+     WHERE a.id = ? ORDER BY q.id ASC",
+    [$assessmentId]
+);
 
-if (empty($questions)) {
-    set_flash_message('warning', 'This assessment has no questions configured yet.');
+$allDbIds = array_map(function($item) { return (int)$item['id']; }, $allDbQuestions);
+
+if (count($allDbIds) < 25) {
+    set_flash_message('warning', 'This assessment has fewer than 25 questions configured.');
     redirect(BASE_URL . 'student/assessments.php');
+}
+
+if (!isset($_SESSION['assessment_attempt_questions'])) {
+    $_SESSION['assessment_attempt_questions'] = [];
+}
+
+$needRegenerate = false;
+if (!isset($_SESSION['assessment_attempt_questions'][$assessmentId])) {
+    $needRegenerate = true;
+} else {
+    // Validate that all stored IDs still exist in the database pool
+    $storedIds = $_SESSION['assessment_attempt_questions'][$assessmentId];
+    if (count($storedIds) !== 25) {
+        $needRegenerate = true;
+    } else {
+        foreach ($storedIds as $sid) {
+            if (!in_array($sid, $allDbIds)) {
+                $needRegenerate = true;
+                break;
+            }
+        }
+    }
+}
+
+if ($needRegenerate) {
+    $shuffledIds = $allDbIds;
+    shuffle($shuffledIds);
+    $_SESSION['assessment_attempt_questions'][$assessmentId] = array_slice($shuffledIds, 0, 25);
+}
+
+$selectedIds = $_SESSION['assessment_attempt_questions'][$assessmentId];
+$placeholders = implode(',', $selectedIds);
+
+$fetched = $db->fetchAll("SELECT q.* FROM questions q WHERE q.id IN ($placeholders)");
+$fetchedMap = [];
+foreach ($fetched as $q) {
+    $fetchedMap[(int)$q['id']] = $q;
+}
+
+$questions = [];
+foreach ($selectedIds as $id) {
+    if (isset($fetchedMap[$id])) {
+        $questions[] = $fetchedMap[$id];
+    }
 }
 
 // Get dynamic proctoring violations limit
 $maxViolations = (int)($db->fetch("SELECT setting_value FROM system_settings WHERE setting_key = 'proctoring_max_violations'")['setting_value'] ?? 3);
+
+// Fetch saved draft answers from the session if they exist
+$draftAnswers = $_SESSION['quiz_draft_' . $assessmentId] ?? [];
 
 // Reset proctor session logs on initial assessment screen load (GET)
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
@@ -59,6 +116,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 // HANDLE ASSESSMENT FORM SUBMISSION (ONLY GENERATED AFTER ALL QUESTIONS SUBMITTED)
 // ══════════════════════════════════════════════════════════════════════
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_assessment'])) {
+    if (!verify_csrf_token()) {
+        die("Invalid CSRF security token. Please reload and try again.");
+    }
 
     // Server-Side Deduplication Lock: Check if submitted within the last 15 seconds to prevent duplicate inserts
     $recentResult = $db->fetch(
@@ -234,9 +294,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_assessment']))
         // Clear session logs
         unset($_SESSION['proctor_logs']);
         unset($_SESSION['proctor_counts']);
+        unset($_SESSION['assessment_attempt_questions'][$assessmentId]);
 
-        // Trigger Skill Gap Analysis & Recommendation engine
-        generate_recommendations_for_result($studentId, $assessmentId, $scorePercentage);
+        // Trigger Skill Gap Analysis, Recommendation engine & Faculty Notification
+        generate_recommendations_for_result($studentId, $assessmentId, $scorePercentage, $resultId);
 
         log_activity($_SESSION['user_id'], 'ASSESSMENT_SUBMITTED', "Completed assessment {$assessment['title']} (25 MCQs) with score " . number_format($scorePercentage, 1) . "%");
 
@@ -350,6 +411,7 @@ include __DIR__ . '/../includes/header.php';
     <!-- Main Form Column: All 25 Questions -->
     <div class="col-lg-8">
         <form id="assessmentForm" action="<?= BASE_URL ?>student/take-assessment.php?id=<?= $assessmentId ?>" method="POST">
+            <?= csrf_field() ?>
             <input type="hidden" name="assessment_id" value="<?= $assessmentId ?>">
             <input type="hidden" name="submit_assessment" value="1">
             <input type="hidden" name="time_taken_seconds" id="timeTakenSeconds" value="0">
@@ -376,7 +438,8 @@ include __DIR__ . '/../includes/header.php';
                                 <?php if (!empty($optVal)): ?>
                                     <div class="col-12 col-md-6">
                                         <label class="form-check-label w-100 p-3 rounded-3 border d-flex align-items-center gap-3 cursor-pointer option-hover bg-white" style="transition: all 0.2s ease;">
-                                            <input type="radio" class="form-check-input flex-shrink-0" name="answers[<?= $q['id'] ?>]" value="<?= $optKey ?>" onclick="onAnswerSelected(<?= $q['id'] ?>)">
+                                            <?php $isOptionChecked = (isset($draftAnswers[$q['id']]) && $draftAnswers[$q['id']] === $optKey) ? 'checked' : ''; ?>
+                                            <input type="radio" class="form-check-input flex-shrink-0" name="answers[<?= $q['id'] ?>]" value="<?= $optKey ?>" onclick="onAnswerSelected(<?= $q['id'] ?>)" <?= $isOptionChecked ?>>
                                             <div>
                                                 <strong class="text-primary me-1"><?= $optKey ?>.</strong>
                                                 <span class="text-dark"><?= htmlspecialchars($optVal) ?></span>
@@ -393,7 +456,7 @@ include __DIR__ . '/../includes/header.php';
             <!-- Submit Action Bar -->
             <div class="card border-0 shadow-sm rounded-4 p-4 mt-4 bg-white text-center">
                 <p class="text-muted small mb-3">Make sure you have reviewed all 25 questions before submitting your final assessment attempt.</p>
-                <button type="submit" id="submitAssessmentBtn" class="btn btn-primary bg-gradient-primary border-0 btn-lg rounded-pill px-5 fw-bold shadow">
+                <button type="submit" id="submitAssessmentBtn" class="btn btn-primary bg-gradient-primary border-0 btn-lg rounded-pill px-4 px-sm-5 w-100 w-sm-auto fw-bold shadow">
                     <i class="fa-solid fa-paper-plane me-2"></i> Submit Final Assessment Attempt
                 </button>
             </div>
@@ -414,7 +477,11 @@ include __DIR__ . '/../includes/header.php';
                 <?php foreach ($questions as $idx => $q): 
                     $qNum = $idx + 1;
                 ?>
-                    <button type="button" class="btn btn-outline-secondary btn-sm rounded-circle d-flex align-items-center justify-content-center fw-bold nav-dot-btn nav-dot-<?= $q['id'] ?>" style="width:36px; height:36px; font-size:12px;" onclick="scrollToQuestion(<?= $q['id'] ?>)">
+                    <?php
+                    $isDotAnswered = isset($draftAnswers[$q['id']]);
+                    $dotClass = $isDotAnswered ? 'btn-success text-white' : 'btn-outline-secondary';
+                    ?>
+                    <button type="button" class="btn <?= $dotClass ?> btn-sm rounded-circle d-flex align-items-center justify-content-center fw-bold nav-dot-btn nav-dot-<?= $q['id'] ?>" style="width:36px; height:36px; font-size:12px;" onclick="scrollToQuestion(<?= $q['id'] ?>)">
                         <?= $qNum ?>
                     </button>
                 <?php endforeach; ?>
@@ -488,7 +555,11 @@ include __DIR__ . '/../includes/header.php';
             <?php foreach ($questions as $idx => $q): 
                 $qNum = $idx + 1;
             ?>
-                <button type="button" class="btn btn-outline-secondary btn-sm rounded-circle d-flex align-items-center justify-content-center fw-bold nav-dot-btn nav-dot-<?= $q['id'] ?>" style="width:40px; height:40px;" onclick="scrollToQuestion(<?= $q['id'] ?>)" data-bs-dismiss="modal">
+                <?php
+                $isDotAnswered = isset($draftAnswers[$q['id']]);
+                $dotClass = $isDotAnswered ? 'btn-success text-white' : 'btn-outline-secondary';
+                ?>
+                <button type="button" class="btn <?= $dotClass ?> btn-sm rounded-circle d-flex align-items-center justify-content-center fw-bold nav-dot-btn nav-dot-<?= $q['id'] ?>" style="width:40px; height:40px;" onclick="scrollToQuestion(<?= $q['id'] ?>)" data-bs-dismiss="modal">
                     <?= $qNum ?>
                 </button>
             <?php endforeach; ?>
@@ -650,6 +721,14 @@ let phoneTimer = null;
 let isPhonePresent = false;
 let phoneViolationCounted = false;
 const PHONE_CONSECUTIVE_LIMIT = 5; // 5 seconds continuous
+
+// Staggered tracking variables
+let faceLastSeenTime = Date.now();
+let lastSingleFaceTime = Date.now();
+let phoneFirstSeenTime = null;
+let lastFaces = [];
+let lastPhones = [];
+let checkFaceNext = true;
 
 // Face Tracking
 let faceMissingCount = 0;
@@ -982,12 +1061,17 @@ document.addEventListener('DOMContentLoaded', function() {
     const modelsStart = performance.now();
     console.log(`[Perf Log] Promise.all model loads requested at: ${modelsStart.toFixed(2)}ms`);
     
-    // Force CPU backend to avoid WebGL SwiftShader compiler hangs in virtualized environments
+    // Attempt hardware-accelerated WebGL backend first, fallback to CPU if unsupported
     try {
-        tf.setBackend('cpu');
-        console.log(`[Perf Log] TensorFlow backend set to CPU at: ${performance.now().toFixed(2)}ms`);
+        tf.setBackend('webgl').then(() => {
+            console.log(`[Perf Log] TensorFlow backend set to WebGL at: ${performance.now().toFixed(2)}ms`);
+        }).catch(err => {
+            console.warn('WebGL backend not supported, falling back to CPU', err);
+            tf.setBackend('cpu');
+            console.log(`[Perf Log] TensorFlow backend set to CPU at: ${performance.now().toFixed(2)}ms`);
+        });
     } catch(e) {
-        console.error('Failed to set CPU backend:', e);
+        console.error('Failed to configure TensorFlow backend:', e);
     }
 
     updatePrecheckProgress('checkModelLoading', 'pending', 
@@ -1286,14 +1370,25 @@ function startProctoringLoop() {
         indicatorEl.innerHTML = '<span class="text-success"><i class="fa-solid fa-circle-check"></i> Monitoring Active</span>';
     }
 
-    detectionInterval = setInterval(async () => {
+    // Reset loop tracking states
+    faceLastSeenTime = Date.now();
+    lastSingleFaceTime = Date.now();
+    phoneFirstSeenTime = null;
+    lastFaces = [];
+    lastPhones = [];
+    checkFaceNext = true;
+
+    async function tick() {
         if (!isProctoringActive || isSubmittingForm) return;
 
         const isMobile = window.innerWidth < 992;
         const video = isMobile ? document.getElementById('mobileProctorWebcam') : document.getElementById('proctorWebcam');
         const canvas = isMobile ? document.getElementById('mobileProctorCanvas') : document.getElementById('proctorCanvas');
         
-        if (!video || !canvas) return;
+        if (!video || !canvas) {
+            detectionInterval = setTimeout(tick, 1000);
+            return;
+        }
         const ctx = canvas.getContext('2d');
         const statusTextEl = document.getElementById('proctorStatusText');
         const faceTextEl = document.getElementById('proctorFaceStatus');
@@ -1307,6 +1402,7 @@ function startProctoringLoop() {
         
         if (!isStreamActive || !isTrackEnabled || isTrackMuted || video.paused || video.ended) {
             handleCameraDisconnect();
+            detectionInterval = setTimeout(tick, 1000);
             return;
         } else {
             handleCameraReconnect();
@@ -1320,111 +1416,138 @@ function startProctoringLoop() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         try {
-            // Run detections
-            const [faces, predictions] = await Promise.all([
-                faceModel.estimateFaces(video, false),
-                cocoModel.detect(video)
-            ]);
+            if (checkFaceNext) {
+                // Alternating tick A: Run Face Detection only
+                const faces = await faceModel.estimateFaces(video, false);
+                lastFaces = faces;
+                checkFaceNext = false; // Next tick checks phones
 
-            // 2. Face Presence Check (2s threshold)
-            if (faces.length === 0) {
-                faceMissingCount++;
-                if (faceTextEl) {
-                    faceTextEl.textContent = "Missing (" + faceMissingCount + "s)";
-                    faceTextEl.className = "text-danger";
-                }
-
-                if (faceMissingCount > 2) {
-                    if (!faceViolationCounted) {
-                        faceViolationCounted = true;
-                        logProctorEventToServer('Face Missing', 'No face visible in webcam frame.');
+                const now = Date.now();
+                if (faces.length === 0) {
+                    const elapsed = Math.floor((now - faceLastSeenTime) / 1000);
+                    faceMissingCount = elapsed;
+                    if (faceTextEl) {
+                        faceTextEl.textContent = "Missing (" + faceMissingCount + "s)";
+                        faceTextEl.className = "text-danger";
                     }
-                }
-            } else if (faces.length > 1) {
-                multipleFaceCount++;
-                if (faceTextEl) {
-                    faceTextEl.textContent = "Multiple Faces (" + multipleFaceCount + "s)";
-                    faceTextEl.className = "text-danger";
-                }
 
-                if (multipleFaceCount > 2) {
-                    if (!multipleFaceViolationCounted) {
-                        multipleFaceViolationCounted = true;
-                        logProctorEventToServer('Multiple Faces Detected', 'Multiple faces visible in webcam frame.');
+                    if (faceMissingCount > 2) {
+                        if (!faceViolationCounted) {
+                            faceViolationCounted = true;
+                            logProctorEventToServer('Face Missing', 'No face visible in webcam frame.');
+                        }
                     }
+                } else if (faces.length > 1) {
+                    faceLastSeenTime = now; // face is present, so reset missing timer
+                    const elapsed = Math.floor((now - lastSingleFaceTime) / 1000);
+                    multipleFaceCount = elapsed;
+                    if (faceTextEl) {
+                        faceTextEl.textContent = "Multiple Faces (" + multipleFaceCount + "s)";
+                        faceTextEl.className = "text-danger";
+                    }
+
+                    if (multipleFaceCount > 2) {
+                        if (!multipleFaceViolationCounted) {
+                            multipleFaceViolationCounted = true;
+                            logProctorEventToServer('Multiple Faces Detected', 'Multiple faces visible in webcam frame.');
+                        }
+                    }
+                } else {
+                    faceLastSeenTime = now;
+                    lastSingleFaceTime = now;
+                    if (faceTextEl) {
+                        faceTextEl.textContent = "Visible";
+                        faceTextEl.className = "text-success";
+                    }
+                    
+                    if (faceViolationCounted || multipleFaceViolationCounted) {
+                        logProctorEventToServer('Face Re-calibrated', 'One face presence restored.');
+                    }
+                    faceMissingCount = 0;
+                    multipleFaceCount = 0;
+                    faceViolationCounted = false;
+                    multipleFaceViolationCounted = false;
                 }
             } else {
-                if (faceTextEl) {
-                    faceTextEl.textContent = "Visible";
-                    faceTextEl.className = "text-success";
-                }
+                // Alternating tick B: Run Phone/Object Detection only
+                const predictions = await cocoModel.detect(video);
                 
-                if (faceViolationCounted || multipleFaceViolationCounted) {
-                    logProctorEventToServer('Face Re-calibrated', 'One face presence restored.');
+                let phoneDetectedThisFrame = false;
+                let currentPhones = [];
+                predictions.forEach(pred => {
+                    if (pred.class === 'cell phone' && pred.score > 0.45) {
+                        phoneDetectedThisFrame = true;
+                        currentPhones.push(pred);
+                    }
+                });
+                lastPhones = currentPhones;
+                checkFaceNext = true; // Next tick checks faces
+
+                const now = Date.now();
+                if (phoneDetectedThisFrame) {
+                    isPhonePresent = true;
+                    if (!phoneFirstSeenTime) {
+                        phoneFirstSeenTime = now;
+                        phoneTimer = 1;
+                    } else {
+                        phoneTimer = Math.floor((now - phoneFirstSeenTime) / 1000);
+                    }
+                    if (phoneTextEl) {
+                        phoneTextEl.textContent = "Detected (" + phoneTimer + "s)";
+                        phoneTextEl.className = "text-danger";
+                    }
+
+                    if (phoneTimer > PHONE_CONSECUTIVE_LIMIT) {
+                        if (!phoneViolationCounted) {
+                            phoneViolationCounted = true;
+                            logProctorEventToServer('Mobile Phone Detected', 'Mobile phone detected in webcam view.');
+                        }
+                    }
+                } else {
+                    if (phoneTextEl) {
+                        phoneTextEl.textContent = "Scanning...";
+                        phoneTextEl.className = "text-success";
+                    }
+                    
+                    if (phoneViolationCounted) {
+                        logProctorEventToServer('Mobile Phone Removed', 'Mobile phone removed from camera frame.');
+                    }
+                    phoneTimer = null;
+                    phoneFirstSeenTime = null;
+                    isPhonePresent = false;
+                    phoneViolationCounted = false;
+                    lastPhones = [];
                 }
-                faceMissingCount = 0;
-                multipleFaceCount = 0;
-                faceViolationCounted = false;
-                multipleFaceViolationCounted = false;
             }
 
-            // Draw Face bounds
+            // Draw cached detections for BOTH faces and phones to prevent screen flickering
+            // Face Bounds
             ctx.strokeStyle = '#10B981';
             ctx.lineWidth = 2;
-            faces.forEach(face => {
+            lastFaces.forEach(face => {
                 const start = face.topLeft;
                 const end = face.bottomRight;
                 const size = [end[0] - start[0], end[1] - start[1]];
                 ctx.strokeRect(start[0], start[1], size[0], size[1]);
             });
 
-            // 3. Mobile Phone Check (5s threshold)
-            let phoneDetectedThisFrame = false;
-            predictions.forEach(pred => {
-                if (pred.class === 'cell phone' && pred.score > 0.45) {
-                    phoneDetectedThisFrame = true;
-                    ctx.strokeStyle = '#EF4444';
-                    ctx.lineWidth = 3;
-                    ctx.strokeRect(pred.bbox[0], pred.bbox[1], pred.bbox[2], pred.bbox[3]);
-                }
+            // Phone Bounds
+            ctx.strokeStyle = '#EF4444';
+            ctx.lineWidth = 3;
+            lastPhones.forEach(pred => {
+                ctx.strokeRect(pred.bbox[0], pred.bbox[1], pred.bbox[2], pred.bbox[3]);
             });
-
-            if (phoneDetectedThisFrame) {
-                isPhonePresent = true;
-                if (!phoneTimer) {
-                    phoneTimer = 1;
-                } else {
-                    phoneTimer++;
-                }
-                if (phoneTextEl) {
-                    phoneTextEl.textContent = "Detected (" + phoneTimer + "s)";
-                    phoneTextEl.className = "text-danger";
-                }
-
-                if (phoneTimer > PHONE_CONSECUTIVE_LIMIT) {
-                    if (!phoneViolationCounted) {
-                        phoneViolationCounted = true;
-                        logProctorEventToServer('Mobile Phone Detected', 'Mobile phone detected in webcam view.');
-                    }
-                }
-            } else {
-                if (phoneTextEl) {
-                    phoneTextEl.textContent = "Scanning...";
-                    phoneTextEl.className = "text-success";
-                }
-                
-                if (phoneViolationCounted) {
-                    logProctorEventToServer('Mobile Phone Removed', 'Mobile phone removed from camera frame.');
-                }
-                phoneTimer = null;
-                isPhonePresent = false;
-                phoneViolationCounted = false;
-            }
 
         } catch (err) {
             console.error('AI estimation error', err);
         }
-    }, 1000);
+
+        // Recursive setTimeout schedules next check after the current thread finishes, eliminating overlaps
+        detectionInterval = setTimeout(tick, 1000);
+    }
+
+    // Begin loop execution
+    detectionInterval = setTimeout(tick, 1000);
 }
 
 function handleCameraDisconnect() {

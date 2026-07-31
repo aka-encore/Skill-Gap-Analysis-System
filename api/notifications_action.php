@@ -14,6 +14,13 @@ if (!is_logged_in()) {
     exit;
 }
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!verify_csrf_token()) {
+        echo json_encode(['success' => false, 'message' => 'Invalid CSRF security token.']);
+        exit;
+    }
+}
+
 $userId = $_SESSION['user_id'] ?? 0;
 $db = Database::getInstance();
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
@@ -43,6 +50,12 @@ try {
     if ($action === 'mark_read' && $notifId > 0) {
         $db->query("UPDATE notifications SET is_read = 1 WHERE id = ? AND user_id = ?", [$notifId, $userId]);
         log_activity($userId, 'NOTIFICATION_MARK_READ', "Marked notification #{$notifId} as read.");
+    } elseif ($action === 'mark_unread' && $notifId > 0) {
+        $db->query("UPDATE notifications SET is_read = 0 WHERE id = ? AND user_id = ?", [$notifId, $userId]);
+        log_activity($userId, 'NOTIFICATION_MARK_UNREAD', "Marked notification #{$notifId} as unread.");
+    } elseif ($action === 'mark_all_read') {
+        $db->query("UPDATE notifications SET is_read = 1 WHERE user_id = ?", [$userId]);
+        log_activity($userId, 'NOTIFICATION_MARK_ALL_READ', "Marked all notifications as read.");
     } elseif ($action === 'delete' && $notifId > 0) {
         $db->query("DELETE FROM notifications WHERE id = ? AND user_id = ?", [$notifId, $userId]);
         log_activity($userId, 'NOTIFICATION_DELETE', "Deleted notification #{$notifId}.");
@@ -51,9 +64,13 @@ try {
         log_activity($userId, 'NOTIFICATION_CLEAR_ALL', "Cleared all notifications ({$deletedCount} items).");
     }
 
-    $unreadCount = (int)($db->fetch("SELECT COUNT(*) as cnt FROM notifications WHERE user_id = ? AND is_read = 0", [$userId])['cnt'] ?? 0);
-    $totalCount = (int)($db->fetch("SELECT COUNT(*) as cnt FROM notifications WHERE user_id = ?", [$userId])['cnt'] ?? 0);
-    $readCount = (int)($db->fetch("SELECT COUNT(*) as cnt FROM notifications WHERE user_id = ? AND is_read = 1", [$userId])['cnt'] ?? 0);
+    $counts = $db->fetch(
+        "SELECT COUNT(*) as total_count, SUM(is_read = 0) as unread_count FROM notifications WHERE user_id = ?", 
+        [$userId]
+    );
+    $totalCount = (int)($counts['total_count'] ?? 0);
+    $unreadCount = (int)($counts['unread_count'] ?? 0);
+    $readCount = $totalCount - $unreadCount;
 
     echo json_encode([
         'success'      => true,

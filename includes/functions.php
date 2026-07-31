@@ -157,7 +157,126 @@ function calculate_skill_gap(float $scorePercentage, int $targetLevel = 4): arra
 /**
  * Trigger automated recommendation and notifications if a student exhibits a skill gap
  */
-function generate_recommendations_for_result(int $studentId, int $assessmentId, float $scorePercentage): void {
+/**
+ * Automatically generate real-time in-app notifications for all active faculty members
+ * belonging to the student's department when a student completes an assessment.
+ */
+function notify_faculty_of_assessment_completion(int $studentId, int $assessmentId, ?int $resultId, float $scorePercentage): void {
+    $db = Database::getInstance();
+
+    // 1. Fetch Assessment & Skill Details
+    $assessment = $db->fetch(
+        "SELECT a.*, s.name as skill_name 
+         FROM assessments a 
+         JOIN skills s ON a.skill_id = s.id 
+         WHERE a.id = ?", 
+        [$assessmentId]
+    );
+    if (!$assessment) return;
+
+    // 2. Fetch Student Details
+    $student = $db->fetch(
+        "SELECT s.*, u.id as user_id 
+         FROM students s 
+         JOIN users u ON s.user_id = u.id 
+         WHERE s.id = ?", 
+        [$studentId]
+    );
+    if (!$student) return;
+
+    // 3. Fetch Assessment Result Details if resultId not passed
+    if (!$resultId || $resultId <= 0) {
+        $latestRes = $db->fetch(
+            "SELECT * FROM assessment_results WHERE student_id = ? AND assessment_id = ? ORDER BY completed_at DESC LIMIT 1",
+            [$studentId, $assessmentId]
+        );
+        $resultId = (int)($latestRes['id'] ?? 0);
+        $resultRow = $latestRes;
+    } else {
+        $resultRow = $db->fetch("SELECT * FROM assessment_results WHERE id = ?", [$resultId]);
+    }
+
+    $studentName    = trim(($student['first_name'] ?? 'Student') . ' ' . ($student['last_name'] ?? ''));
+    $studentDept    = trim($student['department'] ?? '');
+    $skillName      = $assessment['skill_name'] ?? 'Skill';
+    $diffRaw        = strtolower(trim($assessment['difficulty_level'] ?? 'beginner'));
+    $diffDisplay    = match($diffRaw) {
+        'beginner' => 'Beginner (Level 1)',
+        'intermediate' => 'Intermediate (Level 2)',
+        'advanced' => 'Advanced (Level 3)',
+        'expert' => 'Expert (Level 4)',
+        'master' => 'Master (Level 5)',
+        default => ucfirst($diffRaw)
+    };
+
+    $scoreObtained  = (int)($resultRow['score_obtained'] ?? $resultRow['correct_answers'] ?? 0);
+    $totalQuestions = (int)($resultRow['total_questions'] ?? 25);
+    $formattedScorePct = number_format($scorePercentage, 1);
+    $completionTime = date('d M Y • h:i A');
+
+    // 4. Query all active faculty members belonging to the SAME department
+    $facultyRecipients = [];
+    if (!empty($studentDept)) {
+        $facultyRecipients = $db->fetchAll(
+            "SELECT f.id as faculty_id, f.user_id 
+             FROM faculty f 
+             JOIN users u ON f.user_id = u.id 
+             WHERE LOWER(TRIM(f.department)) = LOWER(TRIM(?)) 
+               AND u.status = 'active'",
+            [$studentDept]
+        );
+    }
+
+    // Fallback: If no faculty members found in department, notify all active faculty members so no submission is missed
+    if (empty($facultyRecipients)) {
+        $facultyRecipients = $db->fetchAll(
+            "SELECT f.id as faculty_id, f.user_id 
+             FROM faculty f 
+             JOIN users u ON f.user_id = u.id 
+             WHERE u.status = 'active'"
+        );
+    }
+
+    if (empty($facultyRecipients)) return;
+
+    $title   = "Assessment Completed: {$assessment['title']}";
+    $message = "{$studentName} has successfully completed the \"{$assessment['title']}\". Skill: {$skillName} | Difficulty: {$diffDisplay} | Score: {$scoreObtained}/{$totalQuestions} ({$formattedScorePct}%) | Completed: {$completionTime}";
+    $link    = BASE_URL . 'faculty/evaluate.php?student_id=' . $studentId . ($resultId ? '&result_id=' . $resultId : '');
+
+    // 5. Insert notification record for each matching active faculty member
+    foreach ($facultyRecipients as $fac) {
+        $facUserId = (int)$fac['user_id'];
+        
+        // Strict duplicate check to avoid double notification for same result
+        $existing = false;
+        if ($resultId > 0) {
+            $existing = $db->fetch(
+                "SELECT id FROM notifications 
+                 WHERE user_id = ? 
+                   AND type = 'assessment' 
+                   AND link LIKE ?",
+                [$facUserId, "%result_id={$resultId}%"]
+            );
+        }
+
+        if (!$existing) {
+            $db->insert('notifications', [
+                'user_id'    => $facUserId,
+                'title'      => $title,
+                'message'    => $message,
+                'link'       => $link,
+                'is_read'    => 0,
+                'type'       => 'assessment',
+                'created_at' => date('Y-m-d H:i:s')
+            ]);
+        }
+    }
+}
+
+/**
+ * Trigger automated recommendation and notifications if a student exhibits a skill gap
+ */
+function generate_recommendations_for_result(int $studentId, int $assessmentId, float $scorePercentage, ?int $resultId = null): void {
     $db = Database::getInstance();
 
     // Get assessment details & skill
@@ -170,26 +289,8 @@ function generate_recommendations_for_result(int $studentId, int $assessmentId, 
     $skillId = $assessment['skill_id'];
     $gapMetrics = calculate_skill_gap($scorePercentage);
 
-    // Notify the Faculty member who created this assessment (Requirement 15)
-    if (!empty($assessment['created_by_faculty_id'])) {
-        $faculty = $db->fetch(
-            "SELECT f.*, u.id as user_id FROM faculty f JOIN users u ON f.user_id = u.id WHERE f.id = ?",
-            [$assessment['created_by_faculty_id']]
-        );
-        if ($faculty && !empty($faculty['user_id'])) {
-            $studentName = trim(($student['first_name'] ?? 'Student') . ' ' . ($student['last_name'] ?? ''));
-            $completionTime = date('d M Y, h:i A');
-            $db->insert('notifications', [
-                'user_id'    => $faculty['user_id'],
-                'title'      => 'Student Quiz Submission: ' . $assessment['title'],
-                'message'    => "Student {$studentName} completed assessment '{$assessment['title']}' with a score of " . number_format($scorePercentage, 1) . "% on {$completionTime}.",
-                'link'       => BASE_URL . 'faculty/evaluate.php?student_id=' . $studentId,
-                'is_read'    => 0,
-                'type'       => 'assessment',
-                'created_at' => date('Y-m-d H:i:s')
-            ]);
-        }
-    }
+    // Notify all active department faculty members of this assessment completion
+    notify_faculty_of_assessment_completion($studentId, $assessmentId, $resultId, $scorePercentage);
 
     // If weak skill, automatically match suitable courses
     if ($gapMetrics['is_weak']) {
@@ -256,17 +357,55 @@ function get_user_notifications(int $userId, int $limit = 5): array {
 /**
  * Centralized routing/mapping for page-related notifications based on user role
  */
+/**
+ * Helper to extract name, student code, faculty code, or other keywords from a notification message or title
+ */
+function extract_notification_keyword(array $notif): string {
+    $msg = $notif['message'] ?? '';
+    $title = $notif['title'] ?? '';
+    
+    // 1. Check for student/faculty codes (e.g. STU-1058, FAC-1002)
+    if (preg_match('/(STU-\d+|FAC-\d+)/i', $msg, $matches)) {
+        return $matches[1];
+    }
+    if (preg_match('/(STU-\d+|FAC-\d+)/i', $title, $matches)) {
+        return $matches[1];
+    }
+    
+    // 2. Check for double quotes (e.g. "HTML - Beginner")
+    if (preg_match('/"([^"]+)"/', $msg, $matches)) {
+        return $matches[1];
+    }
+    if (preg_match('/"([^"]+)"/', $title, $matches)) {
+        return $matches[1];
+    }
+
+    // 3. Extract name after "Student" or "Faculty"
+    if (preg_match('/(?:student|faculty)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/', $msg, $matches)) {
+        return $matches[1];
+    }
+    
+    // 4. Extract first capitalized name sequence in message
+    if (preg_match('/([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/', $msg, $matches)) {
+        return $matches[1];
+    }
+    
+    return '';
+}
+
 function get_notification_redirect_url(array $notif, string $userRole): string {
     // If it's an announcement notification, respect the existing announcement behavior
     if (($notif['type'] ?? '') === 'announcement') {
+        $annId = (int)($notif['announcement_id'] ?? 0);
         $link = trim($notif['link'] ?? '');
-        if (!empty($link) && $link !== '#') {
+        // If it points to an external custom link, follow it, otherwise route to announcements view page
+        if (!empty($link) && $link !== '#' && !str_contains($link, 'announcements.php') && !str_contains($link, 'notification.php')) {
             return $link;
         }
         return match($userRole) {
-            'admin'   => BASE_URL . 'admin/announcements.php',
-            'faculty' => BASE_URL . 'faculty/announcements.php',
-            default   => BASE_URL . 'student/notification.php'
+            'admin'   => BASE_URL . 'admin/announcements.php' . ($annId > 0 ? '?open_announcement_id=' . $annId : ''),
+            'faculty' => BASE_URL . 'faculty/announcements.php' . ($annId > 0 ? '?open_announcement_id=' . $annId : ''),
+            default   => BASE_URL . 'student/notification.php' . ($annId > 0 ? '?open_announcement_id=' . $annId : '')
         };
     }
 
@@ -301,17 +440,26 @@ function get_notification_redirect_url(array $notif, string $userRole): string {
 
     // Role-restricted centralized navigation mapping based on notification type/title
     if ($userRole === 'admin') {
+        $keyword = urlencode(extract_notification_keyword($notif));
+        $query = !empty($keyword) ? "?search=" . $keyword : "";
+
         return match (true) {
-            str_contains($title, 'faculty application') || str_contains($title, 'faculty registration application') || $type === 'faculty_application' || $type === 'system' => BASE_URL . 'admin/faculty-applications.php',
-            str_contains($title, 'student') || $type === 'student' => BASE_URL . 'admin/students.php',
-            str_contains($title, 'faculty') || $type === 'faculty' => BASE_URL . 'admin/faculty.php',
-            str_contains($title, 'course') || $type === 'course' => BASE_URL . 'admin/courses.php',
-            str_contains($title, 'assessment') || $type === 'assessment' => BASE_URL . 'admin/assessments.php',
-            str_contains($title, 'skill') || $type === 'skill' => BASE_URL . 'admin/skills.php',
-            str_contains($title, 'report') || $type === 'report' => BASE_URL . 'admin/reports.php',
-            str_contains($title, 'analytics') || $type === 'analytics' => BASE_URL . 'admin/analytics.php',
-            str_contains($title, 'settings') || $type === 'settings' => BASE_URL . 'admin/settings.php',
-            str_contains($title, 'profile') || $type === 'profile' => BASE_URL . 'admin/profile.php',
+            str_contains($title, 'faculty application') || str_contains($title, 'faculty registration application') || $type === 'faculty_application' => BASE_URL . 'admin/faculty-applications.php' . $query,
+            str_contains($title, 'suspended') || $type === 'student_suspended' => BASE_URL . 'admin/students.php' . (!empty($keyword) ? "?status=suspended&search=" . $keyword : "?status=suspended"),
+            str_contains($title, 'student registration') || str_contains($title, 'new student') || str_contains($title, 'student joined') => BASE_URL . 'admin/students.php' . $query,
+            str_contains($title, 'student') || $type === 'student' => BASE_URL . 'admin/students.php' . $query,
+            str_contains($title, 'faculty') || $type === 'faculty' => BASE_URL . 'admin/faculty.php' . $query,
+            str_contains($title, 'course') || $type === 'course' => BASE_URL . 'admin/courses.php' . $query,
+            str_contains($title, 'assessment completed') || str_contains($title, 'quiz submission') || $type === 'assessment' => BASE_URL . 'admin/proctoring-reports.php' . $query,
+            str_contains($title, 'feedback') || $type === 'feedback' => BASE_URL . 'admin/feedback.php' . $query,
+            str_contains($title, 'announcement') || $type === 'announcement' => BASE_URL . 'admin/announcements.php' . $query,
+            str_contains($title, 'question bank') || $type === 'question_bank' => BASE_URL . 'admin/assessments.php' . $query,
+            str_contains($title, 'certificate') || $type === 'certificate' => BASE_URL . 'admin/certificates.php' . $query,
+            str_contains($title, 'skill') || $type === 'skill' => BASE_URL . 'admin/skills.php' . $query,
+            str_contains($title, 'report') || $type === 'report' => BASE_URL . 'admin/reports.php' . $query,
+            str_contains($title, 'analytics') || $type === 'analytics' => BASE_URL . 'admin/analytics.php' . $query,
+            str_contains($title, 'settings') || str_contains($title, 'system') || $type === 'settings' || $type === 'system' => BASE_URL . 'admin/settings.php' . $query,
+            str_contains($title, 'profile') || $type === 'profile' => BASE_URL . 'admin/profile.php' . $query,
             default => BASE_URL . 'admin/dashboard.php'
         };
     } elseif ($userRole === 'faculty') {
@@ -362,6 +510,32 @@ function format_date(?string $datetime, string $format = 'M d, Y h:i A'): string
 }
 
 /**
+ * Format relative time string (e.g., "5 mins ago", "2 hours ago", "Yesterday", "30 Jul 2026")
+ */
+function format_time_ago(?string $datetime): string {
+    if (!$datetime) return 'N/A';
+    $time = strtotime($datetime);
+    $diff = time() - $time;
+
+    if ($diff < 60) {
+        return 'Just now';
+    } elseif ($diff < 3600) {
+        $mins = (int)floor($diff / 60);
+        return $mins . ' min' . ($mins > 1 ? 's' : '') . ' ago';
+    } elseif ($diff < 86400) {
+        $hours = (int)floor($diff / 3600);
+        return $hours . ' hour' . ($hours > 1 ? 's' : '') . ' ago';
+    } elseif ($diff < 172800) {
+        return 'Yesterday, ' . date('h:i A', $time);
+    } elseif ($diff < 604800) {
+        $days = (int)floor($diff / 86400);
+        return $days . ' days ago';
+    } else {
+        return date('d M Y, h:i A', $time);
+    }
+}
+
+/**
  * Get CSS badge class for audit trail activity actions
  */
 function get_action_badge_class(string $action): string {
@@ -406,7 +580,7 @@ function calculate_weighted_skill_percentage(int $studentId, int $skillId): arra
         "SELECT a.difficulty_level, MAX(ar.score_percentage) as best_percentage
          FROM assessment_results ar
          JOIN assessments a ON ar.assessment_id = a.id
-         WHERE ar.student_id = ? AND a.skill_id = ?
+         WHERE ar.student_id = ? AND a.skill_id = ? AND a.status = 'active'
          GROUP BY a.difficulty_level",
         [$studentId, $skillId]
     );
@@ -480,6 +654,108 @@ function calculate_overall_student_skill_percentage(int $studentId): float {
 }
 
 /**
+ * Calculate Student's Overall Career Match Percentage dynamically using database metrics.
+ */
+function calculate_student_career_match(int $studentId): int {
+    $db = Database::getInstance();
+
+    // 1. Check if the student has completed any assessments
+    $hasAssessments = (int)($db->fetch(
+        "SELECT COUNT(*) as cnt FROM assessment_results WHERE student_id = ? AND assessment_id IN (SELECT id FROM assessments WHERE status = 'active')",
+        [$studentId]
+    )['cnt'] ?? 0) > 0;
+
+    // 2. Check if the student has any learning progress
+    $hasProgress = (int)($db->fetch(
+        "SELECT COUNT(*) as cnt FROM student_progress WHERE student_id = ? AND progress_percentage > 0",
+        [$studentId]
+    )['cnt'] ?? 0) > 0;
+
+    // For a brand-new student with no assessments completed and no progress, return 0 (0% Career Match)
+    if (!$hasAssessments && !$hasProgress) {
+        return 0;
+    }
+
+    // 3. Calculate Overall Skill Proficiency (average weighted skill score across all active skills)
+    $skills = $db->fetchAll("SELECT id FROM skills");
+    $totalScoreSum = 0.0;
+    $skillCount = count($skills);
+    foreach ($skills as $s) {
+        $weighted = calculate_weighted_skill_percentage($studentId, (int)$s['id']);
+        $totalScoreSum += (float)$weighted['overall_percentage'];
+    }
+    $skillProficiency = $skillCount > 0 ? ($totalScoreSum / $skillCount) : 0.0;
+
+    // 4. Calculate Learning/Course Progress (average progress percentage across all enrolled courses)
+    $progressRow = $db->fetch("SELECT AVG(progress_percentage) as avg_prog FROM student_progress WHERE student_id = ?", [$studentId]);
+    $courseProgress = (float)($progressRow['avg_prog'] ?? 0.0);
+
+    // 5. Calculate Roadmap Progress (milestone completion percentage for their target pathway)
+    $student = $db->fetch("SELECT department FROM students WHERE id = ?", [$studentId]);
+    $studentDept = $student['department'] ?? '';
+
+    $pathSkills = [
+        'frontend' => [4, 5, 3, 10, 14, 11],
+        'backend' => [1, 2, 7, 6],
+        'fullstack' => [4, 1, 14, 13],
+        'uiux' => [11, 98],
+        'datascientist' => [12, 8],
+        'devops' => [13, 15, 10, 18],
+        'cybersecurity' => [20, 6],
+        'mobile' => [88, 89]
+    ];
+
+    $roleKey = 'fullstack';
+    if (stripos($studentDept, 'front') !== false) $roleKey = 'frontend';
+    elseif (stripos($studentDept, 'back') !== false) $roleKey = 'backend';
+    elseif (stripos($studentDept, 'data') !== false) $roleKey = 'datascientist';
+    elseif (stripos($studentDept, 'sec') !== false) $roleKey = 'cybersecurity';
+    elseif (stripos($studentDept, 'devops') !== false) $roleKey = 'devops';
+    elseif (stripos($studentDept, 'ui') !== false) $roleKey = 'uiux';
+    elseif (stripos($studentDept, 'mobile') !== false) $roleKey = 'mobile';
+
+    $targetSkills = $pathSkills[$roleKey] ?? $pathSkills['fullstack'];
+    $roadmapProgress = 0.0;
+
+    if (!empty($targetSkills)) {
+        $placeholders = implode(',', array_fill(0, count($targetSkills), '?'));
+        $courses = $db->fetchAll(
+            "SELECT cs.skill_id, sp.progress_percentage, sp.status 
+             FROM courses c
+             JOIN course_skills cs ON c.id = cs.course_id
+             LEFT JOIN student_progress sp ON c.id = sp.course_id AND sp.student_id = ?
+             WHERE c.status = 'active' AND cs.skill_id IN ($placeholders)",
+            array_merge([$studentId], $targetSkills)
+        );
+
+        $completedSkills = [];
+        foreach ($courses as $c) {
+            $sId = (int)$c['skill_id'];
+            $prog = (int)($c['progress_percentage'] ?? 0);
+            $status = $c['status'] ?? '';
+            if ($status === 'completed' || $prog >= 100) {
+                $completedSkills[$sId] = true;
+            }
+        }
+
+        $completedCount = 0;
+        foreach ($targetSkills as $sId) {
+            if (isset($completedSkills[$sId])) {
+                $completedCount++;
+            }
+        }
+        $roadmapProgress = ($completedCount / count($targetSkills)) * 100.0;
+    }
+
+    // Dynamic Career Match formula:
+    // 50% Skill Proficiency + 20% Course Progress + 30% Roadmap Progress
+    $careerMatch = ($skillProficiency * 0.50) + ($courseProgress * 0.20) + ($roadmapProgress * 0.30);
+
+    // Limit/constrain to a maximum of 100% and round to nearest integer
+    return (int)max(0, min(100, round($careerMatch)));
+}
+
+/**
  * Create a new announcement and automatically dispatch notifications to the target audience (EXCLUDING creator).
  */
 function create_announcement(int $creatorId, string $title, string $message, string $audience = 'all', string $priority = 'normal', string $link = '#'): array {
@@ -494,6 +770,12 @@ function create_announcement(int $creatorId, string $title, string $message, str
     $creatorName = $creator['username'] ?? 'User #' . $creatorId;
     $creatorRole = strtolower($creator['role'] ?? 'user');
 
+    // Auto-resolve department for faculty
+    $department = null;
+    if ($creatorRole === 'faculty') {
+        $department = $db->fetch("SELECT department FROM faculty WHERE user_id = ?", [$creatorId])['department'] ?? null;
+    }
+
     // 1. Insert announcement record
     $announcementId = $db->insert('announcements', [
         'created_by_user_id' => $creatorId,
@@ -505,6 +787,7 @@ function create_announcement(int $creatorId, string $title, string $message, str
         'priority'           => $priority,
         'status'             => 'active',
         'link'               => $link,
+        'department'         => $department,
         'created_at'         => date('Y-m-d H:i:s')
     ]);
 
@@ -517,9 +800,31 @@ function create_announcement(int $creatorId, string $title, string $message, str
     $params = [$creatorId];
 
     if ($audience === 'student') {
-        $sql .= " AND role = 'student'";
+        if ($creatorRole === 'faculty' && !empty($department)) {
+            $sql = "SELECT u.id, u.role FROM users u 
+                    JOIN students s ON u.id = s.user_id
+                    WHERE u.id != ? AND u.role = 'student' AND s.department = ?";
+            $params = [$creatorId, $department];
+        } else {
+            $sql .= " AND role = 'student'";
+        }
     } elseif ($audience === 'faculty') {
-        $sql .= " AND role = 'faculty'";
+        if ($creatorRole === 'faculty' && !empty($department)) {
+            $sql = "SELECT u.id, u.role FROM users u 
+                    JOIN faculty f ON u.id = f.user_id
+                    WHERE u.id != ? AND u.role = 'faculty' AND f.department = ?";
+            $params = [$creatorId, $department];
+        } else {
+            $sql .= " AND role = 'faculty'";
+        }
+    } elseif ($audience === 'all') {
+        if ($creatorRole === 'faculty' && !empty($department)) {
+            $sql = "SELECT u.id, u.role FROM users u 
+                    LEFT JOIN students s ON u.id = s.user_id AND u.role = 'student'
+                    LEFT JOIN faculty f ON u.id = f.user_id AND u.role = 'faculty'
+                    WHERE u.id != ? AND (s.department = ? OR f.department = ?)";
+            $params = [$creatorId, $department, $department];
+        }
     } elseif ($audience === 'admin') {
         $sql .= " AND role = 'admin'";
     }
@@ -584,12 +889,18 @@ function update_announcement(int $announcementId, int $currentUserId, string $cu
         return ['success' => false, 'message' => 'Access Denied: You can only edit announcements created by yourself.'];
     }
 
+    $department = $ann['department'];
+    if ($currentUserRole === 'faculty' && empty($department)) {
+        $department = $db->fetch("SELECT department FROM faculty WHERE user_id = ?", [$currentUserId])['department'] ?? null;
+    }
+
     $db->update('announcements', [
         'title'      => $title,
         'message'    => $message,
         'audience'   => $audience,
         'priority'   => $priority,
         'link'       => $link,
+        'department' => $department,
         'updated_at' => date('Y-m-d H:i:s')
     ], 'id = ?', [$announcementId]);
 
@@ -648,4 +959,163 @@ function get_system_setting(string $key, $default = ''): string {
     } catch (Exception $e) {
         return (string)$default;
     }
+}
+
+/**
+ * Ensure all 150 Category + Skill + Difficulty Level question banks exist in the database.
+ */
+function ensure_all_question_banks_exist(Database $db) {
+    $categoriesStructure = [
+        'Frontend Development' => ['HTML', 'CSS', 'JavaScript', 'Bootstrap', 'Tailwind CSS', 'React', 'Angular', 'Vue.js', 'jQuery', 'TypeScript'],
+        'Backend Development' => ['C', 'C++', 'Java', 'Python', 'PHP', 'C#', 'Node.js', 'SQL', 'MySQL', 'MongoDB'],
+        'Full Stack Development' => ['MERN Stack', 'MEAN Stack', 'Laravel', 'Django', 'Express.js', 'Next.js', 'ASP.NET', 'Spring Boot', 'Flask', 'REST API']
+    ];
+    
+    $diffLevels = ['beginner', 'intermediate', 'advanced', 'professional', 'expert'];
+    
+    $existingList = $db->fetchAll("SELECT category, skill, difficulty FROM question_banks");
+    $existingMap = [];
+    foreach ($existingList as $eb) {
+        $key = strtolower(trim($eb['category'] ?? '')) . '||' . strtolower(trim($eb['skill'] ?? '')) . '||' . strtolower(trim($eb['difficulty'] ?? ''));
+        $existingMap[$key] = true;
+    }
+    
+    $facultyRow = $db->fetch("SELECT id FROM faculty LIMIT 1");
+    $facultyId = $facultyRow ? (int)$facultyRow['id'] : 1;
+    
+    foreach ($categoriesStructure as $cat => $skills) {
+        foreach ($skills as $sk) {
+            foreach ($diffLevels as $diff) {
+                $key = strtolower(trim($cat)) . '||' . strtolower(trim($sk)) . '||' . strtolower(trim($diff));
+                if (!isset($existingMap[$key])) {
+                    $db->insert('question_banks', [
+                        'title' => $sk . ' ' . ucfirst($diff) . ' Bank',
+                        'category' => $cat,
+                        'skill' => $sk,
+                        'difficulty' => $diff,
+                        'status' => 'draft',
+                        'created_by_faculty_id' => $facultyId,
+                        'created_at' => date('Y-m-d H:i:s'),
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]);
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Automatically synchronize the assessments table based on valid, published question banks.
+ */
+function sync_assessments_table(Database $db, bool $force = false) {
+    if (!$force) {
+        $lastSync = get_system_setting('last_assessment_sync_time', '0');
+        if (time() - (int)$lastSync < 900) {
+            return;
+        }
+    }
+
+    // Ensure all 150 question pools are seeded/initialized in the DB
+    ensure_all_question_banks_exist($db);
+
+    // 1. Get all published question banks with their question counts
+    $publishedBanks = $db->fetchAll(
+        "SELECT qb.*, 
+                (SELECT COUNT(*) FROM questions WHERE question_bank_id = qb.id) as q_count 
+         FROM question_banks qb"
+    );
+    
+    // Get all skill mappings
+    $skillsList = $db->fetchAll("SELECT id, name, category FROM skills");
+    $skillNameToId = [];
+    foreach ($skillsList as $sk) {
+        $key = strtolower(trim($sk['category'])) . '||' . strtolower(trim($sk['name']));
+        $skillNameToId[$key] = (int)$sk['id'];
+    }
+    
+    $validQbIds = [];
+    
+    foreach ($publishedBanks as $qb) {
+        $qbId = (int)$qb['id'];
+        $qCount = (int)$qb['q_count'];
+        $isPublished = (strtolower($qb['status']) === 'published');
+        $hasRequiredQuestions = ($qCount >= 25);
+        $skillNameLower = strtolower(trim($qb['skill']));
+        $categoryLower = strtolower(trim($qb['category']));
+        $key = $categoryLower . '||' . $skillNameLower;
+        $skillId = $skillNameToId[$key] ?? null;
+        
+        if ($skillId && $isPublished && $hasRequiredQuestions) {
+            $validQbIds[] = $qbId;
+            
+            // Determine difficulty label
+            $diffLabel = strtolower(trim($qb['difficulty']));
+            if (!in_array($diffLabel, ['beginner', 'intermediate', 'advanced', 'professional', 'expert'])) {
+                $diffLabel = 'beginner';
+            }
+            
+            // Format title: "HTML - Beginner", "C++ - Advanced", etc.
+            $title = $qb['skill'] . ' - ' . ucfirst($diffLabel);
+            $duration = max(15, $qCount * 1);
+            $totalMarks = $qCount;
+            $passThreshold = (float)get_system_setting('pass_mark_threshold', 60);
+            $passingMarks = (int)round($totalMarks * ($passThreshold / 100.0));
+            
+            // Check if assessment already exists for this question bank
+            $existing = $db->fetch("SELECT * FROM assessments WHERE question_bank_id = ?", [$qbId]);
+            
+            if ($existing) {
+                // Update properties
+                $db->update('assessments', [
+                    'title' => $title,
+                    'skill_id' => $skillId,
+                    'duration_minutes' => $duration,
+                    'total_marks' => $totalMarks,
+                    'passing_marks' => $passingMarks,
+                    'difficulty_level' => $diffLabel,
+                    'status' => 'active'
+                ], 'id = ?', [$existing['id']]);
+            } else {
+                // Insert new assessment
+                $db->insert('assessments', [
+                    'title' => $title,
+                    'description' => $qb['skill'] . ' ' . ucfirst($diffLabel) . ' level assessment.',
+                    'skill_id' => $skillId,
+                    'created_by_faculty_id' => (int)($qb['created_by_faculty_id'] ?? 1),
+                    'duration_minutes' => $duration,
+                    'passing_marks' => $passingMarks,
+                    'total_marks' => $totalMarks,
+                    'difficulty_level' => $diffLabel,
+                    'status' => 'active',
+                    'question_bank_id' => $qbId
+                ]);
+            }
+        } else {
+            // If it exists in assessments but is no longer valid, set its status to draft
+            $existing = $db->fetch("SELECT * FROM assessments WHERE question_bank_id = ?", [$qbId]);
+            if ($existing) {
+                $db->update('assessments', ['status' => 'draft'], 'id = ?', [$existing['id']]);
+            }
+        }
+    }
+    
+    // Disable any assessments whose question bank is completely missing/deleted/draft
+    if (!empty($validQbIds)) {
+        $inClause = implode(',', $validQbIds);
+        $db->query("UPDATE assessments SET status = 'draft' WHERE question_bank_id NOT IN ($inClause) OR question_bank_id IS NULL");
+    } else {
+        $db->query("UPDATE assessments SET status = 'draft'");
+    }
+
+    // Save last sync timestamp
+    $db->query("INSERT INTO system_settings (setting_key, setting_value) VALUES ('last_assessment_sync_time', ?) 
+                ON DUPLICATE KEY UPDATE setting_value = ?", [time(), time()]);
+}
+
+/**
+ * Invalidate the assessment sync cache by setting the sync time to 0.
+ */
+function invalidate_assessment_sync_cache(Database $db): void {
+    $db->query("INSERT INTO system_settings (setting_key, setting_value) VALUES ('last_assessment_sync_time', '0') 
+                ON DUPLICATE KEY UPDATE setting_value = '0'");
 }

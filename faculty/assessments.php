@@ -13,6 +13,9 @@ check_suspended_status();
 $facultyId = $_SESSION['profile_id'];
 $db = Database::getInstance();
 
+// Auto-sync assessments table with valid published question banks
+sync_assessments_table($db);
+
 // Action: Toggle Status or Delete (Ownership Guard Enforced)
 if (isset($_GET['action'])) {
     $action = $_GET['action'];
@@ -40,11 +43,10 @@ if (isset($_GET['action'])) {
     }
 }
 
-// Shared Repository: Fetch ALL assessments
 // Shared Repository: Fetch ALL assessments with student attempt statistics
 $assessments = $db->fetchAll(
     "SELECT a.*, s.name as skill_name, f.first_name as creator_first, f.last_name as creator_last,
-            (SELECT COUNT(*) FROM assessment_questions WHERE assessment_id = a.id) as question_count,
+            (SELECT COUNT(*) FROM questions WHERE question_bank_id = a.question_bank_id) as question_count,
             (SELECT COUNT(*) FROM assessment_results WHERE assessment_id = a.id) as submission_count,
             (SELECT COUNT(DISTINCT student_id) FROM assessment_results WHERE assessment_id = a.id) as student_count,
             (SELECT AVG(score_percentage) FROM assessment_results WHERE assessment_id = a.id) as avg_score,
@@ -52,15 +54,38 @@ $assessments = $db->fetchAll(
      FROM assessments a
      JOIN skills s ON a.skill_id = s.id
      LEFT JOIN faculty f ON a.created_by_faculty_id = f.id
+     WHERE a.status = 'active'
      ORDER BY a.created_at DESC"
 );
 
 // Calculate overall Assessment Overview KPIs
 $totalAssessmentsCount = count($assessments);
-$totalStudentsAttempted = (int)($db->fetch("SELECT COUNT(DISTINCT student_id) as cnt FROM assessment_results")['cnt'] ?? 0);
-$overallAvgScore = round((float)($db->fetch("SELECT AVG(score_percentage) as cnt FROM assessment_results")['cnt'] ?? 0), 1);
-$totalPassedAttempts = (int)($db->fetch("SELECT COUNT(*) as cnt FROM assessment_results WHERE status = 'pass'")['cnt'] ?? 0);
-$totalAttemptsCount = (int)($db->fetch("SELECT COUNT(*) as cnt FROM assessment_results")['cnt'] ?? 0);
+
+$totalStudentsAttempted = (int)($db->fetch(
+    "SELECT COUNT(DISTINCT student_id) as cnt 
+     FROM assessment_results 
+     WHERE assessment_id IN (SELECT id FROM assessments WHERE status = 'active')"
+)['cnt'] ?? 0);
+
+$overallAvgScore = round((float)($db->fetch(
+    "SELECT AVG(score_percentage) as cnt 
+     FROM assessment_results 
+     WHERE assessment_id IN (SELECT id FROM assessments WHERE status = 'active')"
+)['cnt'] ?? 0), 1);
+
+$totalPassedAttempts = (int)($db->fetch(
+    "SELECT COUNT(*) as cnt 
+     FROM assessment_results 
+     WHERE status = 'pass' 
+       AND assessment_id IN (SELECT id FROM assessments WHERE status = 'active')"
+)['cnt'] ?? 0);
+
+$totalAttemptsCount = (int)($db->fetch(
+    "SELECT COUNT(*) as cnt 
+     FROM assessment_results 
+     WHERE assessment_id IN (SELECT id FROM assessments WHERE status = 'active')"
+)['cnt'] ?? 0);
+
 $overallPassRate = $totalAttemptsCount > 0 ? round(($totalPassedAttempts / $totalAttemptsCount) * 100, 1) : 0;
 
 $pageTitle = "Assessment Overview - Faculty Portal";
@@ -82,111 +107,134 @@ include __DIR__ . '/../includes/header.php';
     </div>
 </div>
 
-<!-- 5 KPI Summary Cards Grid (Faculty Dashboard SaaS Card System) -->
-<div class="row row-cols-1 row-cols-sm-2 row-cols-lg-5 g-3 mb-4">
-    <!-- Card 1: Total Assessments -->
+<style>
+/* Interactive KPI Cards Styling */
+.interactive-kpi-card {
+    display: block;
+    text-decoration: none !important;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 16px;
+    outline: none;
+}
+.interactive-kpi-card .saas-stat-card {
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.25s ease;
+}
+.interactive-kpi-card:hover .saas-stat-card {
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 0 14px 30px -8px rgba(37, 99, 235, 0.15);
+}
+.interactive-kpi-card:focus-visible .saas-stat-card {
+    outline: 2px solid var(--primary);
+    outline-offset: 3px;
+}
+.interactive-kpi-card .kpi-arrow-icon {
+    transition: transform 0.25s ease, color 0.25s ease;
+    font-size: 0.9rem;
+}
+.interactive-kpi-card:hover .kpi-arrow-icon {
+    transform: translateX(4px);
+    color: var(--primary) !important;
+}
+</style>
+
+<!-- 4 Interactive KPI Summary Cards Grid -->
+<div class="row row-cols-1 row-cols-sm-2 row-cols-md-4 g-3 mb-4">
+    <!-- Card 1: Total Assessments -> Assessment List -->
     <div class="col">
-        <div class="saas-stat-card primary-card h-100">
-            <div class="stat-card-header">
-                <span class="stat-card-title">Total Assessments</span>
-                <div class="stat-icon-saas primary-gradient">
-                    <i class="bi bi-journal-text"></i>
+        <a href="#assessment-list-table" onclick="document.getElementById('assessment-list-table')?.scrollIntoView({behavior: 'smooth'}); return false;" class="interactive-kpi-card h-100" tabindex="0" role="link" aria-label="View Total Assessments List">
+            <div class="saas-stat-card primary-card h-100">
+                <div class="stat-card-header">
+                    <span class="stat-card-title">Total Assessments</span>
+                    <div class="stat-icon-saas primary-gradient">
+                        <i class="bi bi-journal-text"></i>
+                    </div>
+                </div>
+                <div class="stat-card-body">
+                    <div class="stat-card-value"><?= $totalAssessmentsCount ?></div>
+                </div>
+                <div class="stat-card-footer d-flex align-items-center justify-content-between">
+                    <span class="stat-card-trend trend-primary">
+                        <i class="bi bi-list-task me-1"></i> View Assessment List
+                    </span>
+                    <i class="bi bi-arrow-right kpi-arrow-icon text-primary"></i>
                 </div>
             </div>
-            <div class="stat-card-body">
-                <div class="stat-card-value"><?= $totalAssessmentsCount ?></div>
-            </div>
-            <div class="stat-card-footer">
-                <span class="stat-card-trend trend-primary">
-                    <i class="bi bi-journal-check me-1"></i> Institutional Repository
-                </span>
-            </div>
-        </div>
+        </a>
     </div>
 
-    <!-- Card 2: Total Students -->
+    <!-- Card 2: Average Score -> Score Analytics -->
     <div class="col">
-        <div class="saas-stat-card accent-card h-100">
-            <div class="stat-card-header">
-                <span class="stat-card-title">Total Students</span>
-                <div class="stat-icon-saas accent-gradient">
-                    <i class="bi bi-people"></i>
+        <a href="<?= BASE_URL ?>faculty/skill-gap.php" class="interactive-kpi-card h-100" tabindex="0" role="link" aria-label="View Score Analytics">
+            <div class="saas-stat-card success-card h-100">
+                <div class="stat-card-header">
+                    <span class="stat-card-title">Average Score</span>
+                    <div class="stat-icon-saas success-gradient">
+                        <i class="bi bi-bullseye"></i>
+                    </div>
+                </div>
+                <div class="stat-card-body">
+                    <div class="stat-card-value gradient-value"><?= $overallAvgScore ?>%</div>
+                </div>
+                <div class="stat-card-footer d-flex align-items-center justify-content-between">
+                    <span class="stat-card-trend trend-success">
+                        <i class="bi bi-graph-up-arrow me-1"></i> View Score Analytics
+                    </span>
+                    <i class="bi bi-arrow-right kpi-arrow-icon text-success"></i>
                 </div>
             </div>
-            <div class="stat-card-body">
-                <div class="stat-card-value"><?= $totalStudentsAttempted ?></div>
-            </div>
-            <div class="stat-card-footer">
-                <span class="stat-card-trend trend-accent">
-                    <i class="bi bi-person-check me-1"></i> Unique Attempted
-                </span>
-            </div>
-        </div>
+        </a>
     </div>
 
-    <!-- Card 3: Average Score -->
+    <!-- Card 3: Pass Rate -> Pass Rate Reports -->
     <div class="col">
-        <div class="saas-stat-card success-card h-100">
-            <div class="stat-card-header">
-                <span class="stat-card-title">Average Score</span>
-                <div class="stat-icon-saas success-gradient">
-                    <i class="bi bi-bullseye"></i>
+        <a href="<?= BASE_URL ?>faculty/skill-gap.php#deficiency-heatmap" class="interactive-kpi-card h-100" tabindex="0" role="link" aria-label="View Pass Rate Reports">
+            <div class="saas-stat-card warning-card h-100">
+                <div class="stat-card-header">
+                    <span class="stat-card-title">Pass Rate</span>
+                    <div class="stat-icon-saas warning-gradient">
+                        <i class="bi bi-trophy"></i>
+                    </div>
+                </div>
+                <div class="stat-card-body">
+                    <div class="stat-card-value"><?= $overallPassRate ?>%</div>
+                </div>
+                <div class="stat-card-footer d-flex align-items-center justify-content-between">
+                    <span class="stat-card-trend trend-warning">
+                        <i class="bi bi-check-circle me-1"></i> Pass Rate Analytics
+                    </span>
+                    <i class="bi bi-arrow-right kpi-arrow-icon text-warning"></i>
                 </div>
             </div>
-            <div class="stat-card-body">
-                <div class="stat-card-value gradient-value"><?= $overallAvgScore ?>%</div>
-            </div>
-            <div class="stat-card-footer">
-                <span class="stat-card-trend trend-success">
-                    <i class="bi bi-graph-up-arrow me-1"></i> Overall Average
-                </span>
-            </div>
-        </div>
+        </a>
     </div>
 
-    <!-- Card 4: Pass Rate -->
+    <!-- Card 4: Total Attempts -> Assessment Inspector -->
     <div class="col">
-        <div class="saas-stat-card warning-card h-100">
-            <div class="stat-card-header">
-                <span class="stat-card-title">Pass Rate</span>
-                <div class="stat-icon-saas warning-gradient">
-                    <i class="bi bi-trophy"></i>
+        <a href="<?= BASE_URL ?>faculty/evaluate.php" class="interactive-kpi-card h-100" tabindex="0" role="link" aria-label="Open Assessment Inspector">
+            <div class="saas-stat-card danger-card h-100">
+                <div class="stat-card-header">
+                    <span class="stat-card-title">Total Attempts</span>
+                    <div class="stat-icon-saas danger-gradient">
+                        <i class="bi bi-file-earmark-check"></i>
+                    </div>
+                </div>
+                <div class="stat-card-body">
+                    <div class="stat-card-value"><?= $totalAttemptsCount ?></div>
+                </div>
+                <div class="stat-card-footer d-flex align-items-center justify-content-between">
+                    <span class="stat-card-trend trend-danger">
+                        <i class="bi bi-search me-1"></i> Assessment Inspector
+                    </span>
+                    <i class="bi bi-arrow-right kpi-arrow-icon text-danger"></i>
                 </div>
             </div>
-            <div class="stat-card-body">
-                <div class="stat-card-value"><?= $overallPassRate ?>%</div>
-            </div>
-            <div class="stat-card-footer">
-                <span class="stat-card-trend trend-warning">
-                    <i class="bi bi-check-circle me-1"></i> Passing Submissions
-                </span>
-            </div>
-        </div>
-    </div>
-
-    <!-- Card 5: Total Attempts -->
-    <div class="col">
-        <div class="saas-stat-card danger-card h-100">
-            <div class="stat-card-header">
-                <span class="stat-card-title">Total Attempts</span>
-                <div class="stat-icon-saas danger-gradient">
-                    <i class="bi bi-file-earmark-check"></i>
-                </div>
-            </div>
-            <div class="stat-card-body">
-                <div class="stat-card-value"><?= $totalAttemptsCount ?></div>
-            </div>
-            <div class="stat-card-footer">
-                <span class="stat-card-trend trend-danger">
-                    <i class="bi bi-clock-history me-1"></i> Evaluated Attempts
-                </span>
-            </div>
-        </div>
+        </a>
     </div>
 </div>
 
 <!-- Table Container Card -->
-<div class="saas-card overflow-hidden">
+<div class="saas-card overflow-hidden" id="assessment-list-table">
     <div class="saas-card-header flex-wrap gap-2">
         <div class="d-flex align-items-center gap-3 flex-grow-1" style="max-width: 400px;">
             <div class="position-relative w-100">

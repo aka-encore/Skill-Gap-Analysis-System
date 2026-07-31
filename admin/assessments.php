@@ -11,13 +11,17 @@ require_role('admin');
 
 $db = Database::getInstance();
 
+// Auto-sync assessments table with valid published question banks
+sync_assessments_table($db);
+
 $assessments = $db->fetchAll(
     "SELECT a.*, s.name as skill_name, f.first_name, f.last_name,
-            (SELECT COUNT(*) FROM assessment_questions WHERE assessment_id = a.id) as q_count,
+            (SELECT COUNT(*) FROM questions WHERE question_bank_id = a.question_bank_id) as q_count,
             (SELECT COUNT(*) FROM assessment_results WHERE assessment_id = a.id) as sub_count
      FROM assessments a
      JOIN skills s ON a.skill_id = s.id
      JOIN faculty f ON a.created_by_faculty_id = f.id
+     WHERE a.status = 'active'
      ORDER BY a.created_at DESC"
 );
 

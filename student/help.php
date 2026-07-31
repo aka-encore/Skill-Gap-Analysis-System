@@ -688,12 +688,6 @@ function filterFAQ(cat) {
 window.initHelp = function() {
     console.log("Help Center initialized");
 };
-
-if (document.readyState === 'complete' || document.readyState === 'interactive') {
-    window.initHelp();
-} else {
-    document.addEventListener('DOMContentLoaded', window.initHelp);
-}
 </script>
 
 <?php include __DIR__ . '/../includes/footer.php'; ?>

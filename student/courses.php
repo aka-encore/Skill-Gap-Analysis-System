@@ -15,6 +15,9 @@ $studentId = $_SESSION['profile_id'];
 $userId    = $_SESSION['user_id'];
 $db        = Database::getInstance();
 
+// Auto-sync assessments table with valid published question banks
+sync_assessments_table($db);
+
 // 1. AJAX Endpoint for fetching normalized lessons from MySQL database
 if (isset($_GET['action']) && $_GET['action'] === 'get_lessons') {
     $courseId = (int)($_GET['course_id'] ?? 0);
@@ -830,12 +833,6 @@ window.initCourses = function() {
     }
   }
 };
-
-if (document.readyState === 'complete' || document.readyState === 'interactive') {
-  window.initCourses();
-} else {
-  document.addEventListener('DOMContentLoaded', window.initCourses);
-}
 
 // 1. Tab Switching
 function switchCourseTab(tab) {

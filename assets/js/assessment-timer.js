@@ -44,7 +44,7 @@ function initAssessmentTimer(durationMinutes, formId, timerDisplayId, progressBa
     updateDisplay();
     const timerInterval = setInterval(updateDisplay, 1000);
 
-    // Auto-save answers every 20 seconds via AJAX
+    // Auto-save answers every 20 seconds via AJAX to the dedicated API endpoint
     const autoSaveInterval = setInterval(function() {
         if (!form) return;
         const formData = new FormData(form);
@@ -52,7 +52,9 @@ function initAssessmentTimer(durationMinutes, formId, timerDisplayId, progressBa
         formData.append('auto_save', '1');
         formData.append('time_remaining', totalSeconds);
 
-        fetch(form.action, {
+        const endpoint = (typeof window.BASE_URL !== 'undefined') ? window.BASE_URL + 'api/auto-save.php' : '/api/auto-save.php';
+
+        fetch(endpoint, {
             method: 'POST',
             body: formData
         })

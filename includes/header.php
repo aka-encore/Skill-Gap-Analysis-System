@@ -7,7 +7,6 @@ require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/functions.php';
 
 $pageTitle = $pageTitle ?? APP_NAME . ' – Skill Gap Analysis & LMS';
-$currentUser = get_logged_in_user();
 ?>
 <!DOCTYPE html>
 <html lang="en">

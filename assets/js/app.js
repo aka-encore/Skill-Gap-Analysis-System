@@ -2,12 +2,21 @@
  * SkillBridge - Global Application JavaScript UI Engine
  */
 
+window.debounce = function(func, wait) {
+    let timeout;
+    return function(...args) {
+        const context = this;
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(context, args), wait);
+    };
+};
+
 function toggleSidebar() {
     const appLayout = document.getElementById('appLayout') || document.querySelector('.dashboard-layout');
     const sidebar = document.getElementById('sidebar');
     const overlay = document.getElementById('sidebarOverlay');
 
-    if (window.innerWidth <= 768) {
+    if (window.innerWidth < 992) {
         if (sidebar) sidebar.classList.toggle('mobile-open');
         if (overlay) overlay.classList.toggle('active');
         if (appLayout) appLayout.classList.toggle('sidebar-open');
@@ -20,9 +29,21 @@ function toggleSidebar() {
     }
 }
 
+function closeMobileSidebar() {
+    if (window.innerWidth < 992) {
+        const appLayout = document.getElementById('appLayout') || document.querySelector('.dashboard-layout');
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebarOverlay');
+
+        if (sidebar) sidebar.classList.remove('mobile-open');
+        if (overlay) overlay.classList.remove('active');
+        if (appLayout) appLayout.classList.remove('sidebar-open');
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
-    // 1. Restore Sidebar State Preference on Load (Desktop)
-    if (window.innerWidth > 768) {
+    // Restore Sidebar State Preference on Load (Desktop)
+    if (window.innerWidth >= 992) {
         const isCollapsed = localStorage.getItem('sb_sidebar_collapsed') === 'true';
         const appLayout = document.getElementById('appLayout') || document.querySelector('.dashboard-layout');
         const sidebar = document.getElementById('sidebar');
@@ -31,6 +52,19 @@ document.addEventListener('DOMContentLoaded', function() {
             if (appLayout) appLayout.classList.add('sidebar-collapsed');
         }
     }
+
+    // Close mobile drawer on Escape key or navigation clicks
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeMobileSidebar();
+        }
+    });
+
+    document.querySelectorAll('.sidebar-nav-item, .sidebar-brand a').forEach(link => {
+        link.addEventListener('click', function() {
+            closeMobileSidebar();
+        });
+    });
 
     // 1.1 Restore Sidebar Scroll Position (Student, Faculty, Admin)
     const sidebar = document.getElementById('sidebar');
@@ -125,14 +159,14 @@ document.addEventListener('DOMContentLoaded', function() {
         const tableId = input.getAttribute('data-search-table');
         const table = document.getElementById(tableId);
         if (table) {
-            input.addEventListener('keyup', function() {
+            input.addEventListener('keyup', window.debounce(function() {
                 const term = this.value.toLowerCase();
                 const rows = table.querySelectorAll('tbody tr');
                 rows.forEach(row => {
                     const text = row.innerText.toLowerCase();
                     row.style.display = text.includes(term) ? '' : 'none';
                 });
-            });
+            }, 250));
         }
     });
 
@@ -257,8 +291,16 @@ document.addEventListener('DOMContentLoaded', function() {
         const isFaculty = path.includes('/faculty/');
         const isAdmin   = path.includes('/admin/');
 
-        // Helper — call named window function only if it exists
-        const call = (name) => { if (typeof window[name] === 'function') window[name](); };
+        // Helper — call named window function only if it exists, safely caught
+        const call = (name) => {
+            try {
+                if (typeof window[name] === 'function') {
+                    window[name]();
+                }
+            } catch (err) {
+                console.error(`Error initializing page component [${name}]:`, err);
+            }
+        };
 
         // Dispatch table covers every Faculty, Admin, and Student page.
         // Pages that don't define a window.initXxx are no-ops (call() does nothing).
@@ -320,22 +362,26 @@ document.addEventListener('DOMContentLoaded', function() {
 
         fetch(url)
         .then(response => {
-            if (!response.ok) {
-                window.location.href = url;
+            if (response.redirected) {
+                window.location.href = response.url;
                 return;
+            }
+            if (!response.ok) {
+                throw new Error(`Response status error: ${response.status}`);
             }
             return response.text();
         })
         .then(html => {
-            if (!html) return;
+            if (!html) {
+                throw new Error('Received empty HTML response');
+            }
 
             const parser = new DOMParser();
             const doc = parser.parseFromString(html, 'text/html');
             const newContent = doc.querySelector('main.content-area');
 
             if (!newContent) {
-                window.location.href = url;
-                return;
+                throw new Error('Target content area (main.content-area) not found in response');
             }
 
             if (pushToHistory) {
@@ -351,12 +397,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 runPageSpecificInitializer();
             }
 
-            hidePjaxLoader();
             updateSidebarActiveState();
+
+            // Check for open_announcement_id in PJAX page loads
+            try {
+                const urlParams = new URL(url).searchParams;
+                const openAnnId = urlParams.get('open_announcement_id');
+                if (openAnnId) {
+                    window.openAnnouncementModal(openAnnId);
+                }
+            } catch(e) {}
         })
         .catch(err => {
             console.error('PJAX load error:', err);
             window.location.href = url;
+        })
+        .finally(() => {
+            hidePjaxLoader();
         });
     }
 
@@ -370,12 +427,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 oldScript.remove();
                 return;
             }
-            const newScript = document.createElement('script');
-            Array.from(oldScript.attributes).forEach(attr => {
-                newScript.setAttribute(attr.name, attr.value);
-            });
-            newScript.textContent = oldScript.textContent;
-            oldScript.parentNode.replaceChild(newScript, oldScript);
+            try {
+                const newScript = document.createElement('script');
+                Array.from(oldScript.attributes).forEach(attr => {
+                    newScript.setAttribute(attr.name, attr.value);
+                });
+                newScript.textContent = oldScript.textContent;
+                oldScript.parentNode.replaceChild(newScript, oldScript);
+            } catch (err) {
+                console.error('Error executing page script:', err, oldScript.textContent);
+            }
         });
     }
 
@@ -388,14 +449,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 const newEl = input.cloneNode(true);
                 input.parentNode.replaceChild(newEl, input);
                 
-                newEl.addEventListener('keyup', function() {
+                newEl.addEventListener('keyup', window.debounce(function() {
                     const term = this.value.toLowerCase();
                     const rows = table.querySelectorAll('tbody tr');
                     rows.forEach(row => {
                         const text = row.innerText.toLowerCase();
                         row.style.display = text.includes(term) ? '' : 'none';
                     });
-                });
+                }, 250));
             }
         });
 
@@ -414,33 +475,38 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     document.addEventListener('click', function(e) {
-        const link = e.target.closest('#sidebar a, .sidebar-nav a');
+        // Intercept any local <a> link click
+        const link = e.target.closest('a');
         if (!link) return;
 
         const href = link.getAttribute('href');
         if (!href || href.startsWith('#') || href.startsWith('javascript:') || link.getAttribute('target') === '_blank') return;
-        
-        // Only exclude pages with complex state that must not be PJAX-navigated.
-        // 'assessments.php' (list page) is safe for PJAX — it was removed from this list.
+        if (link.hasAttribute('download') || link.classList.contains('no-pjax') || link.closest('[data-no-pjax]')) return;
+
+        // Exclude authentication, quiz, or custom pages with complex state
         const excludeList = [
-            'logout.php', 'login.php', 'register.php', 'password-reset.php',
+            'logout.php', 'login.php', 'register.php', 'forgot-password.php', 'reset-password.php',
             'take-assessment.php', 'assessment-result.php'
         ];
         
         const isExcluded = excludeList.some(ex => href.toLowerCase().includes(ex));
         if (isExcluded) return;
 
-        const url = new URL(link.href);
-        if (url.origin !== window.location.origin) return;
+        try {
+            const url = new URL(link.href);
+            if (url.origin !== window.location.origin) return;
 
-        e.preventDefault();
-        
-        const sidebar = document.getElementById('sidebar');
-        if (sidebar && sidebar.classList.contains('mobile-open')) {
-            toggleSidebar();
+            e.preventDefault();
+            
+            const sidebar = document.getElementById('sidebar');
+            if (sidebar && sidebar.classList.contains('mobile-open')) {
+                toggleSidebar();
+            }
+
+            loadPjaxPage(link.href, true);
+        } catch (err) {
+            console.error('Error parsing link URL:', err);
         }
-
-        loadPjaxPage(link.href, true);
     });
 
     window.addEventListener('popstate', function(e) {
@@ -454,6 +520,17 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!history.state) {
         history.replaceState({ pjax: true, url: window.location.href }, '', window.location.href);
     }
+
+    // Check for open_announcement_id on initial direct page load
+    try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const openAnnId = urlParams.get('open_announcement_id');
+        if (openAnnId) {
+            setTimeout(() => {
+                window.openAnnouncementModal(openAnnId);
+            }, 100);
+        }
+    } catch(e) {}
 });
 
 /**
@@ -529,3 +606,74 @@ function markAllNotificationsRead() {
     })
     .catch(err => console.error('Notification error:', err));
 }
+
+/**
+ * Global announcement details modal opener and reader
+ */
+function openAnnouncementModal(announcementId) {
+    if (!announcementId) return;
+    const endpoint = (typeof window.BASE_URL !== 'undefined') ? window.BASE_URL : '/';
+    fetch(endpoint + 'api/announcements_action.php?action=get&id=' + announcementId)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const ann = data.announcement;
+                
+                // Populate modal fields
+                document.getElementById('announcementModalTitle').textContent = ann.title;
+                document.getElementById('announcementModalContent').innerHTML = ann.message.replace(/\n/g, '<br>');
+                document.getElementById('announcementModalAuthor').textContent = ann.created_by_name + ' (' + ann.created_by_role.toUpperCase() + ')';
+                document.getElementById('announcementModalDate').textContent = ann.formatted_date;
+                
+                // Priority Badge
+                const priorityBadge = document.getElementById('announcementModalPriority');
+                if (ann.priority && ann.priority !== 'normal') {
+                    priorityBadge.style.display = 'inline-block';
+                    priorityBadge.textContent = ann.priority.toUpperCase();
+                    if (ann.priority === 'urgent') {
+                        priorityBadge.className = 'badge bg-danger rounded-pill px-3 py-1.5 fw-semibold small';
+                    } else {
+                        priorityBadge.className = 'badge bg-warning text-dark rounded-pill px-3 py-1.5 fw-semibold small';
+                    }
+                } else {
+                    priorityBadge.style.display = 'none';
+                }
+                
+                // Department
+                const deptSpan = document.getElementById('announcementModalDeptSpan');
+                if (ann.department) {
+                    deptSpan.style.display = 'inline';
+                    document.getElementById('announcementModalDept').textContent = ann.department;
+                } else {
+                    deptSpan.style.display = 'none';
+                }
+
+
+
+                // Launch modal
+                const modalEl = document.getElementById('globalAnnouncementModal');
+                if (modalEl) {
+                    let modal = bootstrap.Modal.getInstance(modalEl);
+                    if (!modal) {
+                        modal = new bootstrap.Modal(modalEl);
+                    }
+                    modal.show();
+                }
+
+                // Mark as read in UI list
+                const elements = document.querySelectorAll(`[data-announcement-id="${announcementId}"]`);
+                elements.forEach(el => {
+                    el.classList.remove('unread');
+                    el.style.fontWeight = 'normal';
+                    const badge = el.querySelector('.unread-badge');
+                    if (badge) badge.remove();
+                });
+            } else {
+                alert(data.message || 'Failed to load announcement details.');
+            }
+        })
+        .catch(err => {
+            console.error('Error fetching announcement:', err);
+        });
+}
+window.openAnnouncementModal = openAnnouncementModal;

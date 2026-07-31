@@ -734,70 +734,76 @@ function parse_xlsx_file(string $filepath): array {
 }
 
 /**
- * Download CSV Template for Question Import
+ * Download CSV Template for Question Bank Import (Faculty & Admin)
  */
 function download_question_import_template(): void {
-    header('Content-Type: text/csv; charset=utf-8');
-    header('Content-Disposition: attachment; filename="SkillBridge_Question_Import_Template.csv"');
-    
-    $output = fopen('php://output', 'w');
-    fputs($output, "\xEF\xBB\xBF");
-    
-    fputcsv($output, [
-        'Assessment Title',
-        'Category',
-        'Skill',
-        'Difficulty Level',
-        'Question Type',
-        'Question Text',
-        'Option A',
-        'Option B',
-        'Option C',
-        'Option D',
-        'Correct Answer',
-        'Explanation',
-        'Marks',
-        'Status'
-    ]);
+    try {
+        $filename = 'Question_Bank_Template.csv';
+        $filePath = __DIR__ . '/../assets/templates/' . $filename;
 
-    // Sample Row 1
-    fputcsv($output, [
-        'Mastering Pure PHP 8 Development',
-        'Backend',
-        'PHP 8 Web Development',
-        'intermediate',
-        'MCQ',
-        'Which symbol is used to declare variables in PHP?',
-        '#',
-        '$',
-        '@',
-        '%',
-        'B',
-        'PHP variables always begin with the $ symbol.',
-        '2',
-        'active'
-    ]);
-    
-    // Sample Row 2
-    fputcsv($output, [
-        'Relational Database Masterclass: MySQL',
-        'Database',
-        'MySQL Database Design',
-        'intermediate',
-        'MCQ',
-        'Which JOIN returns all records from the left table and matched records from the right table?',
-        'INNER JOIN',
-        'RIGHT JOIN',
-        'LEFT JOIN',
-        'FULL OUTER JOIN',
-        'C',
-        'LEFT JOIN returns all rows from the left table and matched rows from the right table.',
-        '2',
-        'active'
-    ]);
+        if (file_exists($filePath) && is_readable($filePath)) {
+            header('Content-Type: text/csv; charset=utf-8');
+            header('Content-Disposition: attachment; filename="' . $filename . '"');
+            header('Pragma: no-cache');
+            header('Expires: 0');
 
-    fclose($output);
-    exit;
+            $content = file_get_contents($filePath);
+            if (substr($content, 0, 3) !== "\xEF\xBB\xBF") {
+                echo "\xEF\xBB\xBF";
+            }
+            echo $content;
+            exit;
+        }
+
+        // Dynamic fallback generation if physical file is unavailable
+        $output = fopen('php://output', 'w');
+        if ($output === false) {
+            throw new Exception("Unable to open output stream.");
+        }
+
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Pragma: no-cache');
+        header('Expires: 0');
+
+        fputs($output, "\xEF\xBB\xBF");
+
+        fputcsv($output, [
+            'Category',
+            'Skill',
+            'Difficulty Level',
+            'Question',
+            'Option A',
+            'Option B',
+            'Option C',
+            'Option D',
+            'Correct Answer',
+            'Explanation'
+        ]);
+
+        fputcsv($output, [
+            'Frontend Development',
+            'HTML',
+            'Beginner',
+            'Which HTML tag is used to create a hyperlink?',
+            '<a>',
+            '<link>',
+            '<href>',
+            '<url>',
+            'A',
+            'The <a> tag defines a hyperlink in HTML.'
+        ]);
+
+        fclose($output);
+        exit;
+    } catch (Throwable $e) {
+        if (!headers_sent()) {
+            header_remove('Content-Type');
+            header_remove('Content-Disposition');
+        }
+        set_flash_message('danger', 'Unable to generate the CSV template. Please try again.');
+        redirect($_SERVER['HTTP_REFERER'] ?? (BASE_URL . 'faculty/question-bank.php'));
+    }
 }
 
 /**
@@ -1153,5 +1159,185 @@ function download_question_error_report(array $validatedRows): void {
 
     fclose($output);
     exit;
+}
+
+/**
+ * Validate Question Bank Question Import Rows
+ */
+function validate_qbank_question_import_rows(array $rows, Database $db, int $qbId): array {
+    $qb = $db->fetch("SELECT * FROM question_banks WHERE id = ?", [$qbId]);
+    if (!$qb) {
+        return [
+            'total_rows' => count($rows),
+            'valid_count' => 0,
+            'invalid_count' => count($rows),
+            'duplicate_count' => 0,
+            'rows' => []
+        ];
+    }
+
+    // Cache existing questions in this specific bank to check for duplicates
+    $existingQs = $db->fetchAll("SELECT LOWER(TRIM(question_text)) as q_text FROM questions WHERE question_bank_id = ?", [$qbId]);
+    $dbQuestions = array_column($existingQs, 'q_text');
+
+    $seenInFile = [];
+    $validatedRows = [];
+    $validCount = 0;
+    $invalidCount = 0;
+    $duplicateCount = 0;
+
+    foreach ($rows as $row) {
+        $rowNum = $row['_row_num'] ?? 0;
+        
+        $category = trim($row['category'] ?? '');
+        $skill = trim($row['skill'] ?? '');
+        $diffLevel = strtolower(trim($row['difficulty_level'] ?? $row['difficulty'] ?? ''));
+        $qText = trim($row['question_text'] ?? $row['question'] ?? '');
+        $optA = trim($row['option_a'] ?? '');
+        $optB = trim($row['option_b'] ?? '');
+        $optC = trim($row['option_c'] ?? '');
+        $optD = trim($row['option_d'] ?? '');
+        $correctAns = strtoupper(trim($row['correct_answer'] ?? $row['correct_option'] ?? ''));
+        $explanation = trim($row['explanation'] ?? '');
+
+        $errors = [];
+        $isDuplicate = false;
+
+        // Validate category matches bank if provided
+        if (!empty($category) && strtolower($category) !== strtolower($qb['category'])) {
+            $errors[] = "Category '{$category}' does not match Question Bank category '{$qb['category']}'.";
+        }
+        // Validate skill matches bank if provided
+        if (!empty($skill) && strtolower($skill) !== strtolower($qb['skill'])) {
+            $errors[] = "Skill '{$skill}' does not match Question Bank skill '{$qb['skill']}'.";
+        }
+        // Validate difficulty matches bank if provided
+        if (!empty($diffLevel) && strtolower($diffLevel) !== strtolower($qb['difficulty'])) {
+            $errors[] = "Difficulty '{$diffLevel}' does not match Question Bank difficulty '{$qb['difficulty']}'.";
+        }
+
+        // Validate Question Text
+        if (empty($qText)) {
+            $errors[] = 'Question Text is required.';
+        }
+
+        // Validate Options
+        if (empty($optA) || empty($optB) || empty($optC) || empty($optD)) {
+            $errors[] = 'All four options (Option A, B, C, D) must be provided.';
+        }
+
+        // Validate Correct Answer
+        if (empty($correctAns)) {
+            $errors[] = 'Correct Answer is required.';
+        } elseif (!in_array($correctAns, ['A', 'B', 'C', 'D'])) {
+            $errors[] = "Invalid Correct Answer '{$correctAns}'. Must be A, B, C, or D.";
+        }
+
+        // Check duplicate in file
+        if (!empty($qText)) {
+            $normText = strtolower($qText);
+            if (isset($seenInFile[$normText])) {
+                $errors[] = 'Duplicate question text within this CSV file.';
+                $isDuplicate = true;
+            } else {
+                $seenInFile[$normText] = true;
+            }
+        }
+
+        // Check duplicate in database
+        if (!empty($qText) && !$isDuplicate) {
+            $normText = strtolower($qText);
+            if (in_array($normText, $dbQuestions)) {
+                $errors[] = 'Duplicate question: already exists in this Question Bank.';
+                $isDuplicate = true;
+            }
+        }
+
+        $isValid = empty($errors);
+        if ($isValid) {
+            $validCount++;
+        } else {
+            $invalidCount++;
+            if ($isDuplicate) $duplicateCount++;
+        }
+
+        $validatedRows[] = [
+            'row_num'          => $rowNum,
+            'category'         => $category,
+            'skill'            => $skill,
+            'difficulty'       => $diffLevel,
+            'question_text'    => $qText,
+            'option_a'         => $optA,
+            'option_b'         => $optB,
+            'option_c'         => $optC,
+            'option_d'         => $optD,
+            'correct_answer'   => $correctAns,
+            'explanation'      => $explanation,
+            'is_valid'         => $isValid,
+            'errors'           => $errors,
+            'error_text'       => implode(' | ', $errors)
+        ];
+    }
+
+    return [
+        'total_rows'      => count($rows),
+        'valid_count'     => $validCount,
+        'invalid_count'   => $invalidCount,
+        'duplicate_count' => $duplicateCount,
+        'rows'            => $validatedRows
+    ];
+}
+
+/**
+ * Execute Question Bank Import inside Database Transaction
+ */
+function execute_qbank_question_import(array $validRows, Database $db, int $qbId, int $actorUserId): int {
+    if (empty($validRows)) return 0;
+
+    $importedCount = 0;
+    $db->beginTransaction();
+
+    try {
+        foreach ($validRows as $r) {
+            if (!$r['is_valid']) continue;
+
+            $db->insert('questions', [
+                'question_bank_id' => $qbId,
+                'question_text'   => $r['question_text'],
+                'option_a'        => $r['option_a'],
+                'option_b'        => $r['option_b'],
+                'option_c'        => $r['option_c'],
+                'option_d'        => $r['option_d'],
+                'correct_option'  => $r['correct_answer'],
+                'marks'           => 1
+            ]);
+
+            $importedCount++;
+        }
+
+        // Recalculate marks and durations for assessments linked to this Question Bank
+        $qCount = (int)($db->fetch("SELECT COUNT(*) as cnt FROM questions WHERE question_bank_id = ?", [$qbId])['cnt'] ?? 0);
+        $totalMarks = max(1, $qCount);
+        $passThreshold = (float)get_system_setting('pass_mark_threshold', 60);
+        $passingMarks = (int)round($totalMarks * ($passThreshold / 100.0));
+
+        $db->update('assessments', [
+            'total_marks' => $totalMarks,
+            'passing_marks' => $passingMarks,
+            'duration_minutes' => max(15, $qCount * 1)
+        ], 'question_bank_id = ?', [$qbId]);
+
+        // Update Question Bank updated_at timestamp
+        $db->update('question_banks', ['updated_at' => date('Y-m-d H:i:s')], 'id = ?', [$qbId]);
+
+        $db->commit();
+        invalidate_assessment_sync_cache($db);
+
+        log_activity($actorUserId, 'IMPORT_QUESTIONS_QBANK', "Imported {$importedCount} questions successfully to Bank ID: {$qbId}.");
+        return $importedCount;
+    } catch (Throwable $e) {
+        $db->rollBack();
+        throw $e;
+    }
 }
 

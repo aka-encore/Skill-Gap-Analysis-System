@@ -14,6 +14,9 @@ check_suspended_status();
 $studentId = $_SESSION['profile_id'];
 $db = Database::getInstance();
 
+// Auto-sync assessments table with valid published question banks
+sync_assessments_table($db);
+
 // 1. Fetch Logged-In Student's Completed Assessments History
 $completedAssessments = $db->fetchAll(
     "SELECT ar.*, a.title as assessment_title, a.duration_minutes, a.passing_marks, a.total_marks,
@@ -31,7 +34,9 @@ $dbAssessments = $db->fetchAll(
     "SELECT a.*, s.name as skill_name, s.category as skill_category
      FROM assessments a
      JOIN skills s ON a.skill_id = s.id
-     WHERE a.status = 'active'"
+     WHERE a.status = 'active'
+       AND a.question_bank_id IS NOT NULL
+       AND (SELECT COUNT(*) FROM questions q WHERE q.question_bank_id = a.question_bank_id) >= 25"
 );
 
 // Pre-defined Skill Structure matching prompt requirements (10 Skills per Category)
@@ -70,7 +75,7 @@ $categorySkills = [
         ['name' => 'ASP.NET', 'icon' => 'fa-solid fa-globe'],
         ['name' => 'Spring Boot', 'icon' => 'fa-solid fa-leaf'],
         ['name' => 'Flask', 'icon' => 'fa-solid fa-pepper-hot'],
-        ['name' => 'REST API Development', 'icon' => 'fa-solid fa-network-wired']
+        ['name' => 'REST API', 'icon' => 'fa-solid fa-network-wired']
     ]
 ];
 
@@ -79,8 +84,13 @@ include __DIR__ . '/../includes/header.php';
 ?>
 
 <!-- ══════════════════════════════════════════════════════════ -->
-<!-- MULTI-STEP ASSESSMENT SETUP WIZARD (STARTS DIRECTLY)        -->
-<!-- ══════════════════════════════════════════════════════════ -->
+<?php if (empty($dbAssessments)): ?>
+    <div class="saas-card p-5 mb-5 text-center shadow-sm rounded-4" style="background: var(--bg-card); border: 1px solid var(--border);">
+        <div class="mb-3 text-secondary" style="font-size: 3rem;"><i class="bi bi-journal-x"></i></div>
+        <h4 class="fw-bold mb-2" style="color: var(--text-heading);">No assessments are currently available.</h4>
+        <p class="text-muted small mb-0">Please check back later as faculty publishes new assessments.</p>
+    </div>
+<?php else: ?>
 <div class="saas-card p-4 p-md-5 mb-5" id="pending-assessments">
 
     <!-- STEP INDICATOR DOTS -->
@@ -271,6 +281,7 @@ include __DIR__ . '/../includes/header.php';
         </div>
     </div>
 </div>
+<?php endif; ?>
 
 <!-- ══════════════════════════════════════════════════════════ -->
 <!-- COMPLETED ASSESSMENTS HISTORY (THEME COMPLIANT)            -->
@@ -440,21 +451,16 @@ function populateWizardPreview() {
 }
 
 function launchWizardAssessment() {
-    // Find matching active assessment in database or launch nearest assessment ID
+    // Find matching active assessment in database for selected skill and difficulty
     let match = dbAssessments.find(a => 
-        a.skill_name.toLowerCase().includes((wizardState.skillName || '').toLowerCase()) ||
-        (wizardState.skillName || '').toLowerCase().includes(a.skill_name.toLowerCase())
+        (a.skill_name.toLowerCase().trim() === (wizardState.skillName || '').toLowerCase().trim()) &&
+        (a.difficulty_level.toLowerCase().trim() === (wizardState.difficultyKey || '').toLowerCase().trim())
     );
-
-    if (!match && dbAssessments.length > 0) {
-        match = dbAssessments[0];
-    }
 
     if (match) {
         window.location.href = '<?= BASE_URL ?>student/take-assessment.php?id=' + match.id;
     } else {
-        alert('Assessment module for ' + wizardState.skillName + ' is currently initializing. Redirecting to default assessment.');
-        window.location.href = '<?= BASE_URL ?>student/take-assessment.php?id=1';
+        alert('The ' + (wizardState.difficultyName || 'selected') + ' assessment for ' + (wizardState.skillName || 'this skill') + ' is not available yet. Please select an available difficulty level (e.g. Beginner).');
     }
 }
 </script>

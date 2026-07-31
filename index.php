@@ -22,11 +22,11 @@ $db = Database::getInstance();
 // Live Dynamic Database Statistics
 $totalStudents = (int)($db->fetch("SELECT COUNT(*) as cnt FROM students")['cnt'] ?? 0);
 
-$totalResults = (int)($db->fetch("SELECT COUNT(*) as cnt FROM assessment_results")['cnt'] ?? 0);
-$passedResults = (int)($db->fetch("SELECT COUNT(*) as cnt FROM assessment_results WHERE status = ?", ['pass'])['cnt'] ?? 0);
+$totalResults = (int)($db->fetch("SELECT COUNT(*) as cnt FROM assessment_results WHERE assessment_id IN (SELECT id FROM assessments WHERE status = 'active')")['cnt'] ?? 0);
+$passedResults = (int)($db->fetch("SELECT COUNT(*) as cnt FROM assessment_results WHERE status = ? AND assessment_id IN (SELECT id FROM assessments WHERE status = 'active')", ['pass'])['cnt'] ?? 0);
 $successRate = $totalResults > 0 ? round(($passedResults / $totalResults) * 100) : 100;
 
-$totalAssessments = (int)($db->fetch("SELECT COUNT(*) as cnt FROM assessments")['cnt'] ?? 0);
+$totalAssessments = (int)($db->fetch("SELECT COUNT(*) as cnt FROM assessments WHERE status = 'active'")['cnt'] ?? 0);
 $totalCourses = (int)($db->fetch("SELECT COUNT(*) as cnt FROM courses")['cnt'] ?? 0);
 
 $pageTitle = "SkillBridge – Skill Gap Analysis & Learning Management System";

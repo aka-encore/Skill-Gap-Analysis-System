@@ -109,8 +109,8 @@ include __DIR__ . '/../includes/header.php';
         <p class="text-muted small mb-0">Create, edit, and oversee faculty credentials</p>
     </div>
     <div class="d-flex gap-2">
-        <a href="<?= BASE_URL ?>admin/import-export.php?type=faculty" class="btn btn-outline-primary rounded-pill px-3.5 py-2 shadow-sm small fw-semibold">
-            <i class="bi bi-cloud-arrow-up me-1"></i> Bulk Import / Export
+        <a href="<?= BASE_URL ?>admin/faculty-import.php" class="btn btn-outline-primary rounded-pill px-3.5 py-2 shadow-sm small fw-semibold">
+            <i class="bi bi-cloud-arrow-up me-1"></i> Import Faculty
         </a>
         <button class="btn btn-primary rounded-pill px-4 shadow-sm fw-semibold" data-bs-toggle="modal" data-bs-target="#createFacultyModal">
             <i class="bi bi-person-plus me-1"></i> Add Faculty Account

@@ -197,9 +197,18 @@ $allStudents = $db->fetchAll(
      WHERE u.status != 'suspended'"
 );
 
+$participatedStudents = $db->fetchAll("SELECT DISTINCT student_id FROM assessment_results");
+$participatedIds = array_map('intval', array_column($participatedStudents, 'student_id'));
+
 $leaderboard = [];
 foreach ($allStudents as $st) {
     $stId = (int)$st['id'];
+    
+    // Only include students who have participated in assessments in the ranking calculation
+    if (!in_array($stId, $participatedIds)) {
+        continue;
+    }
+    
     $stScoreSum = 0;
     foreach ($skillsRaw as $s) {
         $w = calculate_weighted_skill_percentage($stId, (int)$s['id']);
@@ -225,7 +234,7 @@ usort($leaderboard, function($a, $b) {
     return $b['score'] <=> $a['score'];
 });
 
-$studentRank = 1;
+$studentRank = '-';
 foreach ($leaderboard as $idx => &$lbItem) {
     $lbItem['rank'] = $idx + 1;
     if ($lbItem['is_current']) {
@@ -600,11 +609,11 @@ include __DIR__ . '/../includes/header.php';
     </div>
 
     <div class="col-6 col-lg-3">
-      <div class="card border-0 shadow-sm rounded-4 p-3 card-stat" onclick="openInteractiveModal('leaderboard-rank')">
+      <div class="card border-0 shadow-sm rounded-4 p-3 card-stat" onclick="openInteractiveModal('leaderboard-rank')" <?= ($studentRank === '-' ? 'title="Complete your first assessment to receive a cohort ranking."' : '') ?>>
         <div class="d-flex align-items-center gap-3">
           <div class="stat-icon accent"><i class="fa-solid fa-medal"></i></div>
           <div>
-            <div class="stat-value text-info">#<?= $studentRank ?></div>
+            <div class="stat-value text-info"><?= ($studentRank === '-' ? '-' : '#' . $studentRank) ?></div>
             <div class="stat-label">Leaderboard Rank</div>
             <div class="stat-change up"><i class="fa-solid fa-arrow-up"></i> Cohort Position</div>
           </div>
@@ -682,7 +691,7 @@ include __DIR__ . '/../includes/header.php';
                 <span style="color: <?= $barColor ?>;"><?= number_format($sk['score'], 1) ?>%</span>
               </div>
               <div class="progress rounded-pill" style="height: 8px; background: #F1F5F9;">
-                <div class="progress-bar rounded-pill" style="width: <?= max(5, $sk['score']) ?>%; background-color: <?= $barColor ?>;"></div>
+                <div class="progress-bar rounded-pill" style="width: <?= $sk['score'] ?>%; background-color: <?= $barColor ?>;"></div>
               </div>
             </div>
           <?php endforeach; ?>
@@ -857,12 +866,6 @@ window.initProgress = function() {
     }
     renderChartJS(currentView);
 };
-
-if (document.readyState === 'complete' || document.readyState === 'interactive') {
-    window.initProgress();
-} else {
-    document.addEventListener('DOMContentLoaded', window.initProgress);
-}
 
 function toggleView(view) {
     currentView = view;
@@ -1115,7 +1118,7 @@ function openInteractiveModal(type) {
         body.innerHTML = `
             <div class="p-2">
                 <h4 class="fw-bold text-dark mb-2"><i class="fa-solid fa-medal text-info me-2"></i>Institutional Cohort Rank</h4>
-                <p class="text-muted small">You are currently ranked <strong>#${studentRank}</strong> among all active students.</p>
+                <p class="text-muted small">${studentRank === '-' ? 'Complete your first assessment to receive a cohort ranking.' : `You are currently ranked <strong>#${studentRank}</strong> among all active students.`}</p>
             </div>
         `;
     } else {

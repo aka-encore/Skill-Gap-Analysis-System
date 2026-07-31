@@ -27,12 +27,11 @@ $studentDept = htmlspecialchars($student['department'] ?? 'Computer Science');
 $defaultRoleKey = 'fullstack';
 if (stripos($studentDept, 'front') !== false) $defaultRoleKey = 'frontend';
 if (stripos($studentDept, 'back') !== false) $defaultRoleKey = 'backend';
-if (stripos($studentDept, 'data') !== false) $defaultRoleKey = 'datascientist';
-if (stripos($studentDept, 'sec') !== false) $defaultRoleKey = 'cybersecurity';
 
 // Fetch all active skills from DB with weighted calculation for current student
 $skillsRaw = $db->fetchAll("SELECT * FROM skills ORDER BY name ASC");
 $studentSkills = [];
+$skillsMap = [];
 
 foreach ($skillsRaw as $s) {
     $weighted = calculate_weighted_skill_percentage($studentId, (int)$s['id']);
@@ -46,6 +45,7 @@ foreach ($skillsRaw as $s) {
         'status' => $weighted['status'],
         'attempted_levels' => $weighted['attempted_levels']
     ];
+    $skillsMap[strtolower($s['name'])] = (int)$s['id'];
 }
 
 // Fetch all active courses with their skills mappings, progress, and lesson count for the current student
@@ -88,6 +88,7 @@ foreach ($coursesRaw as $c) {
 }
 
 $pageTitle = "Learning Roadmap - SkillBridge";
+$careerMatch = calculate_student_career_match($studentId);
 include __DIR__ . '/../includes/header.php';
 ?>
 
@@ -462,7 +463,9 @@ include __DIR__ . '/../includes/header.php';
 const studentSkillsData = <?php echo json_encode($studentSkills); ?>;
 const skillBridgeCourses = <?php echo json_encode($coursesBySkill); ?>;
 const userDefaultRole = <?php echo json_encode($defaultRoleKey); ?>;
+const dbCareerMatch = <?php echo json_encode($careerMatch); ?>;
 const BASE_URL = <?php echo json_encode(BASE_URL); ?>;
+const skillIds = <?php echo json_encode($skillsMap); ?>;
 
 function escapeHtml(str) {
   return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -563,27 +566,28 @@ const roadmaps = {
     matchPercentage: 75,
     phases: [
       {
-        name: "Phase 1 — Web Fundamentals",
+        name: "Phase 1 — Web Foundations",
         duration: "6 Weeks",
         milestones: [
-          { id: "fe_m1", skillId: 4, title: "HTML5 & Semantic Structure", desc: "Master web semantics, document structure, forms, and accessibility guidelines.", hours: 10, playlistId: "PL4cUxeGkcC9ivBXXWbFiFiA7aKdi88yRL", difficulty: "Beginner", docLink: "https://developer.mozilla.org/en-US/docs/Web/HTML", practiceProject: "Build a responsive personal portfolio site from scratch." },
-          { id: "fe_m2", skillId: 5, title: "CSS3 & Bootstrap Layouts", desc: "Master Box Model, Flexbox, Grid system, Bootstrap classes, and fluid design.", hours: 20, playlistId: "PL4cUxeGkcC9itC4o504sKxpW-Z5e60p1C", difficulty: "Beginner", docLink: "https://developer.mozilla.org/en-US/docs/Web/CSS", practiceProject: "Design a fully responsive landing page optimized across viewports." },
-          { id: "fe_m3", skillId: 3, title: "JavaScript ES6+ & DOM Manipulation", desc: "Learn variables, arrow functions, DOM events, promises, and dynamic rendering.", hours: 30, playlistId: "PL4cUxeGkcC9haFPT7J25Q9GRB_Z5AlJuV", difficulty: "Beginner", docLink: "https://developer.mozilla.org/en-US/docs/Web/JavaScript", practiceProject: "Build an interactive task manager with search and local storage." }
+          { id: "fe_m1", skillId: skillIds['html'], title: "HTML5 Structure", desc: "Master semantic tags, form layouts, and accessibility guidelines.", hours: 10, playlistId: "PL4cUxeGkcC9ivBXXWbFiFiA7aKdi88yRL", difficulty: "Beginner", docLink: "https://developer.mozilla.org", practiceProject: "Build a responsive static landing page." },
+          { id: "fe_m2", skillId: skillIds['css'], title: "CSS Styles & Positioning", desc: "Understand grids, Flexbox, transitions, and responsive styling techniques.", hours: 15, playlistId: "PL4cUxeGkcC9itC4o504sKxpW-Z5e60p1C", difficulty: "Beginner", docLink: "https://developer.mozilla.org", practiceProject: "Re-create a pixel-perfect design layout." },
+          { id: "fe_m3", skillId: skillIds['javascript'], title: "Modern JavaScript (ES6+)", desc: "Learn arrows, destructuring, promises, and dynamic DOM injection.", hours: 25, playlistId: "PL4cUxeGkcC9haFPT7J25Q9GRB_Z5AlJuV", difficulty: "Beginner", docLink: "https://developer.mozilla.org", practiceProject: "Build an interactive dynamic todo application." }
         ]
       },
       {
-        name: "Phase 2 — Modern Frameworks",
+        name: "Phase 2 — Responsive & Styling",
+        duration: "6 Weeks",
+        milestones: [
+          { id: "fe_m4", skillId: skillIds['bootstrap'], title: "Bootstrap Framework", desc: "Utilize utility classes, container grids, and standard themes.", hours: 10, playlistId: "PL4cUxeGkcC9itC4o504sKxpW-Z5e60p1C", difficulty: "Beginner", docLink: "https://getbootstrap.com", practiceProject: "Implement a dashboard page layout using Bootstrap." },
+          { id: "fe_m5", skillId: skillIds['tailwind css'], title: "Tailwind CSS", desc: "Design customized interfaces quickly using utility-first configuration.", hours: 10, playlistId: "PL4cUxeGkcC9itC4o504sKxpW-Z5e60p1C", difficulty: "Beginner", docLink: "https://tailwindcss.com", practiceProject: "Create a glassmorphism card component." }
+        ]
+      },
+      {
+        name: "Phase 3 — JavaScript Frameworks",
         duration: "8 Weeks",
         milestones: [
-          { id: "fe_m4", skillId: 10, title: "Git & Version Control", desc: "Master commits, branching, merging, and collaborative GitHub workflows.", hours: 10, playlistId: "PL4cUxeGkcC9goXbgTDQ0n_4TBzOO0ocPR", difficulty: "Beginner", docLink: "https://git-scm.com/doc", practiceProject: "Create a public repository with automated versioning." },
-          { id: "fe_m5", skillId: 14, title: "React.js Framework Core", desc: "Learn JSX syntax, component lifecycle, hooks, props, and client state.", hours: 35, playlistId: "PL4cUxeGkcC9gZD-Tvwfod2gaISzfRiP9d", difficulty: "Intermediate", docLink: "https://react.dev", practiceProject: "Develop a live weather API dashboard in React." }
-        ]
-      },
-      {
-        name: "Phase 3 — State & Architecture",
-        duration: "6 Weeks",
-        milestones: [
-          { id: "fe_m6", skillId: 11, title: "UI/UX & Design Systems", desc: "Create component design tokens, accessibility contrast, and user flows.", hours: 15, playlistId: "PL4cUxeGkcC9h6OAGy8Sy1x7dbVOMQGjX8", difficulty: "Intermediate", docLink: "https://www.w3.org/WAI/", practiceProject: "Implement a complete accessible theme switch component." }
+          { id: "fe_m6", skillId: skillIds['react'], title: "React Component Architecture", desc: "Master custom hooks, components state, and local routing.", hours: 30, playlistId: "PL4cUxeGkcC9gZD-Tvwfod2gaISzfRiP9d", difficulty: "Intermediate", docLink: "https://react.dev", practiceProject: "Build a single-page weather dashboard app." },
+          { id: "fe_m7", skillId: skillIds['typescript'], title: "TypeScript Core Concepts", desc: "Implement interfaces, strict typing, and compile workflows.", hours: 20, playlistId: "PL4cUxeGkcC9haFPT7J25Q9GRB_Z5AlJuV", difficulty: "Intermediate", docLink: "https://typescriptlang.org", practiceProject: "Refactor a JS application to TypeScript." }
         ]
       }
     ]
@@ -595,18 +599,25 @@ const roadmaps = {
     phases: [
       {
         name: "Phase 1 — Core Server Programming",
-        duration: "6 Weeks",
+        duration: "8 Weeks",
         milestones: [
-          { id: "be_m1", skillId: 1, title: "PHP 8 & Backend Logic", desc: "Understand OOP PHP, session management, forms processing, and error handling.", hours: 25, playlistId: "PLr3d3Ku5PSPw_A_cnBscs5vU0A7a1S9mS", difficulty: "Beginner", docLink: "https://www.php.net/docs.php", practiceProject: "Build an authenticated user portal with session control." },
-          { id: "be_m2", skillId: 2, title: "MySQL Database Design", desc: "Master relational schemas, SQL queries, indexes, and PDO prepared statements.", hours: 25, playlistId: "PL0b6OzIxLPbyrzCMJofzLnf_-_5E_brvs", difficulty: "Intermediate", docLink: "https://dev.mysql.com/doc/", practiceProject: "Design a relational database for an e-commerce platform." }
+          { id: "be_m1", skillId: skillIds['python'], title: "Python Programming", desc: "Understand functions, libraries, and basic file processing.", hours: 20, playlistId: "PL-osiE80TeTskrapNbzXhwoFZuGYkmo8", difficulty: "Beginner", docLink: "https://python.org", practiceProject: "Build an automation script for CSV processing." },
+          { id: "be_m2", skillId: skillIds['php'], title: "PHP Object-Oriented Backend", desc: "Learn classes, PDO database access, session management, and routing.", hours: 25, playlistId: "PLr3d3Ku5PSPw_A_cnBscs5vU0A7a1S9mS", difficulty: "Intermediate", docLink: "https://php.net", practiceProject: "Build a secure user authentication portal." }
         ]
       },
       {
-        name: "Phase 2 — API Architecture & Security",
+        name: "Phase 2 — Relational & NoSQL Databases",
         duration: "8 Weeks",
         milestones: [
-          { id: "be_m3", skillId: 7, title: "RESTful API Development", desc: "Design JSON API endpoints, authentication tokens, and standard response codes.", hours: 20, playlistId: "PLillGF-RfqbZ2ybcoVmjCQmVJ23MfmzpB", difficulty: "Intermediate", docLink: "https://restfulapi.net/", practiceProject: "Create a RESTful API service supporting CRUD operations." },
-          { id: "be_m4", skillId: 6, title: "Web Security & OWASP Top 10", desc: "Protect against SQL injection, XSS, CSRF, and manage password hashing.", hours: 15, playlistId: "PL10u0b3N6Lw4UfW75pXW8w216fA", difficulty: "Advanced", docLink: "https://owasp.org/", practiceProject: "Perform a security audit on a PHP form application." }
+          { id: "be_m3", skillId: skillIds['mysql'], title: "MySQL Database Administration", desc: "Write joins, trigger procedures, index optimizations, and normalization.", hours: 25, playlistId: "PL0b6OzIxLPbyrzCMJofzLnf_-_5E_brvs", difficulty: "Intermediate", docLink: "https://mysql.com", practiceProject: "Design an optimized schema for an ordering catalog." },
+          { id: "be_m4", skillId: skillIds['mongodb'], title: "MongoDB NoSQL Store", desc: "Work with document collections, aggregation filters, and BSON formats.", hours: 15, playlistId: "PL0b6OzIxLPbyrzCMJofzLnf_-_5E_brvs", difficulty: "Intermediate", docLink: "https://mongodb.com", practiceProject: "Integrate a document store into an application backend." }
+        ]
+      },
+      {
+        name: "Phase 3 — Server Frameworks",
+        duration: "8 Weeks",
+        milestones: [
+          { id: "be_m5", skillId: skillIds['node.js'], title: "Node.js Core Runtime", desc: "Handle filesystem tasks, streams, child processes, and cluster forks.", hours: 25, playlistId: "PL4cUxeGkcC9haFPT7J25Q9GRB_Z5AlJuV", difficulty: "Advanced", docLink: "https://nodejs.org", practiceProject: "Create a raw HTTP network proxy gateway." }
         ]
       }
     ]
@@ -617,102 +628,19 @@ const roadmaps = {
     matchPercentage: 80,
     phases: [
       {
-        name: "Phase 1 — Web Fundamentals & DB Architecture",
-        duration: "6 Weeks",
+        name: "Phase 1 — MVC Frameworks",
+        duration: "8 Weeks",
         milestones: [
-          { id: "fs_m1", skillId: 4, title: "Frontend Foundation (HTML/CSS)", desc: "Build responsive semantic user interfaces.", hours: 20, playlistId: "PL4cUxeGkcC9ivBXXWbFiFiA7aKdi88yRL", difficulty: "Beginner", docLink: "https://developer.mozilla.org", practiceProject: "Build a responsive web application layout." },
-          { id: "fs_m2", skillId: 1, title: "PHP Backend & MySQL Integration", desc: "Connect PHP server logic to database tables safely.", hours: 30, playlistId: "PLr3d3Ku5PSPw_A_cnBscs5vU0A7a1S9mS", difficulty: "Intermediate", docLink: "https://www.php.net", practiceProject: "Build an end-to-end full stack CRUD application." }
+          { id: "fs_m1", skillId: skillIds['laravel'], title: "Laravel PHP Framework", desc: "Build applications with Eloquent ORM, Blade views, and migrations.", hours: 30, playlistId: "PLr3d3Ku5PSPw_A_cnBscs5vU0A7a1S9mS", difficulty: "Intermediate", docLink: "https://laravel.com", practiceProject: "Build an inventory management system." },
+          { id: "fs_m2", skillId: skillIds['django'], title: "Django Python Framework", desc: "Develop secure backends with built-in admin panel interfaces.", hours: 30, playlistId: "PL-osiE80TeTskrapNbzXhwoFZuGYkmo8", difficulty: "Intermediate", docLink: "https://djangoproject.com", practiceProject: "Build a community posting board application." }
         ]
       },
       {
-        name: "Phase 2 — Modern Full Stack Frameworks",
+        name: "Phase 2 — Javascript Stack & APIs",
         duration: "8 Weeks",
         milestones: [
-          { id: "fs_m3", skillId: 14, title: "React & RESTful Integration", desc: "Build decoupled SPA frontends powered by REST APIs.", hours: 35, playlistId: "PL4cUxeGkcC9gZD-Tvwfod2gaISzfRiP9d", difficulty: "Intermediate", docLink: "https://react.dev", practiceProject: "Deploy a full stack dashboard with live API requests." },
-          { id: "fs_m4", skillId: 13, title: "Docker & Container Deployment", desc: "Package full stack apps into Docker containers.", hours: 15, playlistId: "PL4cUxeGkcC9g_69kOfXICzT_hZxRN16", difficulty: "Advanced", docLink: "https://docs.docker.com", practiceProject: "Containerize a PHP/MySQL application using Docker Compose." }
-        ]
-      }
-    ]
-  },
-  uiux: {
-    title: "UI/UX Designer",
-    duration: "4 Months",
-    matchPercentage: 70,
-    phases: [
-      {
-        name: "Phase 1 — UI/UX Fundamentals",
-        duration: "8 Weeks",
-        milestones: [
-          { id: "ui_m1", skillId: 11, title: "UI/UX Interface Design", desc: "Understand color systems, visual hierarchy, typography, and responsive grid layouts.", hours: 20, playlistId: "PL4cUxeGkcC9h6OAGy8Sy1x7dbVOMQGjX8", difficulty: "Beginner", docLink: "https://figma.com", practiceProject: "Create a high-fidelity user interface prototype of a mobile food delivery app in Figma." },
-          { id: "ui_m2", skillId: 98, title: "Interaction Design & User Research", desc: "Learn user flows, wireframing, high-fidelity interactive prototyping, and micro-interactions.", hours: 25, playlistId: "PL4cUxeGkcC9h6OAGy8Sy1x7dbVOMQGjX8", difficulty: "Intermediate", docLink: "https://figma.com", practiceProject: "Conduct user testing on a prototype and refine interaction flows based on user feedback." }
-        ]
-      }
-    ]
-  },
-  datascientist: {
-    title: "Data Scientist / Analyst",
-    duration: "6 Months",
-    matchPercentage: 65,
-    phases: [
-      {
-        name: "Phase 1 — Python & Data Structures",
-        duration: "6 Weeks",
-        milestones: [
-          { id: "ds_m1", skillId: 12, title: "Python Programming for Analytics", desc: "Master Python data types, functions, and data manipulation.", hours: 25, playlistId: "PL-osiE80TeTskrapNbzXhwoFZuGYkmo8", difficulty: "Beginner", docLink: "https://docs.python.org/3/", practiceProject: "Analyze and clean a public CSV dataset using Python." },
-          { id: "ds_m2", skillId: 8, title: "Data Structures & Algorithmic Logic", desc: "Understand arrays, trees, hashing, and complexity.", hours: 25, playlistId: "PL2_aWCzGMAwI3W_JlcBbtYTwiQSsOTa6P", difficulty: "Intermediate", docLink: "https://en.wikipedia.org/wiki/Data_structure", practiceProject: "Implement algorithmic search routines." }
-        ]
-      }
-    ]
-  },
-  devops: {
-    title: "DevOps & Cloud Engineer",
-    duration: "6 Months",
-    matchPercentage: 75,
-    phases: [
-      {
-        name: "Phase 1 — Containers & Cloud",
-        duration: "10 Weeks",
-        milestones: [
-          { id: "do_m1", skillId: 13, title: "Docker & Containerization", desc: "Package and deploy applications inside lightweight containers.", hours: 15, playlistId: "PL4cUxeGkcC9gZD-Tvwfod2gaISzfRiP9d", difficulty: "Intermediate", docLink: "https://docs.docker.com", practiceProject: "Containerize a full-stack web app." },
-          { id: "do_m2", skillId: 15, title: "Cloud Computing (AWS/Azure)", desc: "Manage server instances, buckets, and cloud load balancing.", hours: 25, playlistId: "PL4cUxeGkcC9gZD-Tvwfod2gaISzfRiP9d", difficulty: "Advanced", docLink: "https://aws.amazon.com", practiceProject: "Deploy a static site on AWS S3 with CloudFront CDN." }
-        ]
-      },
-      {
-        name: "Phase 2 — Automation & Administration",
-        duration: "8 Weeks",
-        milestones: [
-          { id: "do_m3", skillId: 10, title: "Version Control with Git", desc: "Master commits, branching, merging, and collaboration workflows.", hours: 10, playlistId: "PL4cUxeGkcC9goXbgTDQ0n_4TBzOO0ocPR", difficulty: "Beginner", docLink: "https://git-scm.com/doc", practiceProject: "Manage version control for a multi-developer project." },
-          { id: "do_m4", skillId: 18, title: "Linux System Administration", desc: "Manage Linux command-line operations, permissions, and shell scripting.", hours: 20, playlistId: "PL4cUxeGkcC9goXbgTDQ0n_4TBzOO0ocPR", difficulty: "Intermediate", docLink: "https://linux.org", practiceProject: "Write a Bash script to automate daily system backups." }
-        ]
-      }
-    ]
-  },
-  cybersecurity: {
-    title: "Cybersecurity Specialist",
-    duration: "6 Months",
-    matchPercentage: 80,
-    phases: [
-      {
-        name: "Phase 1 — Network & App Security",
-        duration: "12 Weeks",
-        milestones: [
-          { id: "cs_m1", skillId: 20, title: "Cybersecurity Fundamentals", desc: "Explore threat modeling, cryptography, and network defenses.", hours: 20, playlistId: "PL10u0b3N6Lw4UfW75pXW8w216fA", difficulty: "Beginner", docLink: "https://owasp.org", practiceProject: "Set up a secure network configuration with threat logging." },
-          { id: "cs_m2", skillId: 6, title: "Web Application Security", desc: "Defend against SQL injection, Cross-Site Scripting (XSS), and CSRF.", hours: 15, playlistId: "PL10u0b3N6Lw4UfW75pXW8w216fA", difficulty: "Advanced", docLink: "https://owasp.org", practiceProject: "Audit and patch security vulnerabilities in a legacy web portal." }
-        ]
-      }
-    ]
-  },
-  mobile: {
-    title: "Mobile App Developer",
-    duration: "4 Months",
-    matchPercentage: 50,
-    phases: [
-      {
-        name: "Phase 1 — Native iOS & Android",
-        duration: "8 Weeks",
-        milestones: [
-          { id: "mb_m1", skillId: 88, title: "iOS Development with Swift", desc: "Build iOS applications using Swift and SwiftUI.", hours: 25, playlistId: "PL4cUxeGkcC9gZD-Tvwfod2gaISzfRiP9d", difficulty: "Beginner", docLink: "https://developer.apple.com", practiceProject: "Build a responsive calculator application in SwiftUI." },
-          { id: "mb_m2", skillId: 89, title: "Android Development with Kotlin", desc: "Build Android applications using Kotlin and Jetpack Compose.", hours: 25, playlistId: "PL4cUxeGkcC9gZD-Tvwfod2gaISzfRiP9d", difficulty: "Beginner", docLink: "https://developer.android.com", practiceProject: "Build a tasks tracker application in Kotlin." }
+          { id: "fs_m3", skillId: skillIds['express.js'], title: "Express.js REST APIs", desc: "Implement middleware pipelines, routing, and JSON endpoint structures.", hours: 20, playlistId: "PLillGF-RfqbZ2ybcoVmjCQmVJ23MfmzpB", difficulty: "Intermediate", docLink: "https://expressjs.com", practiceProject: "Expose a standard CRUD API for items catalog." },
+          { id: "fs_m4", skillId: skillIds['next.js'], title: "Next.js Full Stack SPA", desc: "Implement Server Components, Server Actions, and SSR pathways.", hours: 25, playlistId: "PL4cUxeGkcC9gZD-Tvwfod2gaISzfRiP9d", difficulty: "Advanced", docLink: "https://nextjs.org", practiceProject: "Deploy an SSR ecommerce client linked to backend APIs." }
         ]
       }
     ]
@@ -724,12 +652,6 @@ let currentRoleKey = '';
 window.initRoadmap = function() {
     initRoadmapPage();
 };
-
-if (document.readyState === 'complete' || document.readyState === 'interactive') {
-    window.initRoadmap();
-} else {
-    document.addEventListener('DOMContentLoaded', window.initRoadmap);
-}
 
 function initRoadmapPage() {
     renderRoleCards();
@@ -1008,7 +930,7 @@ function renderRoadmap(roleKey) {
     document.getElementById('dashboard-remaining-steps').textContent = (totalMilestones - completedMilestones);
     document.getElementById('dashboard-total-hours').textContent = `${completedHours} / ${totalHours} hrs`;
 
-    const careerMatch = Math.min(98, Math.max(20, Math.round(pct * 0.85 + 15)));
+    const careerMatch = dbCareerMatch;
     document.getElementById('career-match-percent').textContent = careerMatch + '%';
     document.getElementById('career-match-gauge').style.background = `conic-gradient(#10B981 ${careerMatch * 3.6}deg, #F1F5F9 0deg)`;
 

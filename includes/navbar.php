@@ -609,7 +609,9 @@ $totalAfterFilter  = count($authorizedPages);
 <script>
 function markAllNotificationsRead() {
     fetch('<?= BASE_URL ?>api/mark_notifications_read.php', {
-        method: 'POST'
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'csrf_token=<?= $_SESSION['csrf_token'] ?? "" ?>'
     })
     .then(res => res.json())
     .then(data => {

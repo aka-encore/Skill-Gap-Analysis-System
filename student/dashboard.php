@@ -13,6 +13,9 @@ require_role('student');
 $studentId = (int)$_SESSION['profile_id'];
 $db = Database::getInstance();
 
+// Auto-sync assessments table with valid published question banks
+sync_assessments_table($db);
+
 // 1. Fetch Logged-in Student Information
 $student = $db->fetch(
     "SELECT s.*, u.email 
@@ -40,11 +43,12 @@ if ($hour < 12) {
 $avgScore = calculate_overall_student_skill_percentage($studentId);
 
 // Cohort Rank calculation
-$totalCohortStudents = (int)($db->fetch("SELECT COUNT(DISTINCT student_id) as cnt FROM assessment_results")['cnt'] ?? 1);
+$totalCohortStudents = (int)($db->fetch("SELECT COUNT(DISTINCT student_id) as cnt FROM assessment_results WHERE assessment_id IN (SELECT id FROM assessments WHERE status = 'active')")['cnt'] ?? 1);
 $lowerRankCount = (int)($db->fetch(
     "SELECT COUNT(*) as cnt FROM (
         SELECT student_id, AVG(score_percentage) as avg_s 
         FROM assessment_results 
+        WHERE assessment_id IN (SELECT id FROM assessments WHERE status = 'active')
         GROUP BY student_id
     ) t WHERE t.avg_s < ?", 
     [$avgScore]
@@ -53,9 +57,9 @@ $percentileRank = max(5, min(99, round((($totalCohortStudents - $lowerRankCount)
 
 // 3. Completed Assessments & Monthly Increase
 $totalAssessments = (int)($db->fetch("SELECT COUNT(*) as cnt FROM assessments WHERE status = 'active'")['cnt'] ?? 0);
-$completedAssessments = (int)($db->fetch("SELECT COUNT(DISTINCT assessment_id) as cnt FROM assessment_results WHERE student_id = ?", [$studentId])['cnt'] ?? 0);
+$completedAssessments = (int)($db->fetch("SELECT COUNT(DISTINCT assessment_id) as cnt FROM assessment_results WHERE student_id = ? AND assessment_id IN (SELECT id FROM assessments WHERE status = 'active')", [$studentId])['cnt'] ?? 0);
 $completedThisMonth = (int)($db->fetch(
-    "SELECT COUNT(DISTINCT assessment_id) as cnt FROM assessment_results WHERE student_id = ? AND completed_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)", 
+    "SELECT COUNT(DISTINCT assessment_id) as cnt FROM assessment_results WHERE student_id = ? AND assessment_id IN (SELECT id FROM assessments WHERE status = 'active') AND completed_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)", 
     [$studentId]
 )['cnt'] ?? 0);
 
@@ -156,8 +160,11 @@ $recommendations = $db->fetchAll(
     [$studentId]
 );
 
-// Fallback: If no recommendations generated yet, fetch general courses
-if (empty($recommendations)) {
+// Fallback: If no recommendations generated yet, fetch general courses (only if student is active)
+$enrolledCount = (int)($db->fetch("SELECT COUNT(*) as cnt FROM student_progress WHERE student_id = ?", [$studentId])['cnt'] ?? 0);
+$showRealRecommendations = ($completedAssessments > 0 || $enrolledCount > 0);
+
+if (empty($recommendations) && $showRealRecommendations) {
     $recommendations = $db->fetchAll(
         "SELECT c.id as course_id, c.title as course_title, c.course_code, c.duration_hours, c.difficulty_level, 
                 'General Recommendation' as reason, 'medium' as priority_level, 'Core Competency' as skill_name,
@@ -645,7 +652,7 @@ include __DIR__ . '/../includes/header.php';
             <span class="skill-score"><?= $scoreVal ?>%</span>
           </div>
           <div class="skill-bar-track">
-            <div class="skill-bar-fill" style="width:<?= max(4, $scoreVal) ?>%;background:<?= $fillGradient ?>"></div>
+            <div class="skill-bar-fill" style="width:<?= $scoreVal ?>%;background:<?= $fillGradient ?>"></div>
           </div>
         </div>
       <?php endforeach; ?>
@@ -660,21 +667,34 @@ include __DIR__ . '/../includes/header.php';
     <a href="<?= BASE_URL ?>student/recommendations.php" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-semibold">View All →</a>
   </div>
   <div class="d-flex flex-column gap-3">
-    <?php foreach ($recommendations as $rec): ?>
-      <div class="course-item d-flex align-items-center gap-3 p-3 rounded-3" style="background: var(--bg-alt); border: 1px solid var(--border);">
-        <div class="fs-2 text-primary"><i class="fa-solid fa-graduation-cap"></i></div>
-        <div class="flex-grow-1">
-          <div class="fw-semibold fs-6" style="color: var(--text-heading);"><?= htmlspecialchars($rec['course_title']) ?></div>
-          <div class="small" style="color: var(--text-secondary);">Code: <?= htmlspecialchars($rec['course_code']) ?> &bull; <?= $rec['duration_hours'] ?>h &bull; Skill: <?= htmlspecialchars($rec['skill_name']) ?></div>
-          <div class="skill-bar-track mt-2">
-            <div class="skill-bar-fill" style="width:<?= max(5, round($rec['progress_percentage'])) ?>%;background:#26658C"></div>
-          </div>
-        </div>
-        <a href="<?= BASE_URL ?>student/progress.php" class="badge saas-badge-primary rounded-pill px-3 py-2 text-decoration-none">
-          <?= round($rec['progress_percentage']) ?>%
+    <?php if (empty($recommendations)): ?>
+      <div class="text-center py-4 px-3 rounded-4" style="background: var(--bg-alt); border: 1px dashed var(--border);">
+        <span style="font-size: 2.5rem;" class="mb-2 d-block">📚</span>
+        <h5 class="fw-bold mb-1" style="color: var(--text-heading);">No Course Recommendations Yet</h5>
+        <p class="text-muted small mb-3 mx-auto" style="max-width: 480px; line-height: 1.5;">
+            Complete your first assessment to receive personalized course recommendations based on your skill gaps and career goals.
+        </p>
+        <a href="<?= BASE_URL ?>student/assessments.php" class="btn btn-primary btn-sm rounded-pill px-4 py-2 fw-semibold">
+            Take an Assessment
         </a>
       </div>
-    <?php endforeach; ?>
+    <?php else: ?>
+      <?php foreach ($recommendations as $rec): ?>
+        <div class="course-item d-flex align-items-center gap-3 p-3 rounded-3" style="background: var(--bg-alt); border: 1px solid var(--border);">
+          <div class="fs-2 text-primary"><i class="fa-solid fa-graduation-cap"></i></div>
+          <div class="flex-grow-1">
+            <div class="fw-semibold fs-6" style="color: var(--text-heading);"><?= htmlspecialchars($rec['course_title']) ?></div>
+            <div class="small" style="color: var(--text-secondary);">Code: <?= htmlspecialchars($rec['course_code']) ?> &bull; <?= $rec['duration_hours'] ?>h &bull; Skill: <?= htmlspecialchars($rec['skill_name']) ?></div>
+            <div class="skill-bar-track mt-2">
+              <div class="skill-bar-fill" style="width:<?= round($rec['progress_percentage']) ?>%;background:#26658C"></div>
+            </div>
+          </div>
+          <a href="<?= BASE_URL ?>student/progress.php" class="badge saas-badge-primary rounded-pill px-3 py-2 text-decoration-none">
+            <?= round($rec['progress_percentage']) ?>%
+          </a>
+        </div>
+      <?php endforeach; ?>
+    <?php endif; ?>
   </div>
 </div>
 

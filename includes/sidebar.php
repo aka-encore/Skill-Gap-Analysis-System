@@ -40,6 +40,7 @@ if ($sidebarUserId > 0) {
 
 $pendingAssessmentsCount = 0;
 if ($role === 'student' && $sidebarProfileId > 0) {
+    sync_assessments_table($sidebarDb);
     $pendingAssessmentsCount = (int)($sidebarDb->fetch(
         "SELECT COUNT(*) as cnt FROM assessments a 
          WHERE a.status = 'active' 
@@ -173,10 +174,7 @@ if (!empty($_SESSION['department'])) {
         <div class="nav-icon"><i class="fa-solid fa-comments"></i></div>
         <span>Feedback</span>
       </a>
-      <a href="<?= BASE_URL ?>faculty/import-export.php" class="sidebar-nav-item <?= isActive('import-export.php', 'faculty') ?>" title="Student Import & Export">
-        <div class="nav-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
-        <span>Import / Export</span>
-      </a>
+
       <a href="<?= BASE_URL ?>faculty/help.php" class="sidebar-nav-item <?= isActive('help.php', 'faculty') ?>" title="Faculty Help & Support">
         <div class="nav-icon"><i class="fa-solid fa-life-ring"></i></div>
         <span>Help</span>
@@ -200,10 +198,7 @@ if (!empty($_SESSION['department'])) {
         <div class="nav-icon"><i class="fa-solid fa-chalkboard-user"></i></div>
         <span>Faculty</span>
       </a>
-      <a href="<?= BASE_URL ?>admin/import-export.php" class="sidebar-nav-item <?= isActive('import-export.php', 'admin') ?>" title="Bulk Import & Export">
-        <div class="nav-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
-        <span>Bulk Import / Export</span>
-      </a>
+
       <a href="<?= BASE_URL ?>admin/faculty-applications.php" class="sidebar-nav-item <?= isActive('faculty-applications.php', 'admin') ?>" title="Faculty Applications">
         <div class="nav-icon"><i class="fa-solid fa-user-clock"></i></div>
         <span>Faculty Applications</span>
@@ -267,3 +262,4 @@ if (!empty($_SESSION['department'])) {
     </div>
   </div>
 </aside>
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>

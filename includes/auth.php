@@ -180,9 +180,20 @@ function is_suspended(): bool {
         return false;
     }
     
+    // Cache the suspension status in the session for 60 seconds to avoid hammering DB on every request
+    $now = time();
+    if (isset($_SESSION['last_suspension_check']) && isset($_SESSION['user_suspended']) && ($now - $_SESSION['last_suspension_check'] < 60)) {
+        return $_SESSION['user_suspended'];
+    }
+    
     $db = Database::getInstance();
     $user = $db->fetch("SELECT status FROM users WHERE id = ?", [$_SESSION['user_id']]);
-    return ($user && strtolower($user['status'] ?? '') === 'suspended');
+    $suspended = ($user && strtolower($user['status'] ?? '') === 'suspended');
+    
+    $_SESSION['last_suspension_check'] = $now;
+    $_SESSION['user_suspended'] = $suspended;
+    
+    return $suspended;
 }
 
 /**

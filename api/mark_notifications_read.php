@@ -14,14 +14,21 @@ if (!is_logged_in()) {
     exit;
 }
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!verify_csrf_token()) {
+        echo json_encode(['success' => false, 'message' => 'Invalid CSRF security token.']);
+        exit;
+    }
+}
+
 $userId = $_SESSION['user_id'] ?? 0;
 $db = Database::getInstance();
 
 try {
-    $unreadRow = $db->fetch("SELECT COUNT(*) as cnt FROM notifications WHERE user_id = ? AND is_read = 0", [$userId]);
-    $unreadCount = (int)($unreadRow['cnt'] ?? 0);
+    $stmt = $db->query("UPDATE notifications SET is_read = 1 WHERE user_id = ? AND is_read = 0", [$userId]);
+    $affected = $stmt->rowCount();
 
-    if ($unreadCount === 0) {
+    if ($affected === 0) {
         echo json_encode([
             'success' => true,
             'already_read' => true,
@@ -31,7 +38,6 @@ try {
         exit;
     }
 
-    $db->query("UPDATE notifications SET is_read = 1 WHERE user_id = ? AND is_read = 0", [$userId]);
     log_activity($userId, 'NOTIFICATION_MARK_ALL_READ', 'Marked all notifications as read.');
 
     echo json_encode([

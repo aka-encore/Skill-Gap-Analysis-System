@@ -111,8 +111,8 @@ include __DIR__ . '/../includes/header.php';
         <p class="text-muted small mb-0">Create, inspect, update, and manage student accounts</p>
     </div>
     <div class="d-flex gap-2">
-        <a href="<?= BASE_URL ?>admin/import-export.php?type=students" class="btn btn-outline-primary rounded-pill px-3.5 py-2 shadow-sm small fw-semibold">
-            <i class="bi bi-cloud-arrow-up me-1"></i> Bulk Import / Export
+        <a href="<?= BASE_URL ?>admin/student-import.php" class="btn btn-outline-primary rounded-pill px-3.5 py-2 shadow-sm small fw-semibold">
+            <i class="bi bi-cloud-arrow-up me-1"></i> Import Students
         </a>
         <button class="btn btn-primary rounded-pill px-4 shadow-sm fw-semibold" data-bs-toggle="modal" data-bs-target="#createStudentModal">
             <i class="bi bi-person-plus me-1"></i> Add Student Account
@@ -142,7 +142,7 @@ include __DIR__ . '/../includes/header.php';
         <span class="badge saas-badge-primary ms-auto">Total Enrolled: <?= count($students) ?></span>
     </div>
     <div class="card-body p-0">
-        <div class="table-responsive">
+        <div class="table-responsive table-responsive-card">
             <table class="saas-table align-middle mb-0" id="adminStudentTable">
                 <thead>
                     <tr>
@@ -171,13 +171,13 @@ include __DIR__ . '/../includes/header.php';
                     <?php else: ?>
                         <?php foreach ($students as $st): ?>
                             <tr>
-                                <td class="ps-4"><span class="badge saas-badge-primary"><?= htmlspecialchars($st['student_code']) ?></span></td>
-                                <td class="fw-semibold text-dark"><?= htmlspecialchars($st['first_name'] . ' ' . $st['last_name']) ?></td>
-                                <td><span class="small text-muted">@<?= htmlspecialchars($st['username']) ?></span></td>
-                                <td><span class="small text-muted"><?= htmlspecialchars($st['email']) ?></span></td>
-                                <td><?= htmlspecialchars($st['department']) ?></td>
-                                <td><span class="badge saas-badge-info">Sem <?= $st['current_semester'] ?></span></td>
-                                <td>
+                                <td class="ps-4" data-label="Code"><span class="badge saas-badge-primary"><?= htmlspecialchars($st['student_code']) ?></span></td>
+                                <td class="fw-semibold text-dark" data-label="Name"><?= htmlspecialchars($st['first_name'] . ' ' . $st['last_name']) ?></td>
+                                <td data-label="Username"><span class="small text-muted">@<?= htmlspecialchars($st['username']) ?></span></td>
+                                <td data-label="Email"><span class="small text-muted"><?= htmlspecialchars($st['email']) ?></span></td>
+                                <td data-label="Department"><?= htmlspecialchars($st['department']) ?></td>
+                                <td data-label="Semester"><span class="badge saas-badge-info">Sem <?= $st['current_semester'] ?></span></td>
+                                <td data-label="Status">
                                     <?php if (($st['user_status'] ?? 'active') === 'suspended'): ?>
                                         <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 rounded-pill"><i class="bi bi-x-circle me-1"></i>Suspended</span>
                                     <?php else: ?>

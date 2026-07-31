@@ -87,7 +87,7 @@ if (!$result) {
 $answers = $db->fetchAll(
     "SELECT sa.*, q.question_text, q.option_a, q.option_b, q.option_c, q.option_d, q.correct_option, q.marks
      FROM student_answers sa
-     JOIN assessment_questions q ON sa.question_id = q.id
+     JOIN questions q ON sa.question_id = q.id
      WHERE sa.result_id = ?
      ORDER BY q.id ASC",
     [$result['id']]
@@ -95,7 +95,12 @@ $answers = $db->fetchAll(
 
 // Fallback if student_answers table has no records for this result ID
 if (empty($answers)) {
-    $qList = $db->fetchAll("SELECT * FROM assessment_questions WHERE assessment_id = ? ORDER BY id ASC", [$result['assessment_id']]);
+    $qList = $db->fetchAll(
+        "SELECT q.* FROM questions q
+         JOIN assessments a ON q.question_bank_id = a.question_bank_id
+         WHERE a.id = ? ORDER BY q.id ASC",
+        [$result['assessment_id']]
+    );
     $answers = [];
     foreach ($qList as $q) {
         $answers[] = [
@@ -151,7 +156,7 @@ include __DIR__ . '/../includes/header.php';
         <h3 class="fw-bold mb-1"><i class="bi bi-file-earmark-check text-primary me-2"></i>Assessment Performance Report</h3>
         <p class="text-muted small mb-0"><?= htmlspecialchars($result['assessment_title']) ?> &bull; <?= htmlspecialchars($result['skill_name']) ?> (<?= htmlspecialchars($result['skill_category']) ?>)</p>
     </div>
-    <div class="d-flex gap-2">
+    <div class="d-flex flex-wrap gap-2">
         <button onclick="window.print()" class="btn btn-outline-dark rounded-pill px-3">
             <i class="bi bi-printer me-1"></i> Print / Export PDF
         </button>

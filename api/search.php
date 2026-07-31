@@ -69,7 +69,11 @@ foreach ($courses as $c) {
 
 // 3. Search Assessments (Role-restricted destination URL & permissions)
 $assessments = $db->fetchAll(
-    "SELECT id, title, category FROM assessments WHERE title LIKE ? OR category LIKE ? LIMIT 5",
+    "SELECT a.id, a.title, s.category 
+     FROM assessments a 
+     JOIN skills s ON a.skill_id = s.id 
+     WHERE a.title LIKE ? OR s.category LIKE ? 
+     LIMIT 5",
     ["%$query%", "%$query%"]
 );
 $assessmentUrl = match($userRole) {

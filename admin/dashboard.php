@@ -11,12 +11,15 @@ require_role('admin');
 
 $db = Database::getInstance();
 
+// Auto-sync assessments table with valid published question banks
+sync_assessments_table($db);
+
 // Entity Counts
 $totalStudents = (int)($db->fetch("SELECT COUNT(*) as cnt FROM students")['cnt'] ?? 0);
 $totalFaculty = (int)($db->fetch("SELECT COUNT(*) as cnt FROM faculty")['cnt'] ?? 0);
 $totalCourses = (int)($db->fetch("SELECT COUNT(*) as cnt FROM courses")['cnt'] ?? 0);
 $totalSkills = (int)($db->fetch("SELECT COUNT(*) as cnt FROM skills")['cnt'] ?? 0);
-$totalAssessments = (int)($db->fetch("SELECT COUNT(*) as cnt FROM assessments")['cnt'] ?? 0);
+$totalAssessments = (int)($db->fetch("SELECT COUNT(*) as cnt FROM assessments WHERE status = 'active'")['cnt'] ?? 0);
 $totalNotifications = (int)($db->fetch("SELECT COUNT(*) as cnt FROM notifications")['cnt'] ?? 0);
 
 // Recent Audit Logs

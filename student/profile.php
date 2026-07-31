@@ -25,6 +25,10 @@ $student = $db->fetch(
 
 // 1. Handle Profile Info & Avatar Upload Submit with strict validations
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && isset($_POST['update_profile_action'])) {
+    if (!verify_csrf_token()) {
+        set_flash_message('danger', 'Invalid CSRF security token. Please try again.');
+        redirect(BASE_URL . 'student/profile.php');
+    }
     $firstName = trim($_POST['first_name'] ?? '');
     $lastName  = trim($_POST['last_name'] ?? '');
     $username  = trim($_POST['username'] ?? '');
@@ -239,7 +243,7 @@ if (!empty($activeDates)) {
 }
 
 // Dynamic Cohort Leaderboard Rank Calculation (EXCLUDING SUSPENDED)
-$cohortRank = 1;
+$cohortRank = '-';
 $rankRows = $db->fetchAll(
     "SELECT ar.student_id, ROUND(AVG(ar.score_percentage), 1) as avg_p 
      FROM assessment_results ar
@@ -573,9 +577,9 @@ include __DIR__ . '/../includes/header.php';
     </div>
 
     <div class="col-6 col-md-4 col-lg-2">
-      <div class="saas-card p-3 text-center h-100">
+      <div class="saas-card p-3 text-center h-100" <?= ($cohortRank === '-' ? 'title="Complete your first assessment to receive a cohort ranking."' : '') ?>>
         <div class="fs-3 text-warning mb-1"><i class="fa-solid fa-trophy"></i></div>
-        <div class="fw-bold fs-4" style="color: var(--text-heading);">#<?= $cohortRank ?></div>
+        <div class="fw-bold fs-4" style="color: var(--text-heading);"><?= ($cohortRank === '-' ? '-' : '#' . $cohortRank) ?></div>
         <div class="small font-semibold" style="color: var(--text-muted);">Cohort Rank</div>
       </div>
     </div>
@@ -741,6 +745,7 @@ include __DIR__ . '/../includes/header.php';
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <form action="<?= BASE_URL ?>student/profile.php" method="POST" enctype="multipart/form-data">
+        <?= csrf_field() ?>
         <input type="hidden" name="update_profile_action" value="1">
         
         <div class="modal-body pt-3">
@@ -870,12 +875,6 @@ window.initProfile = function() {
     }
   }
 };
-
-if (document.readyState === 'complete' || document.readyState === 'interactive') {
-  window.initProfile();
-} else {
-  document.addEventListener('DOMContentLoaded', window.initProfile);
-}
 </script>
 
 <?php include __DIR__ . '/../includes/footer.php'; ?>

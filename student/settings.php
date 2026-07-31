@@ -33,6 +33,10 @@ if (!isset($_SESSION['student_notif_prefs'])) {
 
 // 1. Handle Password Change Form Submit with strict security & difference checks
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && isset($_POST['change_password'])) {
+    if (!verify_csrf_token()) {
+        set_flash_message('danger', 'Invalid CSRF security token. Please try again.');
+        redirect(BASE_URL . 'student/settings.php');
+    }
     $currPassword = $_POST['current_password'] ?? '';
     $newPassword  = $_POST['new_password'] ?? '';
     $confPassword = $_POST['confirm_password'] ?? '';
@@ -55,6 +59,10 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && isset($_POST['change_pas
 
 // 2. Handle Notification Settings Form Submit with strict change verification
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && isset($_POST['update_preferences'])) {
+    if (!verify_csrf_token()) {
+        set_flash_message('danger', 'Invalid CSRF security token. Please try again.');
+        redirect(BASE_URL . 'student/settings.php');
+    }
     $newAss = isset($_POST['notif_assessment']) ? 1 : 0;
     $newRoad = isset($_POST['notif_roadmap']) ? 1 : 0;
 
@@ -99,6 +107,7 @@ include __DIR__ . '/../includes/header.php';
         <p class="text-muted small mb-4">Update your account password to keep your learning records secure.</p>
 
         <form action="<?= BASE_URL ?>student/settings.php" method="POST" class="d-flex flex-column gap-3" id="changePwForm">
+          <?= csrf_field() ?>
           <input type="hidden" name="change_password" value="1">
           
           <div>
@@ -155,6 +164,7 @@ include __DIR__ . '/../includes/header.php';
         <p class="text-muted small mb-4">Manage your platform alert preferences for quizzes and roadmap milestones.</p>
 
         <form action="<?= BASE_URL ?>student/settings.php" method="POST" class="d-flex flex-column gap-3">
+          <?= csrf_field() ?>
           <input type="hidden" name="update_preferences" value="1">
           
           <div class="p-3 bg-light rounded-3 border">

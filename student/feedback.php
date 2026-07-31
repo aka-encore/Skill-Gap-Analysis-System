@@ -24,34 +24,85 @@ $student = $db->fetch(
 );
 $studentName = htmlspecialchars(($student['first_name'] ?? 'Student') . ' ' . ($student['last_name'] ?? ''));
 
+// Initialize form persistence variables
+$recipientType = '';
+$subject = '';
+$category = '';
+$rating = 0;
+$message = '';
+
 // Handle Feedback Form Submit
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && isset($_POST['submit_feedback'])) {
+    if (!verify_csrf_token()) {
+        set_flash_message('danger', 'Invalid CSRF security token. Please try again.');
+        redirect(BASE_URL . 'student/feedback.php');
+    }
+    $recipientType = trim($_POST['recipient_type'] ?? '');
+    $subject = trim($_POST['subject'] ?? '');
     $category = trim($_POST['category'] ?? '');
     $rating   = isset($_POST['rating']) && $_POST['rating'] !== '' ? (int)$_POST['rating'] : 0;
     $message  = trim($_POST['message'] ?? '');
 
-    if (empty($category)) {
+    if (empty($recipientType)) {
+        set_flash_message('danger', 'Please select a feedback recipient.');
+    } elseif (empty($category)) {
         set_flash_message('danger', 'Please select a feedback category.');
     } elseif ($rating < 1 || $rating > 5) {
         set_flash_message('danger', 'Please select a rating before submitting your feedback.');
     } elseif (empty($message)) {
         set_flash_message('danger', 'Please write your feedback message before submitting.');
     } else {
-        $db->query(
-            "INSERT INTO feedback (user_id, user_role, category, rating, message, status) 
-             VALUES (?, 'student', ?, ?, ?, 'pending')",
-            [$userId, $category, $rating, $message]
-        );
-        $userEmailAddr = $student['email'] ?? '';
-        require_once __DIR__ . '/../config/mail.php';
-        $feedbackMailRes = send_feedback_email('student', $studentName, $userEmailAddr, $category, $rating, $message);
+        if ($recipientType === 'admin') {
+            // Save to database
+            $db->query(
+                "INSERT INTO feedback (user_id, student_id, user_role, category, recipient_type, rating, subject, message, status, read_status) 
+                 VALUES (?, ?, 'student', ?, 'admin', ?, ?, ?, 'Email Sent', 'read')",
+                [$userId, $studentId, $category, $rating, $subject, $message]
+            );
 
-        if ($feedbackMailRes['success']) {
-            set_flash_message('success', 'Thank you! Your feedback has been sent successfully.');
-        } else {
-            set_flash_message('warning', 'Feedback saved to database, but email notification failed: ' . $feedbackMailRes['message']);
+            // Send via SMTP
+            $userEmailAddr = $student['email'] ?? '';
+            require_once __DIR__ . '/../config/mail.php';
+            $feedbackMailRes = send_feedback_email('student', $studentName, $userEmailAddr, $category, $rating, $message);
+
+            if ($feedbackMailRes['success']) {
+                set_flash_message('success', 'Thank you! Your feedback has been sent successfully to the administrator.');
+            } else {
+                set_flash_message('warning', 'Feedback saved to database, but email notification failed: ' . $feedbackMailRes['message']);
+            }
+            redirect(BASE_URL . 'student/feedback.php');
+        } elseif ($recipientType === 'faculty') {
+            // Save to database
+            $db->query(
+                "INSERT INTO feedback (user_id, student_id, user_role, category, recipient_type, rating, subject, message, status, read_status) 
+                 VALUES (?, ?, 'student', ?, 'faculty', ?, ?, ?, 'New', 'unread')",
+                [$userId, $studentId, $category, $rating, $subject, $message]
+            );
+
+            // Generate in-app notification for all active faculty members in the department
+            $facultyList = $db->fetchAll(
+                "SELECT f.user_id 
+                 FROM faculty f
+                 JOIN users u ON f.user_id = u.id
+                 WHERE f.department = ? AND f.approval_status = 'approved' AND u.status != 'suspended'",
+                [$student['department']]
+            );
+
+            foreach ($facultyList as $fac) {
+                $db->query(
+                    "INSERT INTO notifications (user_id, title, message, link, type, created_by_user_id, created_by_role) 
+                     VALUES (?, 'New Student Feedback', ?, '#', 'feedback', ?, 'student')",
+                    [
+                        $fac['user_id'],
+                        "New feedback submitted by student {$studentName} in department {$student['department']}.",
+                        $userId
+                    ]
+                );
+            }
+
+            set_flash_message('success', 'Thank you! Your feedback has been submitted successfully to the faculty of your department.');
+            redirect(BASE_URL . 'student/feedback.php');
         }
-        redirect(BASE_URL . 'student/feedback.php');
     }
 }
 
@@ -102,25 +153,42 @@ include __DIR__ . '/../includes/header.php';
       </div>
 
       <form action="<?= BASE_URL ?>student/feedback.php" method="POST">
+        <?= csrf_field() ?>
         <input type="hidden" name="submit_feedback" value="1">
-        <input type="hidden" name="rating" id="ratingInput" value="">
+        <input type="hidden" name="rating" id="ratingInput" value="<?= htmlspecialchars($rating ?: '') ?>">
+
+        <!-- RECIPIENT SELECTION -->
+        <div class="mb-4">
+          <label class="form-label small fw-semibold text-muted">SEND FEEDBACK TO <span class="text-danger">*</span></label>
+          <select name="recipient_type" class="form-select rounded-3" required id="recipientSelect">
+            <option value="" disabled <?= $recipientType === '' ? 'selected' : '' ?>>-- Select a recipient --</option>
+            <option value="admin" <?= $recipientType === 'admin' ? 'selected' : '' ?>>Administrator</option>
+            <option value="faculty" <?= $recipientType === 'faculty' ? 'selected' : '' ?>>Faculty</option>
+          </select>
+        </div>
+
+        <!-- SUBJECT -->
+        <div class="mb-4">
+          <label class="form-label small fw-semibold text-muted">SUBJECT (OPTIONAL)</label>
+          <input type="text" name="subject" class="form-control rounded-3" placeholder="Enter a brief subject for your feedback..." value="<?= htmlspecialchars($subject) ?>">
+        </div>
 
         <!-- CATEGORY SELECTION -->
         <div class="mb-4">
           <label class="form-label small fw-semibold text-muted">FEEDBACK CATEGORY <span class="text-danger">*</span></label>
           <select name="category" class="form-select rounded-3" required>
-            <option value="" disabled selected>-- Select a category --</option>
-            <option value="General Feedback">General Feedback</option>
-            <option value="Skill Assessments">Skill Assessments & Quizzes</option>
-            <option value="Skill Gap Analysis">Skill Gap Analysis & Recommendations</option>
-            <option value="Personalized Roadmap">Personalized Career Roadmap</option>
-            <option value="Progress Tracking">Progress Tracking & Leaderboard</option>
-            <option value="Dashboard">Dashboard UI & Navigation</option>
-            <option value="Notifications">Notifications & Alerts</option>
-            <option value="User Interface">User Interface & Theme</option>
-            <option value="Bug Report">Bug Report</option>
-            <option value="Feature Request">Feature Request</option>
-            <option value="Other">Other</option>
+            <option value="" disabled <?= $category === '' ? 'selected' : '' ?>>-- Select a category --</option>
+            <option value="General Feedback" <?= $category === 'General Feedback' ? 'selected' : '' ?>>General Feedback</option>
+            <option value="Skill Assessments" <?= $category === 'Skill Assessments' ? 'selected' : '' ?>>Skill Assessments & Quizzes</option>
+            <option value="Skill Gap Analysis" <?= $category === 'Skill Gap Analysis' ? 'selected' : '' ?>>Skill Gap Analysis & Recommendations</option>
+            <option value="Personalized Roadmap" <?= $category === 'Personalized Roadmap' ? 'selected' : '' ?>>Personalized Career Roadmap</option>
+            <option value="Progress Tracking" <?= $category === 'Progress Tracking' ? 'selected' : '' ?>>Progress Tracking & Leaderboard</option>
+            <option value="Dashboard" <?= $category === 'Dashboard' ? 'selected' : '' ?>>Dashboard UI & Navigation</option>
+            <option value="Notifications" <?= $category === 'Notifications' ? 'selected' : '' ?>>Notifications & Alerts</option>
+            <option value="User Interface" <?= $category === 'User Interface' ? 'selected' : '' ?>>User Interface & Theme</option>
+            <option value="Bug Report" <?= $category === 'Bug Report' ? 'selected' : '' ?>>Bug Report</option>
+            <option value="Feature Request" <?= $category === 'Feature Request' ? 'selected' : '' ?>>Feature Request</option>
+            <option value="Other" <?= $category === 'Other' ? 'selected' : '' ?>>Other</option>
           </select>
         </div>
 
@@ -144,13 +212,85 @@ include __DIR__ . '/../includes/header.php';
         <!-- MESSAGE TEXTAREA -->
         <div class="mb-4">
           <label class="form-label small fw-semibold text-muted">DETAILED COMMENTS <span class="text-danger">*</span></label>
-          <textarea name="message" rows="5" class="form-control rounded-3" placeholder="Write your detailed feedback, ideas, or bug details here..." required></textarea>
+          <textarea name="message" rows="5" class="form-control rounded-3" placeholder="Write your detailed feedback, ideas, or bug details here..." required><?= htmlspecialchars($message) ?></textarea>
         </div>
 
         <button type="submit" class="btn btn-primary rounded-pill px-4 py-2.5 fw-semibold small">
           <i class="fa-solid fa-paper-plane me-1"></i> Submit Feedback
         </button>
       </form>
+    </div>
+
+    <!-- FEEDBACK HISTORY CARD -->
+    <div class="card border-0 shadow-sm rounded-4 p-4 bg-white mt-4" id="feedback-history-section">
+      <h3 class="fw-bold fs-5 text-dark mb-3"><i class="fa-solid fa-clock-rotate-left text-secondary me-2"></i>Feedback History</h3>
+      <?php
+      $history = $db->fetchAll(
+          "SELECT recipient_type, rating, created_at, status, subject, message
+           FROM feedback 
+           WHERE user_id = ? 
+           ORDER BY created_at DESC",
+          [$userId]
+      );
+      if (empty($history)):
+      ?>
+        <p class="text-muted small mb-0">No feedback submitted yet.</p>
+      <?php else: ?>
+        <div class="table-responsive">
+          <table class="table align-middle table-hover small mb-0">
+            <thead>
+              <tr class="table-light">
+                <th>Recipient</th>
+                <th>Subject / Comments</th>
+                <th>Rating</th>
+                <th>Date Submitted</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php foreach ($history as $h): 
+                  $recLabel = $h['recipient_type'] === 'faculty' ? 'Faculty' : 'Administrator';
+                  $statusVal = $h['status'];
+                  $statusBadge = 'bg-secondary';
+                  if ($statusVal === 'Email Sent') {
+                      $statusBadge = 'bg-success text-white';
+                      $statusText = '✓ Email Sent';
+                  } elseif ($statusVal === 'New') {
+                      $statusBadge = 'bg-primary text-white';
+                      $statusText = 'New';
+                  } elseif ($statusVal === 'Read') {
+                      $statusBadge = 'bg-info text-dark';
+                      $statusText = 'Read';
+                  } elseif ($statusVal === 'Resolved') {
+                      $statusBadge = 'bg-success text-white';
+                      $statusText = 'Resolved';
+                  } else {
+                      $statusText = $statusVal;
+                  }
+              ?>
+                <tr>
+                  <td class="fw-semibold text-dark"><?= $recLabel ?></td>
+                  <td>
+                    <div class="fw-semibold text-dark"><?= htmlspecialchars($h['subject'] ?: 'No Subject') ?></div>
+                    <div class="text-muted" style="font-size: 11px; max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"><?= htmlspecialchars($h['message'] ?? '') ?></div>
+                  </td>
+                  <td>
+                    <div class="text-warning">
+                      <?php for ($i = 1; $i <= 5; $i++): ?>
+                        <i class="fa-<?= $i <= $h['rating'] ? 'solid' : 'regular' ?> fa-star"></i>
+                      <?php endfor; ?>
+                    </div>
+                  </td>
+                  <td class="text-muted"><?= date('M d, Y h:i A', strtotime($h['created_at'])) ?></td>
+                  <td>
+                    <span class="badge <?= $statusBadge ?> rounded-pill px-2.5 py-1 fw-semibold" style="font-size: 10px;"><?= $statusText ?></span>
+                  </td>
+                </tr>
+              <?php endforeach; ?>
+            </tbody>
+          </table>
+        </div>
+      <?php endif; ?>
     </div>
   </div>
 </div>
@@ -224,12 +364,6 @@ window.initFeedback = function() {
         });
     }
 };
-
-if (document.readyState === 'complete' || document.readyState === 'interactive') {
-    window.initFeedback();
-} else {
-    document.addEventListener('DOMContentLoaded', window.initFeedback);
-}
 </script>
 
 <?php include __DIR__ . '/../includes/footer.php'; ?>

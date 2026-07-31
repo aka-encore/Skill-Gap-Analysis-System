@@ -68,7 +68,7 @@ foreach ($skillsDataRaw as $s) {
 // Global Metrics Calculation
 $currentSkillLevel = $totalSkillsCount > 0 ? round($totalScoreSum / $totalSkillsCount, 1) : 0.0;
 $overallGap = round(max(0, 100.0 - $currentSkillLevel), 1);
-$careerMatch = max(15, min(99, round($currentSkillLevel * 0.90 + 10)));
+$careerMatch = calculate_student_career_match($studentId);
 $estLearningWeeks = max(1, round(($overallGap / 100) * 16)); 
 $estLearningTimeText = $estLearningWeeks >= 4 ? round($estLearningWeeks / 4, 1) . ' mo' : $estLearningWeeks . ' wk';
 
@@ -538,7 +538,7 @@ include __DIR__ . '/../includes/header.php';
                             </span>
                         </div>
                         <div class="progress rounded-pill bg-light" style="height: 10px;">
-                            <div class="progress-bar rounded-pill" style="width: <?= max(4, $score) ?>%; background-color: <?= $barColor ?>;"></div>
+                            <div class="progress-bar rounded-pill" style="width: <?= $score ?>%; background-color: <?= $barColor ?>;"></div>
                         </div>
                         <div class="small mt-1 fw-medium" style="color: <?= $barColor ?>; font-size: 11px;">
                             <i class="fa-solid <?= $statusIcon ?> me-1"></i> Gap: <?= number_format($s['gap_percentage'], 1) ?>% — <?= $statusLabel ?>
@@ -787,7 +787,7 @@ function openStatCardModal(type) {
                     '<span class="text-primary"><?php echo number_format($currentSkillLevel, 1); ?>%</span>' +
                 '</div>' +
                 '<div class="progress rounded-pill mb-2" style="height:10px;">' +
-                    '<div class="progress-bar bg-primary rounded-pill" style="width: <?php echo max(5, $currentSkillLevel); ?>%"></div>' +
+                    '<div class="progress-bar bg-primary rounded-pill" style="width: <?php echo $currentSkillLevel; ?>%"></div>' +
                 '</div>' +
                 '<div class="small text-muted">Evaluated Skills: <?php echo $totalSkillsCount; ?> | High Competency: <?php echo $strongCount; ?> | Needs Work: <?php echo $weakCount; ?></div>' +
             '</div>';
@@ -837,7 +837,7 @@ function openSkillModal(skillId) {
     document.getElementById('modalSkillScore').textContent = number_format(s.best_score, 1) + '%';
     document.getElementById('modalSkillTime').textContent = Math.ceil(s.gap_percentage / 3) + ' Days';
     document.getElementById('modalSkillCount').textContent = s.attempted_levels + ' / 5';
-    document.getElementById('modalCareerMatch').textContent = Math.min(99, Math.round(s.best_score * 0.9 + 10)) + '%';
+    document.getElementById('modalCareerMatch').textContent = Math.round(s.best_score) + '%';
     
     document.getElementById('modalSkillDesc').textContent = s.description || 'Technical skill evaluation module covering core topics and practical assessments.';
     document.getElementById('modalSkillImportance').textContent = 'High priority for ' + s.category + ' technical competency.';
